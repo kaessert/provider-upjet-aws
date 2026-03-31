@@ -14,6 +14,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/crossplane/crossplane-runtime/v2/pkg/resource"
+
+	native "github.com/upbound/provider-aws/v2/apis/cluster/s3/v1beta1/native"
 )
 
 // TestNativeTypeHasReferenceAnnotations verifies that the test RAW type in the
@@ -208,6 +212,40 @@ func TestNativePackageHasGroupVersionInfo(t *testing.T) {
 	}
 	if !foundGroupVersion {
 		t.Error("native package must define GroupVersion or CRDGroup constants")
+	}
+}
+
+// TestBucketPolicyRAWIsModernManaged verifies that BucketPolicyRAW satisfies
+// resource.ModernManaged (xpv2 interface with typed ProviderConfigReference and
+// LocalSecretReference) and does NOT satisfy resource.LegacyManaged (which
+// would imply xpv1.ResourceSpec with DeletionPolicy, untyped ProviderConfigReference,
+// and SecretReference with namespace).
+//
+// ModernManaged = Managed + LocalConnectionSecretWriterTo + TypedProviderConfigReferencer
+// LegacyManaged = Managed + ConnectionSecretWriterTo + ProviderConfigReferencer + Orphanable
+//
+// See: xpv2-compat-01 ticket — Migrate BucketPolicyRAW from xpv1.ResourceSpec
+// to xpv2.ManagedResourceSpec.
+func TestBucketPolicyRAWIsModernManaged(t *testing.T) {
+	var raw resource.Managed = &native.BucketPolicyRAW{}
+	_, isModern := raw.(resource.ModernManaged)
+	if !isModern {
+		t.Error("BucketPolicyRAW does not satisfy resource.ModernManaged; " +
+			"BucketPolicyRAWSpec must embed xpv2.ManagedResourceSpec (not xpv1.ResourceSpec)")
+	}
+}
+
+// TestBucketPolicyRAWIsNotLegacyManaged verifies that BucketPolicyRAW does NOT
+// satisfy resource.LegacyManaged. Embedding xpv2.ManagedResourceSpec removes
+// DeletionPolicy, so the type cannot satisfy the Orphanable interface which is
+// required by LegacyManaged.
+func TestBucketPolicyRAWIsNotLegacyManaged(t *testing.T) {
+	var raw resource.Managed = &native.BucketPolicyRAW{}
+	_, isLegacy := raw.(resource.LegacyManaged)
+	if isLegacy {
+		t.Error("BucketPolicyRAW must NOT satisfy resource.LegacyManaged; " +
+			"BucketPolicyRAWSpec must embed xpv2.ManagedResourceSpec (not xpv1.ResourceSpec) " +
+			"which removes DeletionPolicy/Orphanable from the interface set")
 	}
 }
 

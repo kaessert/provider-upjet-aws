@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 )
 
 // BucketPolicyRAWParameters defines the configuration parameters for
@@ -39,11 +40,11 @@ type BucketPolicyRAWParameters struct {
 
 	// BucketRef is a reference to a Bucket to populate bucket.
 	// +optional
-	BucketRef *xpv1.Reference `json:"bucketRef,omitempty"`
+	BucketRef *xpv1.NamespacedReference `json:"bucketRef,omitempty"`
 
 	// BucketSelector selects a reference to a Bucket to populate bucket.
 	// +optional
-	BucketSelector *xpv1.Selector `json:"bucketSelector,omitempty"`
+	BucketSelector *xpv1.NamespacedSelector `json:"bucketSelector,omitempty"`
 
 	// Policy is the JSON-encoded IAM bucket policy document.
 	Policy *string `json:"policy"`
@@ -64,11 +65,11 @@ type BucketPolicyRAWInitParameters struct {
 
 	// BucketRef is a reference to a Bucket to populate bucket.
 	// +optional
-	BucketRef *xpv1.Reference `json:"bucketRef,omitempty"`
+	BucketRef *xpv1.NamespacedReference `json:"bucketRef,omitempty"`
 
 	// BucketSelector selects a reference to a Bucket to populate bucket.
 	// +optional
-	BucketSelector *xpv1.Selector `json:"bucketSelector,omitempty"`
+	BucketSelector *xpv1.NamespacedSelector `json:"bucketSelector,omitempty"`
 
 	// Policy is the JSON-encoded IAM bucket policy document.
 	// +optional
@@ -85,7 +86,7 @@ type BucketPolicyRAWObservation struct {
 
 // BucketPolicyRAWSpec defines the desired state of BucketPolicyRAW.
 type BucketPolicyRAWSpec struct {
-	xpv1.ResourceSpec `json:",inline"`
+	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
 	ForProvider BucketPolicyRAWParameters `json:"forProvider"`

@@ -16,12 +16,12 @@ import (
 
 // ResolveReferences of this BucketPolicyRAW.
 func (mg *BucketPolicyRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
-	r := reference.NewAPIResolver(c, mg)
+	r := reference.NewAPINamespacedResolver(c, mg)
 
-	var rsp reference.ResolutionResponse
+	var rsp reference.NamespacedResolutionResponse
 	var err error
 
-	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.Bucket),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -38,7 +38,7 @@ func (mg *BucketPolicyRAW) ResolveReferences(ctx context.Context, c client.Reade
 	mg.Spec.ForProvider.Bucket = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.ForProvider.BucketRef = rsp.ResolvedReference
 
-	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.Bucket),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
