@@ -1,0 +1,203 @@
+{
+  "repository": {
+    "name": "provider-upjet-aws",
+    "description": "Upjet-based Crossplane provider for AWS",
+    "type": "Kubernetes Provider",
+    "analysis_date": "2024-03-31"
+  },
+  "code_metrics": {
+    "total_go_files": 10318,
+    "generated_go_files": 10053,
+    "generated_percentage": 97.4,
+    "repository_size_mb": 291,
+    "apis_directory_size_mb": 132,
+    "package_directory_size_kb": 176
+  },
+  "resource_types": {
+    "total_types_files": 2331,
+    "generated_types_files": 2329,
+    "generated_percentage": 99.9,
+    "crd_yaml_files": 2019,
+    "crd_variants": ["upbound.io", "m.upbound.io"]
+  },
+  "aws_services": {
+    "total": 177,
+    "with_v1beta1": 174,
+    "with_v1beta2": 118,
+    "with_v1beta3": 4,
+    "total_version_directories": 296
+  },
+  "services": [
+    "accessanalyzer", "account", "acm", "acmpca", "amp", "amplify", "apigateway",
+    "apigatewayv2", "appautoscaling", "appconfig", "appflow", "appintegrations",
+    "applicationinsights", "appmesh", "apprunner", "appstream", "appsync", "athena",
+    "autoscaling", "autoscalingplans", "backup", "batch", "bedrock", "bedrockagent",
+    "bedrockagentcore", "budgets", "ce", "chime", "cloud9", "cloudcontrol",
+    "cloudformation", "cloudfront", "cloudsearch", "cloudtrail", "cloudwatch",
+    "cloudwatchevents", "cloudwatchlogs", "codeartifact", "codebuild", "codecommit",
+    "codeguruprofiler", "codepipeline", "codestarconnections", "codestarnotifications",
+    "cognitoidentity", "cognitoidp", "configservice", "connect", "cur", "dataexchange",
+    "datapipeline", "datasync", "dax", "deploy", "detective", "devicefarm",
+    "directconnect", "dlm", "dms", "docdb", "ds", "dsql", "dynamodb", "ec2",
+    "ecr", "ecrpublic", "ecs", "efs", "eks", "elasticache", "elasticbeanstalk",
+    "elasticsearch", "elastictranscoder", "elb", "elbv2", "emr", "emrcontainers",
+    "emrserverless", "evidently", "firehose", "fis", "fsx", "gamelift", "glacier",
+    "globalaccelerator", "glue", "grafana", "guardduty", "iam", "identitystore",
+    "imagebuilder", "inspector", "inspector2", "iot", "ivs", "kafka", "kafkaconnect",
+    "kendra", "keyspaces", "kinesis", "kinesisanalytics", "kinesisanalyticsv2",
+    "kinesisvideo", "kms", "lakeformation", "lambda", "lexmodels", "licensemanager",
+    "lightsail", "location", "macie2", "mediaconvert", "medialive", "mediapackage",
+    "mediastore", "memorydb", "mq", "mwaa", "neptune", "networkfirewall",
+    "networkmanager", "oam", "opensearch", "opensearchserverless", "organizations",
+    "osis", "pinpoint", "pipes", "qldb", "quicksight", "ram", "rds", "redshift",
+    "redshiftserverless", "resourcegroups", "rolesanywhere", "route53",
+    "route53profiles", "route53recoverycontrolconfig", "route53recoveryreadiness",
+    "route53resolver", "rum", "s3", "s3control", "sagemaker", "scheduler", "schemas",
+    "secretsmanager", "securityhub", "serverlessrepo", "servicecatalog",
+    "servicediscovery", "servicequotas", "ses", "sesv2", "sfn", "signer", "sns", "sqs",
+    "ssm", "ssoadmin", "swf", "timestreamwrite", "transcribe", "transfer",
+    "verifiedaccess", "vpc", "vpclattice", "waf", "wafregional", "wafv2", "workspaces",
+    "xray"
+  ],
+  "build_system": {
+    "type": "GNU Make with Kubernetes tools",
+    "terraform_version": "1.5.5",
+    "terraform_provider_version": "6.34.0",
+    "terraform_provider_release": "v6.34.0-upjet.1",
+    "terraform_provider_source": "hashicorp/aws",
+    "terraform_provider_repo": "https://github.com/hashicorp/terraform-provider-aws",
+    "go_version": "from go.mod",
+    "golangci_lint_version": "2.11.4",
+    "buildtagger_version": "v0.12.0-rc.0.28.gdc5d6f3",
+    "kind_version": "v0.30.0",
+    "uptest_version": "v2.2.0",
+    "kustomize_version": "v5.3.0",
+    "yq_version": "v4.40.5",
+    "crossplane_version": "2.2.0",
+    "crossplane_cli_version": "v2.2.0",
+    "crddiff_version": "v0.12.1"
+  },
+  "directory_structure": {
+    "apis_cluster": {
+      "services": 177,
+      "description": "AWS service packages with API definitions"
+    },
+    "cmd": {
+      "subdirs": ["generator", "partitiongen", "provider"],
+      "description": "Executable sources and provider implementation"
+    },
+    "package_crds": {
+      "yaml_files": 2019,
+      "description": "Custom Resource Definitions"
+    },
+    "examples": {
+      "services": 177,
+      "variants_per_service": ["cluster", "namespaced"],
+      "description": "Example manifests for all services"
+    },
+    "examples_generated": {
+      "description": "Auto-generated examples by version"
+    },
+    "e2e": {
+      "test_suite": "providerconfig-aws-e2e-test",
+      "description": "End-to-end testing package"
+    },
+    "hack": {
+      "files": 6,
+      "description": "Build utilities and templates"
+    },
+    "scripts": {
+      "files": 4,
+      "description": "Utility scripts for testing and deployment"
+    },
+    "internal": {
+      "components": ["apis", "bootcheck", "clients", "controller", "features", "version"],
+      "description": "Core runtime packages"
+    }
+  },
+  "hack_files": [
+    {
+      "name": "boilerplate.go.txt",
+      "purpose": "Go file header template with license"
+    },
+    {
+      "name": "boilerplate.yaml.txt",
+      "purpose": "YAML file header template with license"
+    },
+    {
+      "name": "check-duplicate.sh",
+      "purpose": "Duplicate resource detection script"
+    },
+    {
+      "name": "embed.go",
+      "purpose": "Asset embedding for Go binaries"
+    },
+    {
+      "name": "main.go.tmpl",
+      "purpose": "Provider main entry point template"
+    }
+  ],
+  "scripts_files": [
+    {
+      "name": "check-examples.py",
+      "purpose": "Example manifest validation"
+    },
+    {
+      "name": "family-test.py",
+      "purpose": "Family-level test execution"
+    },
+    {
+      "name": "tag.sh",
+      "purpose": "Automated version tagging"
+    },
+    {
+      "name": "version_diff.py",
+      "purpose": "Version comparison for changelogs"
+    }
+  ],
+  "generated_code_pattern": {
+    "per_resource": 2,
+    "files": [
+      {
+        "pattern": "zz_{resource}_terraformed.go",
+        "typical_size_kb": 4.5,
+        "purpose": "Terraform provider implementation bridge"
+      },
+      {
+        "pattern": "zz_{resource}_types.go",
+        "typical_size_kb": 22,
+        "range_kb": "5-70",
+        "purpose": "Type definitions and schema"
+      }
+    ]
+  },
+  "sample_service_structures": {
+    "ec2": {
+      "v1beta1_files": 214,
+      "v1beta1_resources": 100,
+      "versions": ["v1beta1", "v1beta2"]
+    },
+    "s3": {
+      "versions": ["v1beta1", "v1beta2"]
+    },
+    "rds": {
+      "versions": ["v1beta1", "v1beta2", "v1beta3"]
+    }
+  },
+  "platforms": [
+    "linux_amd64",
+    "linux_arm64"
+  ],
+  "docker_registry": "xpkg.upbound.io/upbound",
+  "git_status": {
+    "recent_commits": 5,
+    "latest": "66a5b0500: fix: executor ant pushes after committing",
+    "note": "Active maintenance with automated tooling (ants)"
+  },
+  "summary": {
+    "architecture": "Code-generation-first Kubernetes provider",
+    "auto_generation": "97.4% of codebase automatically generated from Terraform provider",
+    "deployment": "Kubernetes-native with Crossplane integration",
+    "testing": "Comprehensive E2E tests with per-service examples"
+  }
+}
