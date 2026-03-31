@@ -280,16 +280,22 @@ func main() {
 		kingpin.FatalIfError(customresourcesgate.Setup(mgr, namespacedOptions.Options), "Cannot setup CRD gate")
 		kingpin.FatalIfError(clustercontroller.SetupGated_{{ .Group }}(mgr, clusterOptions), "Cannot setup cluster-scoped AWS controllers")
 		kingpin.FatalIfError(namespacedcontroller.SetupGated_{{ .Group }}(mgr, namespacedOptions), "Cannot setup namespaced AWS controllers")
+		if setupFn := clustercontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
+			kingpin.FatalIfError(setupFn(mgr, clusterOptions.Options), "Cannot setup native cluster controllers")
+		}
+		if setupFn := namespacedcontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
+			kingpin.FatalIfError(setupFn(mgr, namespacedOptions.Options), "Cannot setup native namespaced controllers")
+		}
 	} else {
 		logr.Info("Provider has missing RBAC permissions for watching CRDs, controller SafeStart capability will be disabled")
 		kingpin.FatalIfError(clustercontroller.Setup_{{ .Group }}(mgr, clusterOptions), "Cannot setup cluster-scoped AWS controllers")
 		kingpin.FatalIfError(namespacedcontroller.Setup_{{ .Group }}(mgr, namespacedOptions), "Cannot setup namespaced AWS controllers")
-	}
-	if setupFn := clustercontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
-		kingpin.FatalIfError(setupFn(mgr, clusterOptions.Options), "Cannot setup native cluster controllers")
-	}
-	if setupFn := namespacedcontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
-		kingpin.FatalIfError(setupFn(mgr, namespacedOptions.Options), "Cannot setup native namespaced controllers")
+		if setupFn := clustercontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
+			kingpin.FatalIfError(setupFn(mgr, clusterOptions.Options), "Cannot setup native cluster controllers")
+		}
+		if setupFn := namespacedcontroller.NativeSetupHook_{{ .Group }}; setupFn != nil {
+			kingpin.FatalIfError(setupFn(mgr, namespacedOptions.Options), "Cannot setup native namespaced controllers")
+		}
 	}
 
 	kingpin.FatalIfError(conversion.RegisterConversions(clusterOptions.Provider, namespacedOptions.Provider, mgr.GetScheme()), "Cannot initialize the webhook conversion registry")
