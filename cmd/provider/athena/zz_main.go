@@ -280,6 +280,12 @@ func main() {
 		kingpin.FatalIfError(clustercontroller.Setup_athena(mgr, clusterOptions), "Cannot setup cluster-scoped AWS controllers")
 		kingpin.FatalIfError(namespacedcontroller.Setup_athena(mgr, namespacedOptions), "Cannot setup namespaced AWS controllers")
 	}
+	if setupFn := clustercontroller.NativeSetupHook_athena; setupFn != nil {
+		kingpin.FatalIfError(setupFn(mgr, clusterOptions.Options), "Cannot setup native cluster controllers")
+	}
+	if setupFn := namespacedcontroller.NativeSetupHook_athena; setupFn != nil {
+		kingpin.FatalIfError(setupFn(mgr, namespacedOptions.Options), "Cannot setup native namespaced controllers")
+	}
 
 	kingpin.FatalIfError(conversion.RegisterConversions(clusterOptions.Provider, namespacedOptions.Provider, mgr.GetScheme()), "Cannot initialize the webhook conversion registry")
 	kingpin.FatalIfError(mgr.Start(ctrl.SetupSignalHandler()), "Cannot start controller manager")
