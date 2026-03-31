@@ -1,0 +1,3621 @@
+{
+  "aws_accessanalyzer_analyzer": {
+    "id_field": "analyzer_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_accessanalyzer_archive_rule": {
+    "id_fields": [
+      "analyzer_name"
+    ],
+    "name_field": "rule_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.analyzer_name }}/{{ .external_name }}"
+  },
+  "aws_account_alternate_contact": {
+    "id_fields": [
+      "alternate_contact_type"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.alternate_contact_type }}"
+  },
+  "aws_account_region": {
+    "id_fields": [
+      "region_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.region_name }}"
+  },
+  "aws_acm_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acm_certificate_validation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acmpca_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acmpca_certificate_authority": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acmpca_certificate_authority_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acmpca_permission": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_acmpca_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ami": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ami_copy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ami_launch_permission": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_amplify_app": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_amplify_backend_environment": {
+    "id_fields": [
+      "app_id"
+    ],
+    "name_field": "environment_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.app_id }}/{{ .external_name }}"
+  },
+  "aws_amplify_branch": {
+    "id_fields": [
+      "app_id"
+    ],
+    "name_field": "branch_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.app_id }}/{{ .external_name }}"
+  },
+  "aws_amplify_webhook": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_account": {
+    "notes": "Custom function: apiGatewayAccount()",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_api_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_authorizer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_base_path_mapping": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_client_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_deployment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_documentation_part": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_documentation_version": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['rest_api_id', 'version']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_domain_name": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_gateway_response": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='aggr', fields=['rest_api_id', 'response_type']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_integration": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='agi', fields=['rest_api_id', 'resource_id', 'http_method']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_integration_response": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='agir', fields=['rest_api_id', 'resource_id', 'http_method', 'status_code']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_method": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='agm', fields=['rest_api_id', 'resource_id', 'http_method']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_method_response": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='agmr', fields=['rest_api_id', 'resource_id', 'http_method', 'status_code']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_method_settings": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='', fields=['rest_api_id', 'stage_name', 'method_path']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_model": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_request_validator": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_resource": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_rest_api": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_rest_api_policy": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['rest_api_id']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_stage": {
+    "notes": "apiGatewayFormattedIdentifier: prefix='ags', fields=['rest_api_id', 'stage_name']",
+    "strategy": "custom"
+  },
+  "aws_api_gateway_usage_plan": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_usage_plan_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_api_gateway_vpc_link": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_api": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_api_mapping": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_authorizer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_deployment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_domain_name": {
+    "id_field": "domain_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_apigatewayv2_integration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_integration_response": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_model": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_route": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_route_response": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apigatewayv2_stage": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_apigatewayv2_vpc_link": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_app_cookie_stickiness_policy": {
+    "id_fields": [
+      "load_balancer",
+      "lb_port"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.load_balancer }}:{{ .parameters.lb_port }}:{{ .external_name }}"
+  },
+  "aws_appautoscaling_policy": {
+    "id_fields": [
+      "service_namespace",
+      "resource_id",
+      "scalable_dimension"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.service_namespace }}/{{ .parameters.resource_id }}/{{ .parameters.scalable_dimension }}/{{ .external_name }}"
+  },
+  "aws_appautoscaling_scheduled_action": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appautoscaling_target": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_application": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_configuration_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_deployment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_deployment_strategy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_environment": {
+    "notes": "Custom function: appConfigEnvironment()",
+    "strategy": "custom"
+  },
+  "aws_appconfig_extension": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_extension_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appconfig_hosted_configuration_version": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appflow_flow": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:appflow:{region}:{account_id}:flow/{{ .external_name }}"
+  },
+  "aws_appintegrations_event_integration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_applicationinsights_application": {
+    "id_field": "resource_group_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_appmesh_gateway_route": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appmesh_mesh": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_appmesh_route": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appmesh_virtual_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appmesh_virtual_node": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appmesh_virtual_router": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appmesh_virtual_service": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apprunner_auto_scaling_configuration_version": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apprunner_connection": {
+    "id_field": "connection_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_apprunner_observability_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apprunner_service": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_apprunner_vpc_connector": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appstream_directory_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appstream_fleet": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appstream_fleet_stack_association": {
+    "id_fields": [
+      "fleet_name",
+      "stack_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.fleet_name }}/{{ .parameters.stack_name}}"
+  },
+  "aws_appstream_image_builder": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_appstream_stack": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appstream_user": {
+    "id_fields": [
+      "authentication_type"
+    ],
+    "name_field": "user_name",
+    "strategy": "templated",
+    "template": "{{ .external_name }}/{{ .parameters.authentication_type }}"
+  },
+  "aws_appstream_user_stack_association": {
+    "id_fields": [
+      "user_name",
+      "authentication_type",
+      "stack_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.user_name }}/{{ .parameters.authentication_type }}/{{ .parameters.stack_name }}/"
+  },
+  "aws_appsync_api_cache": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appsync_api_key": {
+    "id_fields": [
+      "api_id"
+    ],
+    "notes": "Provider-defined identifier with template",
+    "strategy": "templated",
+    "template": "{{ .parameters.api_id }}:{{ .external_name }}"
+  },
+  "aws_appsync_datasource": {
+    "id_fields": [
+      "api_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.api_id }}-{{ .external_name }}"
+  },
+  "aws_appsync_function": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appsync_graphql_api": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_appsync_resolver": {
+    "id_fields": [
+      "api_id",
+      "type",
+      "field"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.api_id }}-{{ .parameters.type }}-{{ .parameters.field }}"
+  },
+  "aws_athena_data_catalog": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_athena_database": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_athena_named_query": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_athena_workgroup": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_autoscaling_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_autoscaling_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_autoscaling_group_tag": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_autoscaling_lifecycle_hook": {
+    "id_fields": [
+      "autoscaling_group_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.autoscaling_group_name }}/{{ .external_name }}"
+  },
+  "aws_autoscaling_notification": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_autoscaling_policy": {
+    "id_fields": [
+      "autoscaling_group_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.autoscaling_group_name }}/{{ .external_name }}"
+  },
+  "aws_autoscaling_schedule": {
+    "id_fields": [
+      "autoscaling_group_name"
+    ],
+    "name_field": "scheduled_action_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.autoscaling_group_name }}/{{ .external_name }}"
+  },
+  "aws_autoscalingplans_scaling_plan": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_framework": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_global_settings": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_plan": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_region_settings": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_report_plan": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_selection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_vault": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_backup_vault_lock_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_vault_notifications": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_backup_vault_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_batch_compute_environment": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_batch_job_definition": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_batch_job_queue": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:batch:{region}:{account_id}:job-queue/{{ .external_name }}"
+  },
+  "aws_batch_scheduling_policy": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:batch:{region}:{account_id}:scheduling-policy/{{ .external_name }}"
+  },
+  "aws_bedrock_inference_profile": {
+    "notes": "Default stub: bedrock12345",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagent_agent": {
+    "notes": "Default stub: STUB123456",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_agent_runtime": {
+    "id_field": "agent_runtime_id",
+    "notes": "Framework resource with computed identifier, stub: xp_stub_hosted_agent_i3sdp-PCtbZ62Yy2",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_agent_runtime_endpoint": {
+    "notes": "Custom function: bedrockAgentCoreAgentRuntimeEndpoint()",
+    "strategy": "custom"
+  },
+  "aws_bedrockagentcore_api_key_credential_provider": {
+    "notes": "Framework resource name as identifier",
+    "strategy": "name_as_identifier"
+  },
+  "aws_bedrockagentcore_browser": {
+    "id_field": "browser_id",
+    "notes": "Framework resource with computed identifier, stub: stub_browser_xp_szn45-n7uhLDeK0u",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_code_interpreter": {
+    "id_field": "code_interpreter_id",
+    "notes": "Framework resource with computed identifier, stub: stub_code_interpreter_tool_xp_123abc-QJBfJmqq7c",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_gateway": {
+    "id_field": "gateway_id",
+    "notes": "Framework resource with computed identifier, stub: gateway-stub-crossplane-x00x0x-xx0x0xx0xx",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_gateway_target": {
+    "id_field": "target_id",
+    "notes": "Framework resource with computed identifier, stub: XXXXXXXX11",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_memory": {
+    "notes": "Default stub: stub_memory_placeholder_xp-stub123456",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_memory_strategy": {
+    "id_field": "memory_strategy_id",
+    "notes": "Framework resource with computed identifier, stub: STUB123456",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_bedrockagentcore_oauth2_credential_provider": {
+    "notes": "Framework resource name as identifier",
+    "strategy": "name_as_identifier"
+  },
+  "aws_bedrockagentcore_token_vault_cmk": {
+    "notes": "Custom function: bedrockAgentCoreTokenVaultCMK()",
+    "strategy": "custom"
+  },
+  "aws_bedrockagentcore_workload_identity": {
+    "notes": "Framework resource name as identifier",
+    "strategy": "name_as_identifier"
+  },
+  "aws_budgets_budget": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .setup.client_metadata.account_id }}:{{ .external_name }}"
+  },
+  "aws_budgets_budget_action": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ce_anomaly_monitor": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_chime_voice_connector": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_chime_voice_connector_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_chime_voice_connector_logging": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_chime_voice_connector_origination": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_chime_voice_connector_streaming": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_chime_voice_connector_termination": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_chime_voice_connector_termination_credentials": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloud9_environment_ec2": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloud9_environment_membership": {
+    "id_fields": [
+      "environment_id",
+      "user_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.environment_id }}#{{ .parameters.user_arn }}"
+  },
+  "aws_cloudcontrolapi_resource": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudformation_stack": {
+    "id_fields": [
+      "name"
+    ],
+    "notes": "TemplatedStringAsIdentifierWithNoName ARN: aws:cloudformation:{region}:{account_id}:stack/{{ .parameters.name }}/{{ .external_name }}",
+    "strategy": "custom"
+  },
+  "aws_cloudformation_stack_set": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudformation_stack_set_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_cache_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_distribution": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_field_level_encryption_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_field_level_encryption_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_function": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudfront_key_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_monitoring_subscription": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_origin_access_control": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_origin_access_identity": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_origin_request_policy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudfront_public_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_realtime_log_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_response_headers_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudfront_vpc_origin": {
+    "notes": "Default stub: vo_stub000000000000000000",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudsearch_domain": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudsearch_domain_service_access_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudtrail": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:cloudtrail:{region}:{account_id}:trail/{{ .external_name }}"
+  },
+  "aws_cloudtrail_event_data_store": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudwatch_composite_alarm": {
+    "id_field": "alarm_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_cloudwatch_dashboard": {
+    "id_field": "dashboard_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_cloudwatch_event_api_destination": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_event_archive": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_event_bus": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_event_bus_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudwatch_event_connection": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_event_permission": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['event_bus_name', 'statement_id']",
+    "strategy": "custom"
+  },
+  "aws_cloudwatch_event_rule": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=name, sep='/', provider_fields=['event_bus_name']",
+    "strategy": "custom"
+  },
+  "aws_cloudwatch_event_target": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['event_bus_name', 'rule', 'target_id']",
+    "strategy": "custom"
+  },
+  "aws_cloudwatch_log_destination": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_log_destination_policy": {
+    "id_field": "destination_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_cloudwatch_log_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_log_metric_filter": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_cloudwatch_log_resource_policy": {
+    "id_field": "policy_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_cloudwatch_log_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudwatch_log_subscription_filter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudwatch_metric_alarm": {
+    "id_field": "alarm_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_cloudwatch_metric_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cloudwatch_query_definition": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codeartifact_domain": {
+    "id_fields": [],
+    "strategy": "templated",
+    "template": "arn:aws:codeartifact:{region}:{account_id}:domain/{{ .external_name }}"
+  },
+  "aws_codeartifact_domain_permissions_policy": {
+    "id_fields": [
+      "domain"
+    ],
+    "strategy": "templated",
+    "template": "arn:aws:codeartifact:{region}:{account_id}:domain/{{ .parameters.domain }}"
+  },
+  "aws_codeartifact_repository": {
+    "id_fields": [
+      "domain"
+    ],
+    "strategy": "templated",
+    "template": "arn:aws:codeartifact:{region}:{account_id}:repository/{{ .parameters.domain }}/{{ .external_name }}"
+  },
+  "aws_codeartifact_repository_permissions_policy": {
+    "id_fields": [
+      "domain",
+      "repository"
+    ],
+    "strategy": "templated",
+    "template": "arn:aws:codeartifact:{region}:{account_id}:repository/{{ .parameters.domain }}/{{ .parameters.repository }}"
+  },
+  "aws_codebuild_project": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:codebuild:{region}:{account_id}:project/{{ .external_name }}"
+  },
+  "aws_codebuild_report_group": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:codebuild:{region}:{account_id}:report-group/{{ .external_name }}"
+  },
+  "aws_codebuild_source_credential": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codebuild_webhook": {
+    "notes": "Custom function: codebuildWebhook()",
+    "strategy": "custom"
+  },
+  "aws_codecommit_approval_rule_template": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_codecommit_approval_rule_template_association": {
+    "id_fields": [
+      "approval_rule_template_name",
+      "repository_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.approval_rule_template_name }},{{ .parameters.repository_name }}"
+  },
+  "aws_codecommit_repository": {
+    "id_field": "repository_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_codecommit_trigger": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codedeploy_app": {
+    "id_fields": [
+      "application_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.application_id }}:{{ .external_name }}"
+  },
+  "aws_codedeploy_deployment_config": {
+    "id_field": "deployment_config_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_codedeploy_deployment_group": {
+    "id_fields": [
+      "app_name"
+    ],
+    "name_field": "deployment_group_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.app_name }}:{{ .external_name }}"
+  },
+  "aws_codeguruprofiler_profiling_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_codepipeline": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_codepipeline_custom_action_type": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codepipeline_webhook": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:codepipeline:{region}:{account_id}:webhook:{{ .external_name }}"
+  },
+  "aws_codestarconnections_connection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codestarconnections_host": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_codestarnotifications_notification_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_identity_pool": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_identity_pool_provider_principal_tag": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_identity_pool_roles_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_identity_provider": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_resource_server": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_risk_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_user": {
+    "id_fields": [
+      "user_pool_id"
+    ],
+    "name_field": "username",
+    "strategy": "templated",
+    "template": "{{ .parameters.user_pool_id }}/{{ .external_name }}"
+  },
+  "aws_cognito_user_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_user_in_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_user_pool": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_user_pool_client": {
+    "notes": "Custom function: cognitoUserPoolClient()",
+    "strategy": "custom"
+  },
+  "aws_cognito_user_pool_domain": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cognito_user_pool_ui_customization": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_config_config_rule": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_configuration_aggregator": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_configuration_recorder": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_configuration_recorder_status": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_conformance_pack": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_delivery_channel": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_config_remediation_configuration": {
+    "id_field": "config_rule_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_connect_bot_association": {
+    "id_fields": [
+      "instance_id"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.instance_id }}:{{ (index .parameters.lex_bot 0).name }}:{{ (index .parameters.lex_bot 0).lex_region }}"
+  },
+  "aws_connect_contact_flow": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_contact_flow_module": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_hours_of_operation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_instance_storage_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_lambda_function_association": {
+    "id_fields": [
+      "instance_id",
+      "function_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.instance_id }},{{ .parameters.function_arn }}"
+  },
+  "aws_connect_phone_number": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_queue": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_quick_connect": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_routing_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_security_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_user": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_user_hierarchy_structure": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_connect_vocabulary": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_cur_report_definition": {
+    "id_field": "report_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_customer_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dataexchange_data_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dataexchange_revision": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_datapipeline_pipeline": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_datasync_location_s3": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_datasync_task": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dax_cluster": {
+    "id_field": "cluster_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dax_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_dax_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_db_cluster_snapshot": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_event_subscription": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_db_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_instance_automated_backups_replication": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_instance_role_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_option_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_db_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_db_proxy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_db_proxy_default_target_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_proxy_endpoint": {
+    "id_fields": [
+      "db_proxy_name"
+    ],
+    "name_field": "db_proxy_endpoint_name",
+    "strategy": "templated",
+    "template": "{{ .external_name }}/{{ .parameters.db_proxy_name }}"
+  },
+  "aws_db_proxy_target": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_snapshot": {
+    "id_field": "db_snapshot_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_db_snapshot_copy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_db_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_default_network_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_default_route_table": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_default_security_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_default_subnet": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_default_vpc": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_default_vpc_dhcp_options": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_detective_graph": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_detective_invitation_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_detective_member": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_device_pool": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_instance_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_network_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_project": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_test_grid_project": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_devicefarm_upload": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_directory_service_conditional_forwarder": {
+    "id_fields": [
+      "directory_id",
+      "remote_domain_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.directory_id }}:{{ .parameters.remote_domain_name }}"
+  },
+  "aws_directory_service_directory": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_directory_service_shared_directory": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dlm_lifecycle_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dms_certificate": {
+    "id_field": "certificate_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dms_endpoint": {
+    "id_field": "endpoint_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dms_event_subscription": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_dms_replication_instance": {
+    "id_field": "replication_instance_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dms_replication_subnet_group": {
+    "id_field": "replication_subnet_group_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dms_replication_task": {
+    "id_field": "replication_task_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_dms_s3_endpoint": {
+    "id_field": "endpoint_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_docdb_cluster": {
+    "id_field": "cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_docdb_cluster_instance": {
+    "id_field": "identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_docdb_cluster_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_docdb_cluster_snapshot": {
+    "id_field": "db_cluster_snapshot_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_docdb_event_subscription": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_docdb_global_cluster": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_docdb_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_dsql_cluster": {
+    "id_field": "identifier",
+    "notes": "Framework resource with computed identifier, stub: artix3b6dqiognkp7732wzhroi",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dsql_cluster_peering": {
+    "notes": "Custom function: dsqlClusterPeering()",
+    "strategy": "custom"
+  },
+  "aws_dx_bgp_peer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_connection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_connection_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_gateway_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_gateway_association_proposal": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_private_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_private_virtual_interface_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_public_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_public_virtual_interface_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_transit_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_hosted_transit_virtual_interface_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_lag": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_private_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_public_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dx_transit_virtual_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dynamodb_contributor_insights": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dynamodb_global_table": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_dynamodb_kinesis_streaming_destination": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dynamodb_resource_policy": {
+    "id_fields": [
+      "resource_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.resource_arn }}"
+  },
+  "aws_dynamodb_table": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_dynamodb_table_item": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dynamodb_table_replica": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_dynamodb_tag": {
+    "id_fields": [
+      "resource_arn",
+      "key"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.resource_arn }},{{ .parameters.key }}"
+  },
+  "aws_ebs_default_kms_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ebs_encryption_by_default": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ebs_snapshot": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ebs_snapshot_copy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ebs_snapshot_import": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ebs_volume": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_availability_zone_group": {
+    "id_field": "group_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_ec2_capacity_reservation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_carrier_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_fleet": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_host": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_instance_state": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_managed_prefix_list": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_managed_prefix_list_entry": {
+    "notes": "FormattedIdentifierFromProvider: separator=',', fields=['prefix_list_id', 'cidr']",
+    "strategy": "custom"
+  },
+  "aws_ec2_network_insights_analysis": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_network_insights_path": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_serial_console_access": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_subnet_cidr_reservation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_tag": {
+    "id_fields": [
+      "resource_id",
+      "key"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.resource_id }},{{ .parameters.key }}"
+  },
+  "aws_ec2_traffic_mirror_filter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_traffic_mirror_filter_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_connect": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_connect_peer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_multicast_domain": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_multicast_domain_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_multicast_group_member": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_multicast_group_source": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_peering_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_peering_attachment_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_policy_table": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_prefix_list_reference": {
+    "notes": "FormattedIdentifierFromProvider: separator='_', fields=['transit_gateway_route_table_id', 'prefix_list_id']",
+    "strategy": "custom"
+  },
+  "aws_ec2_transit_gateway_route": {
+    "notes": "FormattedIdentifierFromProvider: separator='_', fields=['transit_gateway_route_table_id', 'destination_cidr_block']",
+    "strategy": "custom"
+  },
+  "aws_ec2_transit_gateway_route_table": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_route_table_association": {
+    "notes": "FormattedIdentifierFromProvider: separator='_', fields=['transit_gateway_route_table_id', 'transit_gateway_attachment_id']",
+    "strategy": "custom"
+  },
+  "aws_ec2_transit_gateway_route_table_propagation": {
+    "notes": "FormattedIdentifierFromProvider: separator='_', fields=['transit_gateway_route_table_id', 'transit_gateway_attachment_id']",
+    "strategy": "custom"
+  },
+  "aws_ec2_transit_gateway_vpc_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ec2_transit_gateway_vpc_attachment_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_lifecycle_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_pull_through_cache_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_registry_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_registry_scanning_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_replication_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecr_repository": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ecr_repository_creation_template": {
+    "notes": "Custom function: ecrRepositoryCreationTemplate()",
+    "strategy": "custom"
+  },
+  "aws_ecr_repository_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecrpublic_repository": {
+    "id_field": "repository_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_ecrpublic_repository_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecs_account_setting_default": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecs_capacity_provider": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:ecs:{region}:{account_id}:capacity-provider/{{ .external_name }}"
+  },
+  "aws_ecs_cluster": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:ecs:{region}:{account_id}:cluster/{{ .external_name }}"
+  },
+  "aws_ecs_cluster_capacity_providers": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ecs_service": {
+    "id_fields": [
+      "cluster"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:ecs:{region}:{account_id}:service/{{ .parameters.cluster }}/{{ .external_name }}"
+  },
+  "aws_ecs_task_definition": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_access_point": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_backup_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_file_system": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_file_system_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_mount_target": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_efs_replication_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_egress_only_internet_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_eip": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_eip_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_eks_access_entry": {
+    "notes": "TemplatedStringAsIdentifierWithNoName: \"{{ .parameters.cluster_name }}:{{ .parameters.principal_arn }}\"",
+    "strategy": "custom"
+  },
+  "aws_eks_access_policy_association": {
+    "notes": "TemplatedStringAsIdentifierWithNoName: \"{{ .parameters.cluster_name }}#{{ .parameters.principal_arn }}#{{ .parameters.policy_arn }}\"",
+    "strategy": "custom"
+  },
+  "aws_eks_addon": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['cluster_name', 'addon_name']",
+    "strategy": "custom"
+  },
+  "aws_eks_cluster": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_eks_fargate_profile": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=fargate_profile_name, sep=':', provider_fields=['cluster_name']",
+    "strategy": "custom"
+  },
+  "aws_eks_identity_provider_config": {
+    "notes": "Custom function: eksOIDCIdentityProvider()",
+    "strategy": "custom"
+  },
+  "aws_eks_node_group": {
+    "id_fields": [
+      "cluster_name"
+    ],
+    "name_field": "node_group_name",
+    "strategy": "templated",
+    "template": "{{ .parameters.cluster_name }}:{{ .external_name }}"
+  },
+  "aws_eks_pod_identity_association": {
+    "notes": "Custom function: eksPodIdentityAssociation()",
+    "strategy": "custom"
+  },
+  "aws_elastic_beanstalk_application": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elastic_beanstalk_application_version": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elastic_beanstalk_configuration_template": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elasticache_cluster": {
+    "id_field": "cluster_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_elasticache_global_replication_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_elasticache_parameter_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_elasticache_replication_group": {
+    "id_field": "replication_group_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_elasticache_serverless_cache": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elasticache_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elasticache_user": {
+    "id_field": "user_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_elasticache_user_group": {
+    "id_field": "user_group_id",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_elasticsearch_domain": {
+    "id_fields": [],
+    "name_field": "domain_name",
+    "strategy": "templated",
+    "template": "arn:aws:es:{region}:{account_id}:domain/{{ .external_name }}"
+  },
+  "aws_elasticsearch_domain_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_elasticsearch_domain_saml_options": {
+    "id_field": "domain_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_elastictranscoder_pipeline": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_elastictranscoder_preset": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_elb": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_elb_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_emr_security_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_emrcontainers_virtual_cluster": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_emrserverless_application": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_evidently_feature": {
+    "id_fields": [
+      "project"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .external_name }}:{{ .parameters.project }}"
+  },
+  "aws_evidently_project": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_evidently_segment": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:evidently:{region}:{account_id}:segment/{{ .external_name }}"
+  },
+  "aws_fis_experiment_template": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_flow_log": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_backup": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_data_repository_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_lustre_file_system": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_ontap_file_system": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_ontap_storage_virtual_machine": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_fsx_windows_file_system": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_gamelift_alias": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_gamelift_build": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_gamelift_fleet": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_gamelift_game_session_queue": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_gamelift_script": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_glacier_vault": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glacier_vault_lock": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['vault_name']",
+    "strategy": "custom"
+  },
+  "aws_globalaccelerator_accelerator": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_globalaccelerator_endpoint_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_globalaccelerator_listener": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_glue_catalog_database": {
+    "id_fields": [
+      "catalog_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.catalog_id }}:{{ .external_name }}"
+  },
+  "aws_glue_catalog_table": {
+    "id_fields": [
+      "catalog_id",
+      "database_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.catalog_id }}:{{ .parameters.database_name }}:{{ .external_name }}"
+  },
+  "aws_glue_catalog_table_optimizer": {
+    "id_fields": [
+      "catalog_id",
+      "database_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.catalog_id }}:{{ .parameters.database_name }}:{{ .external_name }}"
+  },
+  "aws_glue_classifier": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glue_connection": {
+    "id_fields": [
+      "catalog_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.catalog_id }}:{{ .external_name }}"
+  },
+  "aws_glue_crawler": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glue_data_catalog_encryption_settings": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_glue_job": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glue_registry": {
+    "id_fields": [],
+    "name_field": "registry_name",
+    "strategy": "templated",
+    "template": "arn:aws:glue:{region}:{account_id}:registry/{{ .external_name }}"
+  },
+  "aws_glue_resource_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_glue_schema": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_glue_security_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glue_trigger": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_glue_user_defined_function": {
+    "id_fields": [
+      "catalog_id",
+      "database_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.catalog_id }}:{{ .parameters.database_name }}:{{ .external_name }}"
+  },
+  "aws_glue_workflow": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_grafana_license_association": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['workspace_id']",
+    "strategy": "custom"
+  },
+  "aws_grafana_role_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_grafana_workspace": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_grafana_workspace_api_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_grafana_workspace_saml_configuration": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['workspace_id']",
+    "strategy": "custom"
+  },
+  "aws_guardduty_detector": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_guardduty_filter": {
+    "id_fields": [
+      "detector_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.detector_id }}:{{ .external_name }}"
+  },
+  "aws_guardduty_member": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_access_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_account_alias": {
+    "id_field": "account_alias",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_iam_account_password_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iam_group_membership": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_group_policy_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_instance_profile": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iam_openid_connect_provider": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_policy": {
+    "notes": "Custom function: iamPolicy()",
+    "strategy": "custom"
+  },
+  "aws_iam_role": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iam_role_policy": {
+    "id_fields": [
+      "role"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.role }}:{{ .external_name }}"
+  },
+  "aws_iam_role_policy_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_saml_provider": {
+    "notes": "Custom function: config.TemplatedStringAsIdentifier(\"name\", regionlessARNTemplate(\"iam\", \"saml-provider/{{ .external_name }}\"))",
+    "strategy": "custom"
+  },
+  "aws_iam_server_certificate": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iam_service_linked_role": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_service_specific_credential": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_signing_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_user": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iam_user_group_membership": {
+    "notes": "Custom function: iamUserGroupMembership()",
+    "strategy": "custom"
+  },
+  "aws_iam_user_login_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_user_policy_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_user_ssh_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iam_virtual_mfa_device": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_identitystore_group": {
+    "id_fields": [
+      "identity_store_id"
+    ],
+    "notes": "Provider-defined identifier with template",
+    "strategy": "templated",
+    "template": "{{ .parameters.identity_store_id }}/{{ .external_name }}"
+  },
+  "aws_identitystore_group_membership": {
+    "id_fields": [
+      "identity_store_id"
+    ],
+    "notes": "Provider-defined identifier with template",
+    "strategy": "templated",
+    "template": "{{ .parameters.identity_store_id }}/{{ .external_name }}"
+  },
+  "aws_identitystore_user": {
+    "id_fields": [
+      "identity_store_id"
+    ],
+    "notes": "Provider-defined identifier with template",
+    "strategy": "templated",
+    "template": "{{ .parameters.identity_store_id }}/{{ .external_name }}"
+  },
+  "aws_imagebuilder_component": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_container_recipe": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_distribution_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_image": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_image_pipeline": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_image_recipe": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_imagebuilder_infrastructure_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_inspector2_enabler": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_inspector_assessment_target": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_inspector_assessment_template": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_inspector_resource_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_internet_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_authorizer": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_domain_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_indexing_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_logging_options": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_policy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_policy_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_provisioning_template": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_role_alias": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_thing": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_thing_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_thing_group_membership": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['thing_group_name', 'thing_name']",
+    "strategy": "custom"
+  },
+  "aws_iot_thing_principal_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_iot_thing_type": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['name']",
+    "strategy": "custom"
+  },
+  "aws_iot_topic_rule": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_iot_topic_rule_destination": {
+    "notes": "Custom function: TemplatedStringAsProviderDefinedIdentifier(fullARNTemplate(\"iot\", \"ruledestination/vpc/{{ .external_name }}\"))",
+    "strategy": "custom"
+  },
+  "aws_ivs_channel": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ivs_recording_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kendra_data_source": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kendra_experience": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kendra_index": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kendra_query_suggestions_block_list": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kendra_thesaurus": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_key_pair": {
+    "id_field": "key_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_keyspaces_keyspace": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_keyspaces_table": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['keyspace_name', 'table_name']",
+    "strategy": "custom"
+  },
+  "aws_kinesis_analytics_application": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:kinesisanalytics:{region}:{account_id}:application/{{ .external_name }}"
+  },
+  "aws_kinesis_firehose_delivery_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kinesis_stream": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:kinesis:{region}:{account_id}:stream/{{ .external_name }}"
+  },
+  "aws_kinesis_stream_consumer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kinesis_video_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kinesisanalyticsv2_application": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:kinesisanalytics:{region}:{account_id}:application/{{ .external_name }}"
+  },
+  "aws_kinesisanalyticsv2_application_snapshot": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=snapshot_name, sep='/', provider_fields=['application_name']",
+    "strategy": "custom"
+  },
+  "aws_kms_alias": {
+    "notes": "Custom function: kmsAlias()",
+    "strategy": "custom"
+  },
+  "aws_kms_ciphertext": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kms_external_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kms_grant": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kms_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kms_replica_external_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_kms_replica_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lakeformation_data_lake_settings": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lakeformation_permissions": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lakeformation_resource": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_alias": {
+    "id_fields": [
+      "function_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:lambda:{region}:{account_id}:function:{{ .parameters.function_name }}:{{ .external_name }}"
+  },
+  "aws_lambda_code_signing_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_event_source_mapping": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_function": {
+    "id_field": "function_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_lambda_function_event_invoke_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_function_url": {
+    "notes": "Custom function: lambdaFunctionURL()",
+    "strategy": "custom"
+  },
+  "aws_lambda_invocation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_layer_version": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_layer_version_permission": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_permission": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lambda_provisioned_concurrency_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_launch_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_launch_template": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_cookie_stickiness_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_listener": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_listener_certificate": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_listener_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_ssl_negotiation_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_target_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_target_group_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lb_trust_store": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lex_bot": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lex_bot_alias": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=name, sep=':', provider_fields=['bot_name']",
+    "strategy": "custom"
+  },
+  "aws_lex_intent": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lex_slot_type": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_licensemanager_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=',', fields=['resource_arn', 'license_configuration_arn']",
+    "strategy": "custom"
+  },
+  "aws_licensemanager_license_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_bucket": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_certificate": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_container_service": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_disk": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_disk_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_domain": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_domain_entry": {
+    "id_fields": [
+      "domain_name",
+      "type"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .external_name }}_{{ .parameters.domain_name }}_{{ .parameters.type }}_{{ .parameeters.target }}"
+  },
+  "aws_lightsail_instance": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_instance_public_ports": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_key_pair": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_lb": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_lightsail_lb_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_lb_certificate": {
+    "id_fields": [
+      "lb_name"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.lb_name }},{{ .external_name }}"
+  },
+  "aws_lightsail_lb_stickiness_policy": {
+    "id_field": "lb_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_lightsail_static_ip": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_lightsail_static_ip_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_load_balancer_backend_server_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_load_balancer_listener_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_load_balancer_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_location_geofence_collection": {
+    "id_field": "collection_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_location_place_index": {
+    "id_field": "index_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_location_route_calculator": {
+    "id_field": "calculator_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_location_tracker": {
+    "id_field": "tracker_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_location_tracker_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_macie2_account": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_macie2_classification_job": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_macie2_custom_data_identifier": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_macie2_findings_filter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_macie2_invitation_accepter": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['administrator_account_id']",
+    "strategy": "custom"
+  },
+  "aws_macie2_member": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['account_id']",
+    "strategy": "custom"
+  },
+  "aws_main_route_table_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_media_convert_queue": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_media_package_channel": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_media_store_container": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_media_store_container_policy": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['container_name']",
+    "strategy": "custom"
+  },
+  "aws_medialive_channel": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_medialive_input": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_medialive_input_security_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_medialive_multiplex": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_memorydb_acl": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_memorydb_cluster": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_memorydb_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_memorydb_snapshot": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_memorydb_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_memorydb_user": {
+    "id_field": "user_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_mq_broker": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_mq_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_mq_user": {
+    "notes": "Custom function: mqUser()",
+    "strategy": "custom"
+  },
+  "aws_msk_cluster": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_msk_cluster_policy": {
+    "id_fields": [
+      "cluster_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.cluster_arn }}"
+  },
+  "aws_msk_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_msk_replicator": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_msk_scram_secret_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_msk_serverless_cluster": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_msk_single_scram_secret_association": {
+    "id_fields": [
+      "cluster_arn",
+      "secret_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.cluster_arn }},{{ .parameters.secret_arn }}"
+  },
+  "aws_mskconnect_connector": {
+    "notes": "Custom function: TemplatedStringAsProviderDefinedIdentifier(fullARNTemplate(\"kafkaconnect\", \"connector/{{ .parameters.name }}/{{ .external_name }}\"))",
+    "strategy": "custom"
+  },
+  "aws_mskconnect_custom_plugin": {
+    "notes": "Custom function: TemplatedStringAsProviderDefinedIdentifier(fullARNTemplate(\"kafkaconnect\", \"custom-plugin/{{ .parameters.name }}/{{ .external_name }}\"))",
+    "strategy": "custom"
+  },
+  "aws_mskconnect_worker_configuration": {
+    "notes": "Custom function: TemplatedStringAsProviderDefinedIdentifier(fullARNTemplate(\"kafkaconnect\", \"worker-configuration/{{ .parameters.name }}/{{ .external_name }}\"))",
+    "strategy": "custom"
+  },
+  "aws_mwaa_environment": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_nat_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_neptune_cluster": {
+    "id_field": "cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_neptune_cluster_endpoint": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=cluster_endpoint_identifier, sep=':', provider_fields=['cluster_identifier']",
+    "strategy": "custom"
+  },
+  "aws_neptune_cluster_instance": {
+    "id_field": "identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_neptune_cluster_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_neptune_cluster_snapshot": {
+    "id_field": "db_cluster_snapshot_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_neptune_event_subscription": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_neptune_global_cluster": {
+    "id_field": "global_cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_neptune_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_neptune_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_network_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_network_acl_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_network_interface": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_network_interface_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_network_interface_sg_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkfirewall_firewall": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkfirewall_firewall_policy": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:network-firewall:{region}:{account_id}:firewall-policy/{{ .external_name }}"
+  },
+  "aws_networkfirewall_logging_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkfirewall_rule_group": {
+    "id_fields": [],
+    "strategy": "templated",
+    "template": "arn:aws:network-firewall:{region}:{account_id}:{{ .parameters.type | ToLower }}-rulegroup/{{ .external_name }}"
+  },
+  "aws_networkmanager_attachment_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_connect_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_connection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_core_network": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_customer_gateway_association": {
+    "id_fields": [
+      "global_network_id",
+      "customer_gateway_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.global_network_id }},arn:{{ .setup.client_metadata.partition }}:ec2:{{ .setup.configuration.region }}:{{ .setup.client_metadata.account_id }}:customer-gateway/{{ .parameters.customer_gateway_arn }}"
+  },
+  "aws_networkmanager_device": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_global_network": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_link": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_link_association": {
+    "id_fields": [
+      "global_network_id",
+      "link_id",
+      "device_id"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.global_network_id }},{{ .parameters.link_id }},{{ .parameters.device_id }}"
+  },
+  "aws_networkmanager_site": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_networkmanager_transit_gateway_connect_peer_association": {
+    "id_fields": [
+      "global_network_id",
+      "transit_gateway_connect_peer_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.global_network_id }},arn:{{ .setup.client_metadata.partition }}:ec2:{{ .setup.configuration.region }}:{{ .setup.client_metadata.account_id }}:transit-gateway-connect-peer/{{ .parameters.transit_gateway_connect_peer_arn }}"
+  },
+  "aws_networkmanager_transit_gateway_registration": {
+    "id_fields": [
+      "global_network_id",
+      "transit_gateway_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.global_network_id }},{{ .parameters.transit_gateway_arn }}"
+  },
+  "aws_networkmanager_vpc_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_oam_sink": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_opensearch_domain": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_opensearch_domain_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_opensearch_domain_saml_options": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_opensearchserverless_access_policy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_opensearchserverless_collection": {
+    "notes": "Custom function: opensearchserverlessCollection()",
+    "strategy": "custom"
+  },
+  "aws_opensearchserverless_lifecycle_policy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_opensearchserverless_security_config": {
+    "id_fields": [
+      "type"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "{{ .parameters.type }}/{{ .setup.client_metadata.account_id }}/{{ .external_name }}"
+  },
+  "aws_opensearchserverless_security_policy": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_opensearchserverless_vpc_endpoint": {
+    "notes": "Custom function: opensearchserverlessVpcEndpoint()",
+    "strategy": "custom"
+  },
+  "aws_organizations_account": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_organizations_delegated_administrator": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['account_id', 'service_principal']",
+    "strategy": "custom"
+  },
+  "aws_organizations_organization": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_organizations_organizational_unit": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_organizations_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_organizations_policy_attachment": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['target_id', 'policy_id']",
+    "strategy": "custom"
+  },
+  "aws_osis_pipeline": {
+    "id_field": "pipeline_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_pinpoint_app": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_pinpoint_sms_channel": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['application_id']",
+    "strategy": "custom"
+  },
+  "aws_pipes_pipe": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_placement_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_prometheus_alert_manager_definition": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_prometheus_rule_group_namespace": {
+    "id_fields": [
+      "workspace_id"
+    ],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:aps:{region}:{account_id}:rulegroupsnamespace/{{ .parameters.workspace_id }}/{{ .external_name }}"
+  },
+  "aws_prometheus_scraper": {
+    "notes": "Default stub: scraper12345",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_prometheus_workspace": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_proxy_protocol_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_qldb_ledger": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_qldb_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_quicksight_group": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['aws_account_id', 'namespace', 'group_name']",
+    "strategy": "custom"
+  },
+  "aws_quicksight_user": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ram_principal_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=',', fields=['resource_share_arn', 'principal']",
+    "strategy": "custom"
+  },
+  "aws_ram_resource_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=',', fields=['resource_share_arn', 'resource_arn']",
+    "strategy": "custom"
+  },
+  "aws_ram_resource_share": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ram_resource_share_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_rds_cluster": {
+    "id_field": "cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_rds_cluster_activity_stream": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_rds_cluster_endpoint": {
+    "id_field": "cluster_endpoint_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_rds_cluster_instance": {
+    "id_field": "identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_rds_cluster_parameter_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_rds_cluster_role_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=',', fields=['db_cluster_identifier', 'role_arn']",
+    "strategy": "custom"
+  },
+  "aws_rds_global_cluster": {
+    "id_field": "global_cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_rds_instance_state": {
+    "notes": "Custom function: rdsInstanceState()",
+    "strategy": "custom"
+  },
+  "aws_redshift_authentication_profile": {
+    "id_field": "authentication_profile_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_cluster": {
+    "id_field": "cluster_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_endpoint_access": {
+    "id_field": "endpoint_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_event_subscription": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_redshift_hsm_client_certificate": {
+    "id_field": "hsm_client_certificate_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_hsm_configuration": {
+    "id_field": "hsm_configuration_identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_parameter_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshift_scheduled_action": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_redshift_snapshot_copy_grant": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshift_snapshot_schedule": {
+    "id_field": "identifier",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshift_snapshot_schedule_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshift_subnet_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_redshift_usage_limit": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshiftserverless_endpoint_access": {
+    "id_field": "endpoint_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshiftserverless_namespace": {
+    "id_field": "namespace_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshiftserverless_resource_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshiftserverless_snapshot": {
+    "id_field": "snapshot_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_redshiftserverless_usage_limit": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_redshiftserverless_workgroup": {
+    "id_field": "workgroup_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_resourcegroups_group": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_rolesanywhere_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route": {
+    "notes": "Custom function: route()",
+    "strategy": "custom"
+  },
+  "aws_route53_delegation_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_health_check": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_hosted_zone_dnssec": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_query_log": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_record": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_dnssec_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_endpoint": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_query_log_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_query_log_config_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_resolver_rule_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_traffic_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_traffic_policy_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_vpc_association_authorization": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['zone_id', 'vpc_id']",
+    "strategy": "custom"
+  },
+  "aws_route53_zone": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53_zone_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['zone_id', 'vpc_id']",
+    "strategy": "custom"
+  },
+  "aws_route53profiles_association": {
+    "notes": "Default stub: rpassoc-stub123456",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53profiles_profile": {
+    "notes": "Default stub: rp-stub123456",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53profiles_resource_association": {
+    "notes": "Default stub: rpr-001s0000tu00000001b",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53recoverycontrolconfig_cluster": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53recoverycontrolconfig_control_panel": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53recoverycontrolconfig_routing_control": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53recoverycontrolconfig_safety_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route53recoveryreadiness_cell": {
+    "id_field": "cell_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_route53recoveryreadiness_readiness_check": {
+    "id_field": "readiness_check_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_route53recoveryreadiness_recovery_group": {
+    "id_field": "recovery_group_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_route53recoveryreadiness_resource_set": {
+    "id_field": "resource_set_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_route_table": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_route_table_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_rum_app_monitor": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_rum_metrics_destination": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_access_point": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_account_public_access_block": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket": {
+    "id_field": "bucket",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_s3_bucket_accelerate_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_analytics_configuration": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['bucket', 'name']",
+    "strategy": "custom"
+  },
+  "aws_s3_bucket_cors_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_intelligent_tiering_configuration": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['bucket', 'name']",
+    "strategy": "custom"
+  },
+  "aws_s3_bucket_inventory": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['bucket', 'name']",
+    "strategy": "custom"
+  },
+  "aws_s3_bucket_lifecycle_configuration": {
+    "notes": "Custom function: s3LifecycleConfiguration()",
+    "strategy": "custom"
+  },
+  "aws_s3_bucket_logging": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_metric": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['bucket', 'name']",
+    "strategy": "custom"
+  },
+  "aws_s3_bucket_notification": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_object": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_object_lock_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_ownership_controls": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_public_access_block": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_replication_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_request_payment_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_server_side_encryption_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_versioning": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_bucket_website_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3_directory_bucket": {
+    "id_field": "bucket",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_s3_object": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['bucket', 'key']",
+    "strategy": "custom"
+  },
+  "aws_s3_object_copy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_access_point_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_multi_region_access_point": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_multi_region_access_point_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_object_lambda_access_point": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_object_lambda_access_point_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_s3control_storage_lens_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_app": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_app_image_config": {
+    "id_field": "app_image_config_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_code_repository": {
+    "id_field": "code_repository_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_device": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_device_fleet": {
+    "id_field": "device_fleet_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_domain": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_endpoint": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sagemaker_endpoint_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sagemaker_feature_group": {
+    "id_field": "feature_group_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_image": {
+    "id_field": "image_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_image_version": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_mlflow_tracking_server": {
+    "id_field": "tracking_server_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_model": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sagemaker_model_package_group": {
+    "id_field": "model_package_group_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_model_package_group_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_notebook_instance": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sagemaker_notebook_instance_lifecycle_configuration": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sagemaker_servicecatalog_portfolio_status": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_space": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_studio_lifecycle_config": {
+    "id_field": "studio_lifecycle_config_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_user_profile": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sagemaker_workforce": {
+    "id_field": "workforce_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sagemaker_workteam": {
+    "id_field": "workteam_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_scheduler_schedule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_scheduler_schedule_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_schemas_discoverer": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_schemas_registry": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_schemas_schema": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['name', 'registry_name']",
+    "strategy": "custom"
+  },
+  "aws_secretsmanager_secret": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_secretsmanager_secret_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_secretsmanager_secret_rotation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_secretsmanager_secret_version": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_security_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_security_group_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_securityhub_account": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_securityhub_action_target": {
+    "id_fields": [],
+    "name_field": "identifier",
+    "strategy": "templated",
+    "template": "arn:aws:securityhub:{region}:{account_id}:action/custom/{{ .external_name }}"
+  },
+  "aws_securityhub_finding_aggregator": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_securityhub_insight": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_securityhub_invite_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_securityhub_member": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['account_id']",
+    "strategy": "custom"
+  },
+  "aws_securityhub_product_subscription": {
+    "notes": "Custom function: func() config.ExternalName {",
+    "strategy": "custom"
+  },
+  "aws_securityhub_standards_subscription": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['standards_arn']",
+    "strategy": "custom"
+  },
+  "aws_serverlessapplicationrepository_cloudformation_stack": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_service_discovery_http_namespace": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_service_discovery_private_dns_namespace": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_service_discovery_public_dns_namespace": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_service_discovery_service": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_budget_resource_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_constraint": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_portfolio": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_portfolio_share": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_principal_portfolio_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_product": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_product_portfolio_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_provisioning_artifact": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_service_action": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_tag_option": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_servicecatalog_tag_option_resource_association": {
+    "notes": "FormattedIdentifierFromProvider: separator=':', fields=['tag_option_id', 'resource_id']",
+    "strategy": "custom"
+  },
+  "aws_servicequotas_service_quota": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['service_code', 'quota_code']",
+    "strategy": "custom"
+  },
+  "aws_ses_active_receipt_rule_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_configuration_set": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ses_domain_dkim": {
+    "id_field": "domain",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_ses_domain_identity": {
+    "id_field": "domain",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_ses_domain_mail_from": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_email_identity": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_event_destination": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ses_identity_notification_topic": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_identity_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_receipt_filter": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ses_receipt_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_receipt_rule_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ses_template": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_sesv2_configuration_set": {
+    "id_field": "configuration_set_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sesv2_configuration_set_event_destination": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sesv2_dedicated_ip_pool": {
+    "id_field": "pool_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sesv2_email_identity": {
+    "id_field": "email_identity",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sesv2_email_identity_feedback_attributes": {
+    "id_field": "email_identity",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sesv2_email_identity_mail_from_attributes": {
+    "id_field": "email_identity",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_sfn_activity": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:states:{region}:{account_id}:activity/{{ .external_name }}"
+  },
+  "aws_sfn_state_machine": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:states:{region}:{account_id}:stateMachine:{{ .external_name }}"
+  },
+  "aws_signer_signing_job": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_signer_signing_profile": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_signer_signing_profile_permission": {
+    "id_fields": [
+      "profile_name",
+      "statement_id"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.profile_name }}/{{ .parameters.statement_id }}"
+  },
+  "aws_snapshot_create_volume_permission": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sns_platform_application": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:sns:{region}:{account_id}:app/GCM/{{ .external_name }}"
+  },
+  "aws_sns_sms_preferences": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sns_topic": {
+    "id_fields": [],
+    "name_field": "name",
+    "strategy": "templated",
+    "template": "arn:aws:sns:{region}:{account_id}:{{ .external_name }}"
+  },
+  "aws_sns_topic_policy": {
+    "notes": "FormattedIdentifierFromProvider: separator='', fields=['arn']",
+    "strategy": "custom"
+  },
+  "aws_sns_topic_subscription": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_spot_datafeed_subscription": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_spot_fleet_request": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_spot_instance_request": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sqs_queue": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sqs_queue_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sqs_queue_redrive_allow_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_sqs_queue_redrive_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_activation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_default_patch_baseline": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_document": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ssm_maintenance_window": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_maintenance_window_target": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_maintenance_window_task": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_parameter": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ssm_patch_baseline": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_patch_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssm_resource_data_sync": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_ssm_service_setting": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssoadmin_account_assignment": {
+    "id_fields": [
+      "principal_id",
+      "principal_type",
+      "target_id",
+      "target_type",
+      "permission_set_arn",
+      "instance_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.principal_id }},{{ .parameters.principal_type }},{{ .parameters.target_id }},{{ .parameters.target_type }},{{ .parameters.permission_set_arn }},{{ .parameters.instance_arn }}"
+  },
+  "aws_ssoadmin_customer_managed_policy_attachment": {
+    "id_fields": [
+      "permission_set_arn",
+      "instance_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{  (index .parameters.customer_managed_policy_reference 0).name }},{{ (index .parameters.customer_managed_policy_reference 0).path }},{{ .parameters.permission_set_arn }},{{ .parameters.instance_arn }}"
+  },
+  "aws_ssoadmin_instance_access_control_attributes": {
+    "id_fields": [
+      "instance_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.instance_arn }}"
+  },
+  "aws_ssoadmin_managed_policy_attachment": {
+    "id_fields": [
+      "managed_policy_arn",
+      "permission_set_arn",
+      "instance_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.managed_policy_arn }},{{ .parameters.permission_set_arn }},{{ .parameters.instance_arn}}"
+  },
+  "aws_ssoadmin_permission_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_ssoadmin_permission_set_inline_policy": {
+    "id_fields": [
+      "permission_set_arn",
+      "instance_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.permission_set_arn }},{{ .parameters.instance_arn }}"
+  },
+  "aws_ssoadmin_permissions_boundary_attachment": {
+    "notes": "Custom function: PermissionSetIdAsExternalName()",
+    "strategy": "custom"
+  },
+  "aws_subnet": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_swf_domain": {
+    "strategy": "name_as_identifier"
+  },
+  "aws_timestreamwrite_database": {
+    "id_field": "database_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_timestreamwrite_table": {
+    "id_fields": [
+      "table_name",
+      "database_name"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.table_name }}:{{ .parameters.database_name }}"
+  },
+  "aws_transcribe_language_model": {
+    "id_field": "model_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_transcribe_vocabulary": {
+    "id_field": "vocabulary_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_transcribe_vocabulary_filter": {
+    "id_field": "vocabulary_filter_name",
+    "strategy": "parameter_as_identifier"
+  },
+  "aws_transfer_connector": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_transfer_server": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_transfer_ssh_key": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_transfer_tag": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_transfer_user": {
+    "notes": "FormattedIdentifierUserDefinedNameLast: name=user_name, sep='/', provider_fields=['server_id']",
+    "strategy": "custom"
+  },
+  "aws_transfer_workflow": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_endpoint": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_instance": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_instance_logging_configuration": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_instance_trust_provider_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_verifiedaccess_trust_provider": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_volume_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_dhcp_options": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_dhcp_options_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint_connection_accepter": {
+    "id_fields": [
+      "vpc_endpoint_service_id",
+      "vpc_endpoint_id"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.vpc_endpoint_service_id }}_{{ .parameters.vpc_endpoint_id }}"
+  },
+  "aws_vpc_endpoint_connection_notification": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint_route_table_association": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['vpc_endpoint_id', 'route_table_id']",
+    "strategy": "custom"
+  },
+  "aws_vpc_endpoint_security_group_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint_service": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint_service_allowed_principal": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_endpoint_subnet_association": {
+    "notes": "FormattedIdentifierFromProvider: separator='/', fields=['vpc_endpoint_id', 'subnet_id']",
+    "strategy": "custom"
+  },
+  "aws_vpc_ipam": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_ipam_pool": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_ipam_pool_cidr": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_ipam_pool_cidr_allocation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_ipam_scope": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_ipv4_cidr_block_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_network_performance_metric_subscription": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_peering_connection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_peering_connection_accepter": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_peering_connection_options": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpc_security_group_egress_rule": {
+    "notes": "Custom function: vpcSecurityGroupRule()",
+    "strategy": "custom"
+  },
+  "aws_vpc_security_group_ingress_rule": {
+    "notes": "Custom function: vpcSecurityGroupRule()",
+    "strategy": "custom"
+  },
+  "aws_vpclattice_access_log_subscription": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_auth_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_listener": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_listener_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_resource_configuration": {
+    "notes": "Default stub: rcfg-1234567890abcdef1",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_resource_gateway": {
+    "notes": "Default stub: rgw-055b56956a39439ba",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_resource_policy": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_service": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_service_network": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_service_network_resource_association": {
+    "notes": "Default stub: snra-1234567890abcef12",
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_service_network_service_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_service_network_vpc_association": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_target_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpclattice_target_group_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpn_connection": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpn_connection_route": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpn_gateway": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpn_gateway_attachment": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_vpn_gateway_route_propagation": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_byte_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_geo_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_ipset": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_rate_based_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_regex_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_regex_pattern_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_size_constraint_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_sql_injection_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_web_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_waf_xss_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_byte_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_geo_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_ipset": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_rate_based_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_regex_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_regex_pattern_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_rule": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_size_constraint_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_sql_injection_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_web_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafregional_xss_match_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafv2_ip_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafv2_regex_pattern_set": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafv2_rule_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafv2_web_acl": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_wafv2_web_acl_association": {
+    "id_fields": [
+      "web_acl_arn",
+      "resource_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.web_acl_arn }},{{ .parameters.resource_arn }}"
+  },
+  "aws_wafv2_web_acl_logging_configuration": {
+    "id_fields": [
+      "resource_arn"
+    ],
+    "strategy": "templated",
+    "template": "{{ .parameters.resource_arn }}"
+  },
+  "aws_wafv2_web_acl_rule_group_association": {
+    "notes": "Custom function: wafv2WebACLRuleGroupAssociation()",
+    "strategy": "custom"
+  },
+  "aws_workspaces_directory": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_workspaces_ip_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_xray_encryption_config": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_xray_group": {
+    "strategy": "identifier_from_provider"
+  },
+  "aws_xray_sampling_rule": {
+    "id_field": "rule_name",
+    "strategy": "parameter_as_identifier"
+  }
+}
