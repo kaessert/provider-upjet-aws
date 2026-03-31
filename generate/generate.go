@@ -41,6 +41,14 @@
 // invocation because they don't implement resource.Terraformed — passing them
 // to the resolver would cause a panic or generate broken code.
 //
+// Package enumeration is delegated to generate/cmd/pkgfilter which:
+//   - Uses exact path-segment matching (not a substring grep) to exclude /native
+//   - Propagates go list errors loudly (no stderr redirection to /dev/null)
+//   - Outputs "-p <pkg>" flags (one per line) consumed by xargs
+//
+// The resolver is invoked with bash -e -o pipefail so that a pkgfilter failure
+// (non-zero exit) aborts the entire go generate run via pipefail.
+//
 // Reference resolution for native types is handled as a separate step using
 // crossplane-tools (crossplane-gen) run directly against the native
 // sub-package, for example:
@@ -51,8 +59,8 @@
 // The resulting zz_resolve_references.go file is committed to source control.
 // This step is NOT part of make generate — run it explicitly when
 // +crossplane:generate:reference annotations change on native types.
-//go:generate bash -c "go run github.com/crossplane/upjet/v2/cmd/resolver -g aws.upbound.io -a github.com/upbound/provider-aws/v2/internal/apis -s $(go list ../apis/cluster/... 2>/dev/null | grep -v /native | xargs printf -- '-p %s ')"
-//go:generate bash -c "go run github.com/crossplane/upjet/v2/cmd/resolver -g aws.m.upbound.io -a github.com/upbound/provider-aws/v2/internal/apis -s $(go list ../apis/namespaced/... 2>/dev/null | grep -v /native | xargs printf -- '-p %s ')"
+//go:generate bash -e -o pipefail -c "go run ./cmd/pkgfilter .. ./apis/cluster/... | xargs go run github.com/crossplane/upjet/v2/cmd/resolver -g aws.upbound.io -a github.com/upbound/provider-aws/v2/internal/apis -s"
+//go:generate bash -e -o pipefail -c "go run ./cmd/pkgfilter .. ./apis/namespaced/... | xargs go run github.com/crossplane/upjet/v2/cmd/resolver -g aws.m.upbound.io -a github.com/upbound/provider-aws/v2/internal/apis -s"
 
 package generate
 
