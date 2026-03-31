@@ -2,8 +2,8 @@
 
 ## Migration Specs
 
-- **[terraform-removal-migration.md](terraform-removal-migration.md)** — Master design spec for removing the Terraform layer. Covers the full process: Phase 0 infrastructure, per-service migration cycle, batch ordering, plan skill design, executor adaptations, agent verification, cutover process, and final TF stack removal. Start here.
-- **[native-controller-pattern.md](native-controller-pattern.md)** — Comprehensive implementation guide for building native controllers. Package map, file layout, controller setup, CRUD templates, helper libraries, external name strategies, common pitfalls, pre-commit checklist.
+- **[terraform-removal-migration.md](terraform-removal-migration.md)** — Master design spec for removing the Terraform layer. Covers: Phase 0 infrastructure (all 20 items), per-service migration cycle (baseline → scaffold → implement → e2e → tf-regression → verify → cutover), dual-scope interface-based sharing, batch ordering, plan skill design, executor adaptations, agent verification, simplified cutover (no migration jobs — divergences designed away), and final TF stack removal. ~1,490 tickets total. Start here.
+- **[native-controller-pattern.md](native-controller-pattern.md)** — Comprehensive implementation guide for building native controllers. Dual-scope interface pattern, shared CRUD logic, package map, file layout, controller setup, CRUD templates, helper libraries, external name strategies, common pitfalls, pre-commit checklist.
 
 ## Agent Documentation (`.agents/docs/`)
 

@@ -33,11 +33,14 @@ apis/cluster/<service>/<version>/native/
 apis/namespaced/<service>/<version>/native/
   <resource>_raw_types.go          — namespaced RAW CRD types
 
+internal/controller/<service>/<resource>/
+  crud.go                          — shared CRUD logic (interface-based, scope-agnostic)
+
 internal/controller/cluster/<service>/<resource>raw/
-  controller.go                    — cluster-scoped controller
+  controller.go                    — cluster scope Setup + thin wrapper
 
 internal/controller/namespaced/<service>/<resource>raw/
-  controller.go                    — namespaced controller
+  controller.go                    — namespaced scope Setup + thin wrapper
 
 examples/<service>/cluster/<version>/
   <resource>raw.yaml               — example CR for cluster scope
@@ -49,6 +52,24 @@ examples/<service>/namespaced/<version>/
 > RAW types live in a `native/` sub-package (not the parent `v1beta1/` package) so that
 > `make generate` (upjet/crossplane-tools) does NOT clobber hand-written code.
 > At cutover, native types move up to the parent package and the `RAW` suffix is dropped.
+
+### 1.1 Key Interfaces
+
+The project uses **interface-based sharing for dual scope** — there is a single CRUD
+implementation, not two separate ones. Both the cluster-scoped type (from
+`apis/cluster/<service>/<version>/native/`) and the namespaced type (from
+`apis/namespaced/<service>/<version>/native/`) implement a common Go interface declared in
+`internal/controller/<service>/<resource>/crud.go`.
+
+The scope-specific `controller.go` files are **thin wrappers** that bridge
+`managed.TypedExternalClient[*ClusterScopedRAW]` and
+`managed.TypedExternalClient[*NamespacedRAW]` to the shared implementation. This means:
+
+- **One set of CRUD tests** covers both scopes
+- **Bug fixes apply to both scopes** automatically  
+- **Scope divergence is structurally prevented** — any scope-specific special-case must be explicit
+
+See [Section 2.3](#23-dual-scope-interface-pattern) for the full pattern with code examples.
 
 ---
 
@@ -74,6 +95,7 @@ import (
     awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 
     clustercontroller "github.com/upbound/provider-aws/v2/internal/controller/cluster"
+    bucket "github.com/upbound/provider-aws/v2/internal/controller/s3/bucket"
     native "github.com/upbound/provider-aws/v2/internal/native"
     nativev1beta1 "github.com/upbound/provider-aws/v2/apis/cluster/s3/v1beta1/native"
 )
@@ -100,8 +122,9 @@ func Setup(mgr ctrl.Manager, o xpcontroller.Options) error {
                     func(cfg awss3.Options) *awss3.Client { // NOTE: use aws.Config overload for real services
                         return awss3.NewFromConfig(cfg)
                     },
-                    func(client *awss3.Client, kube client.Client) managed.TypedExternalClient[*nativev1beta1.BucketRAW] {
-                        return &external{client: client, kube: kube}
+                    func(c *awss3.Client, kube client.Client) managed.TypedExternalClient[*nativev1beta1.BucketRAW] {
+                        // Wrap the shared ExternalClient — see Section 2.3 for the full dual-scope pattern.
+                        return &typedExternalClient{shared: &bucket.ExternalClient{Client: c, Kube: kube}}
                     },
                 ),
             ),
@@ -132,6 +155,107 @@ connector := native.NewTypedConnector[*MyResourceRAW, *awssvc.Client](
 
 ---
 
+### 2.3 Dual Scope Interface Pattern
+
+Both cluster-scoped and namespaced controllers share a single `ExternalClient` implementation
+via a Go interface. The interface is declared in
+`internal/controller/<service>/<resource>/crud.go` and both scope types implement it.
+
+#### Interface declaration (`internal/controller/<service>/<resource>/crud.go`)
+
+```go
+package <resource>
+
+import (
+    "context"
+
+    "github.com/crossplane/crossplane-runtime/v2/pkg/reconciler/managed"
+    "github.com/crossplane/crossplane-runtime/v2/pkg/resource"
+    "sigs.k8s.io/controller-runtime/pkg/client"
+
+    awssvc "github.com/aws/aws-sdk-go-v2/service/<service>"
+)
+
+// <Resource>CR abstracts over cluster-scoped and namespaced <Resource>RAW types.
+// Both scope types implement this interface.
+type <Resource>CR interface {
+    resource.Managed
+    GetForProvider() *<Resource>Parameters
+    GetInitProvider() *<Resource>InitParameters
+    GetAtProvider() *<Resource>Observation
+    SetAtProvider(<Resource>Observation)
+}
+
+// ExternalClient implements the shared CRUD logic, scope-agnostic.
+type ExternalClient struct {
+    Client *awssvc.Client
+    Kube   client.Client
+}
+
+func (e *ExternalClient) Observe(ctx context.Context, cr <Resource>CR) (managed.ExternalObservation, error) { ... }
+func (e *ExternalClient) Create(ctx context.Context, cr <Resource>CR) (managed.ExternalCreation, error) { ... }
+func (e *ExternalClient) Update(ctx context.Context, cr <Resource>CR) (managed.ExternalUpdate, error) { ... }
+func (e *ExternalClient) Delete(ctx context.Context, cr <Resource>CR) (managed.ExternalDelete, error) { ... }
+```
+
+> **Naming conventions**: Use `<Resource>CR` for the interface, `ExternalClient` for the
+> shared struct (exported so scope-specific wrapper packages can reference them).
+
+#### Thin wrapper (`internal/controller/cluster/<service>/<resource>raw/controller.go`)
+
+The cluster-scoped controller defines a `typedExternalClient` that satisfies
+`managed.TypedExternalClient[*nativev1beta1.<Resource>RAW]` by delegating all calls to
+the shared `ExternalClient`:
+
+```go
+// typedExternalClient bridges managed.TypedExternalClient[*Cluster<Resource>RAW]
+// to the scope-agnostic shared ExternalClient.
+type typedExternalClient struct {
+    shared *<resource>.ExternalClient
+}
+
+func (t *typedExternalClient) Observe(ctx context.Context, cr *nativev1beta1.<Resource>RAW) (managed.ExternalObservation, error) {
+    return t.shared.Observe(ctx, cr) // cr implements <resource>.<Resource>CR
+}
+func (t *typedExternalClient) Create(ctx context.Context, cr *nativev1beta1.<Resource>RAW) (managed.ExternalCreation, error) {
+    return t.shared.Create(ctx, cr)
+}
+func (t *typedExternalClient) Update(ctx context.Context, cr *nativev1beta1.<Resource>RAW) (managed.ExternalUpdate, error) {
+    return t.shared.Update(ctx, cr)
+}
+func (t *typedExternalClient) Delete(ctx context.Context, cr *nativev1beta1.<Resource>RAW) (managed.ExternalDelete, error) {
+    return t.shared.Delete(ctx, cr)
+}
+func (t *typedExternalClient) Disconnect(_ context.Context) error { return nil }
+```
+
+The namespaced controller is **identical in structure** but uses
+`*namespacednative.<Resource>RAW` (which embeds `xpv2.ManagedResourceSpec`) as the type
+parameter.
+
+#### Interface implementation on CR types
+
+Each scope's `<resource>_raw_types.go` must implement the `<Resource>CR` interface.
+Add these methods (they are hand-written, not generated):
+
+```go
+// GetForProvider returns the ForProvider parameters.
+func (b *<Resource>RAW) GetForProvider() *<Resource>Parameters { return &b.Spec.ForProvider }
+
+// GetInitProvider returns the InitProvider parameters.
+func (b *<Resource>RAW) GetInitProvider() *<Resource>InitParameters { return &b.Spec.InitProvider }
+
+// GetAtProvider returns the current observed state.
+func (b *<Resource>RAW) GetAtProvider() *<Resource>Observation { return &b.Status.AtProvider }
+
+// SetAtProvider sets the observed state.
+func (b *<Resource>RAW) SetAtProvider(o <Resource>Observation) { b.Status.AtProvider = o }
+```
+
+Add these to **both** the cluster-scoped and namespaced `_raw_types.go` files.
+
+---
+
 ## 3. CRD Type Pattern
 
 ### 3.1 Cluster-scoped type (embeds `v1.ResourceSpec`)
@@ -155,10 +279,6 @@ const (
 
 // BucketRAWSpec defines the desired state.
 type BucketRAWSpec struct {
-    // +kubebuilder:validation:Required
-    // +kubebuilder:validation:Enum=us-east-1;us-west-2;...
-    Region string `json:"region"`
-
     ForProvider BucketRAWParameters `json:"forProvider"`
 
     // Embedded ResourceSpec gives providerConfigRef, managementPolicies, etc.
@@ -166,6 +286,11 @@ type BucketRAWSpec struct {
 }
 
 type BucketRAWParameters struct {
+    // Region where the bucket is created. Required for credential resolution
+    // via clients.GetAWSConfigWithTracking (reads spec.forProvider.region).
+    // +kubebuilder:validation:Required
+    Region string `json:"region"`
+
     // Tags to apply to the bucket.
     // +optional
     Tags map[string]*string `json:"tags,omitempty"`
@@ -209,7 +334,6 @@ import (
 )
 
 type BucketRAWSpec struct {
-    Region      string              `json:"region"`
     ForProvider BucketRAWParameters `json:"forProvider"`
 
     // ManagedResourceSpec gives providerConfigRef (with Kind field), etc.
@@ -796,9 +920,14 @@ KMSKeyIDRef *xpv1.Reference `json:"kmsKeyIdRef,omitempty"`
 KMSKeyIDSelector *xpv1.Selector `json:"kmsKeyIdSelector,omitempty"`
 ```
 
-After running `make generate`, a `zz_<resource>_terraformed.go`-equivalent file is created in
-the native sub-package with `ResolveReferences()`. This must NOT be in the `native/` package
-(resolver excludes it) — see `.agents/specs/terraform-removal-migration.md` section 0.15.
+The `native/` sub-package is excluded from `make generate` (see `.agents/specs/terraform-removal-migration.md` section 0.15). Run `crossplane-tools` (crossplane-gen) separately against the native sub-package to produce `ResolveReferences()`:
+
+```bash
+go run ./vendor/github.com/crossplane/crossplane-tools/cmd/crossplane-gen/... \
+    -p ./apis/cluster/<service>/<version>/native/
+```
+
+The generated `zz_resolve_references.go` file is committed to the `native/` sub-package. Re-run this command whenever reference annotations change.
 
 ---
 
@@ -885,6 +1014,10 @@ func Setup(mgr ctrl.Manager, o xpcontroller.Options) error {
 ---
 
 ## 15. Complete Example — Simplified S3 BucketRAW
+
+> **Note**: This example shows a single-scope implementation for clarity.
+> In production, use the dual-scope interface pattern from Section 2.3:
+> shared CRUD logic in `crud.go` + thin wrappers per scope.
 
 > **Note**: This is a simplified teaching example. A production S3 controller
 > requires additional logic (versioning, lifecycle, CORS, etc.) and must consult
@@ -1242,6 +1375,9 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 - [ ] External name strategy matches the external-name-catalog.json entry
 - [ ] `TerraformID()` extractor NOT used anywhere in native types
 - [ ] Build tag matches service name (e.g., `//go:build s3 || all`)
+- [ ] Shared CRUD in `internal/controller/<service>/<resource>/crud.go` compiles
+- [ ] Both cluster and namespaced wrappers compile and delegate to shared CRUD
+- [ ] Interface methods (`GetForProvider`, `GetAtProvider`, `SetAtProvider`) implemented on both scope types
 
 ---
 

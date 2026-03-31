@@ -52,8 +52,8 @@ directive_graph:
 
       1. Write a failing test that captures the acceptance criteria
       2. Implement minimum code to make it pass
-      3. Run tests: `cargo test -- --quiet` or equivalent
-      4. Run linting: `cargo fmt && cargo clippy` or equivalent
+      3. Run tests: `go test ./...` (scoped to changed packages)
+      4. Run linting: `golangci-lint run ./...` (scoped to changed packages)
 
       If you get blocked and cannot complete the task:
       ```bash

@@ -14,7 +14,11 @@ Remove the Terraform layer from provider-aws by replacing all 349 TF-bridged res
 | Verification | Runtime e2e parity testing | True behavioral proof, not just schema analysis |
 | Batching | By service | Coherent context, natural grouping |
 | Cutover | Rolling per service | Lower risk, incremental progress |
-| Phase 0 | Front-load all infrastructure | Solid foundation before any migration |
+| Phase 0 | Front-load ALL 20 infrastructure items before any service migration | Solid foundation; ALL 20 must complete before service migration begins |
+| Dual scope | Interface-based sharing | Single CRUD implementation per resource, thin wrappers for cluster/namespaced |
+| Executor workflow | Full TDD (test first) | Failing test → implement → verify |
+| Catalog creation | LLM-driven extraction | Executor reads config files to create JSON catalogs |
+| Ticket granularity | 1 resource, both scopes | ONE implementation ticket covers both cluster and namespaced scopes via the shared CRUD interface; no separate per-scope tickets |
 
 ## Architecture: TF vs Native
 
@@ -50,9 +54,48 @@ This ensures:
 
 ---
 
+## Dual Scope Architecture: Interface-Based Sharing
+
+To avoid duplicating CRUD logic across cluster and namespaced scopes, all native controllers use an interface-based sharing pattern.
+
+### File Layout (per resource)
+
+```
+internal/controller/<service>/<resource>/
+  crud.go       — shared CRUD logic (interface-based)
+
+internal/controller/cluster/<service>/<resource>raw/
+  controller.go — cluster scope Setup + thin wrapper
+
+internal/controller/namespaced/<service>/<resource>raw/
+  controller.go — namespaced scope Setup + thin wrapper
+```
+
+### Interface Pattern
+
+```go
+type <Resource>CR interface {
+    resource.Managed
+    GetForProvider() *<Resource>Parameters
+    GetInitProvider() *<Resource>InitParameters
+    GetAtProvider() *<Resource>Observation
+    SetAtProvider(<Resource>Observation)
+}
+```
+
+Both the cluster `<Resource>RAW` type and namespaced `<Resource>RAW` type implement this interface. The shared `crud.go` implements `Observe()`, `Create()`, `Update()`, and `Delete()` against the interface — it never imports the concrete cluster or namespaced type packages.
+
+The thin wrappers in `internal/controller/cluster/...` and `internal/controller/namespaced/...` simply:
+1. Define the `Setup()` function (registers the controller with the manager)
+2. Construct the `ExternalClient` with the correct concrete type as the `<Resource>CR` implementation
+
+This means implementing a resource requires writing CRUD logic once, with almost no additional code per scope. The scaffold ticket creates the empty wrappers; the implement ticket fills in `crud.go` and wires both.
+
+---
+
 ## Phase 0: Infrastructure (front-loaded, ~25-30 tickets)
 
-All infrastructure work must be complete and validated before any service migration begins.
+**ALL 20 infrastructure items must be complete and validated before any service migration begins.** This is a hard gate — no service scaffold or implementation tickets can be claimed until every Phase 0 ticket is Done.
 
 ### 0.1 — Native Controller Options Struct
 
@@ -297,11 +340,9 @@ The hook variable is defined in a hand-written (non-`zz_`) file in `internal/con
 
 **Problem**: The upjet resolver (`go run cmd/resolver -p ../apis/cluster/...`) recurses into `native/` sub-packages and expects `resource.Terraformed`. Native types don't implement this interface → resolver panics or generates broken code.
 
-**Solution**: Either:
-a) Exclude `native/` from resolver invocation in `generate/generate.go`, OR
-b) Restructure native types to `apis/cluster/<service>native/<version>/` (avoids recursion entirely — cleaner architectural choice)
+**Solution**: Exclude `native/` from resolver invocation in `generate/generate.go` (Option a). Reference resolution for native types is handled as a separate step: run `crossplane-tools` (crossplane-gen) directly against native sub-packages — for example, `go run ./vendor/github.com/crossplane/crossplane-tools/cmd/crossplane-gen/... -p ./apis/cluster/.../native/`. The resulting `zz_resolve_references.go` file is generated into the `native/` sub-package and committed to source control. This step is NOT part of `make generate` — it must be run explicitly when cross-resource reference annotations change on native types.
 
-**Acceptance**: `make generate` completes without errors when native type packages exist.
+**Acceptance**: `make generate` completes without errors when native type packages exist. A native type with `+crossplane:generate:reference` annotations has a valid, compiling `ResolveReferences()` method in its package.
 
 ### 0.16 — Scheme Registration Pattern
 
@@ -331,8 +372,7 @@ Additionally, `package/kustomize/kustomization.yaml` applies `strategy: Webhook`
 
 **Solution**: For the parallel phase (RAW types), use a single API version only → no conversion needed, webhook patch is harmless. At cutover:
 1. Rewrite conversion spoke functions to use plain JSON round-trip instead of `ujconversion.RoundTrip` (which requires `resource.Terraformed`)
-2. Or: implement lightweight `resource.Terraformed` stubs on native types (just enough to satisfy the cast — `GetTerraformResourceType() → ""`, etc.)
-3. Ensure the kustomize webhook patch either excludes native CRDs or native types register their own conversion handler
+2. Ensure the kustomize webhook patch either excludes native CRDs or native types register their own conversion handler
 
 **Acceptance**: Multi-version native CRDs can be read/written through all served versions without panics.
 
@@ -396,17 +436,18 @@ For each resource in the service:
 
 **Failure propagation**: When a baseline ticket fails, ALL downstream tickets for that resource (scaffold, implement, e2e-RAW, verify, cutover) are blocked. The service can still proceed with its other resources — a single failed baseline does not block the entire service, but the cutover ticket cannot complete until ALL resources in the service pass.
 
-### Step 1: Scaffold (1 ticket per scope = 2 tickets)
+### Step 1: Scaffold (1 ticket per service — covers BOTH scopes)
 
-Create the RAW type definitions and empty controller stubs for ALL resources in the service:
+Create the RAW type definitions and empty controller stubs for ALL resources in the service. Both cluster and namespaced scopes are covered in a single ticket because the namespaced wrapper is trivial (delegates to shared CRUD logic):
 
 ```
-apis/cluster/<service>/<version>/native/<resource>_raw_types.go     — RAW CRD types (cluster)
-apis/namespaced/<service>/<version>/native/<resource>_raw_types.go  — RAW CRD types (namespaced)
-internal/controller/cluster/<service>/<resource>raw/controller.go   — Empty controller (cluster)
-internal/controller/namespaced/<service>/<resource>raw/controller.go — Empty controller (namespaced)
-examples/<service>/cluster/<version>/<resource>raw.yaml             — Example manifest
-examples/<service>/namespaced/<version>/<resource>raw.yaml          — Example manifest
+apis/cluster/<service>/<version>/native/<resource>_raw_types.go      — RAW CRD types (cluster)
+apis/namespaced/<service>/<version>/native/<resource>_raw_types.go   — RAW CRD types (namespaced)
+internal/controller/<service>/<resource>/crud.go                     — Empty shared CRUD stub
+internal/controller/cluster/<service>/<resource>raw/controller.go    — Cluster scope Setup + thin wrapper stub
+internal/controller/namespaced/<service>/<resource>raw/controller.go — Namespaced scope Setup + thin wrapper stub
+examples/<service>/cluster/<version>/<resource>raw.yaml              — Example manifest
+examples/<service>/namespaced/<version>/<resource>raw.yaml           — Example manifest
 ```
 
 Wire into provider binary at `cmd/provider/<service>/zz_main.go`.
@@ -416,14 +457,24 @@ Field placement rules:
 - Check external name catalog → set the name strategy
 - Include `+crossplane:generate:reference` annotations (rewrite any `TerraformID()` extractors)
 - Include `spec.forProvider.region` (required for credential resolution)
+- Both cluster and namespaced types must implement the `<Resource>CR` interface (see Dual Scope Architecture)
 
-### Step 2: Implement CRUD (1 ticket per resource per scope)
+### Step 2: Implement CRUD (1 ticket per resource — covers BOTH scopes)
 
-For each resource, implement the native controller. Each ticket covers ONE resource in ONE scope:
+For each resource, implement the native controller. Each ticket covers ONE resource and creates shared CRUD logic plus thin wrappers for both scopes in a single pass:
+
+**Files modified per resource:**
+- `internal/controller/<service>/<resource>/crud.go` — Shared CRUD logic (interface-based)
+- `internal/controller/cluster/<service>/<resource>raw/controller.go` — Cluster scope `Setup()` + thin wrapper
+- `internal/controller/namespaced/<service>/<resource>raw/controller.go` — Namespaced scope `Setup()` + thin wrapper
+
+**CRUD operations (all in shared `crud.go`):**
 - `Observe()` — Call AWS Describe/Get API, map response to status, handle late initialization
 - `Create()` — Call AWS Create API, set external name, publish connection details
 - `Update()` — Call AWS Update/Modify API (respect business logic from TF catalog)
 - `Delete()` — Call AWS Delete API, handle async deletion
+
+The shared CRUD logic operates on the `<Resource>CR` interface. The thin wrappers construct the ExternalClient with the correct concrete type. This is 1 ticket per resource (not 2 per resource as before).
 
 Reference material for executor:
 1. TF CRUD code: `vendor/github.com/upbound/terraform-provider-aws/internal/service/<service>/`
@@ -442,7 +493,23 @@ Run the e2e test with the RAW kind:
 - Capture test results
 - Same hard failure rules as baseline: permission errors, quota errors, or any infrastructure issue → mark Failed, no workarounds
 
-### Step 4: Agent Verification (1 ticket per service)
+### Step 4: TF Regression Test (1 ticket per service — GATE)
+
+After all RAW implementations for a service are complete, re-run the **original TF e2e tests** (not the RAW ones) to confirm the native work introduced no regressions to the existing TF controllers:
+
+```
+For the service:
+  1. Run all original TF e2e tests (same examples as baseline, same TF kinds)
+  2. All resources must still reach Ready condition
+  3. All resources must still delete cleanly
+  4. Same hard failure rules as baseline
+```
+
+**Why this gate exists**: Native controller work touches shared infrastructure (options, connector, build hooks). A regression here means the native changes broke the TF path — which must not happen during the parallel phase. This gate must pass before Agent Verification and Cutover.
+
+**Dependency**: Depends on ALL Step 3 (E2E RAW) tickets for the service being Done or Failed (not pending). Services where some baselines failed proceed with the remaining resources.
+
+### Step 5: Agent Verification (1 ticket per service)
 
 Deploy resources (both TF and RAW variants) and run the parity test:
 - For each resource: deploy TF + RAW side by side
@@ -456,7 +523,7 @@ Deploy resources (both TF and RAW variants) and run the parity test:
 - Tier 2-3: Full parity for resources with >3 mutable fields; lifecycle-only for simple ones
 - Tier 4: Full parity for all resources (complex services need thorough verification)
 
-### Step 5: Cutover (1 ticket per service)
+### Step 6: Cutover (1 ticket per service)
 
 Once agent verification passes:
 1. Move native types from `native/` sub-package to parent package
@@ -477,14 +544,19 @@ Once agent verification passes:
 
 Services ordered by: (1) resource count ascending, (2) cross-reference dependency.
 
-**Tier 1 — Single resource services (38 services, 38 resources)**
+**Tier 1 — Single resource services (38 services, ~38 resources)**
 Start here to prove the pattern. Each service is a focused test of the framework.
 
+> **Note**: The Tier 1 resource counts are approximate. The plan skill discovers actual counts per service by reading `config/cluster/<service>/config.go`. For example, `sfn` is listed as single-resource but actually has 2 resources (Activity, StateMachine), with StateMachine being multi-version — making it the chosen pilot for exactly this reason (tests the multi-version path early).
+
 ```
-Priority (most referenced / simplest first):
-  1. secretsmanager    2. sfn    3. firehose    4. dsql    5. ebs
-  ... remaining 33 single-resource services
+Priority (pilot first, then most referenced / simplest):
+  1. sfn (PILOT — 2 resources: Activity, StateMachine; StateMachine is multi-version)
+  2. secretsmanager    3. firehose    4. dsql    5. ebs
+  ... remaining single-resource services
 ```
+
+> **Note**: The tier listings below are a narrative summary. The [Appendix: Service Inventory](#appendix-service-inventory) is the authoritative source for tier assignments. Where the two diverge, the Appendix wins.
 
 **Tier 2 — Small services (2-4 resources, 28 services)**
 
@@ -492,22 +564,22 @@ Priority (most referenced / simplest first):
 Priority:
   1. kms (5 resources, 35 cross-refs — CRITICAL dependency, promote to Tier 2)
   2. sns (2 resources, 4 cross-refs)
-  3. sqs (4 resources, 5 cross-refs)
-  4. kinesis (2 resources, 9 cross-refs)
-  5. dynamodb (4 resources)
-  ... remaining
+  3. kinesis (2 resources, 9 cross-refs)
+  ... remaining 2-3 resource services (see Appendix for full list)
 ```
 
-**Tier 3 — Medium services (5-12 resources)**
+**Tier 3 — Medium services (4-5 resources)**
 
 ```
 Priority:
   1. iam (12 resources, 29 cross-refs — promote for dependency clearance)
-  2. s3 (11 resources, 18 cross-refs)
-  3. lambda (9 resources, 18 cross-refs)
-  4. eks (7 resources, 8 cross-refs)
-  5. rds (15 resources)
-  ... remaining
+  2. sqs (4 resources, 5 cross-refs)
+  3. dynamodb (4 resources)
+  4. s3 (11 resources, 18 cross-refs)
+  5. lambda (9 resources, 18 cross-refs)
+  6. eks (7 resources, 8 cross-refs)
+  7. rds (15 resources)
+  ... remaining (see Appendix for full list)
 ```
 
 **Tier 4 — Large services**
@@ -529,12 +601,11 @@ Priority:
 ### Ticket Naming Convention
 
 ```
-native-<service>-<resource>-baseline  — Baseline e2e (TF) — HARD GATE
-native-<service>-scaffold-cluster     — Scaffold (cluster scope)
-native-<service>-scaffold-namespaced  — Scaffold (namespaced scope)
-native-<service>-<resource>-cluster   — Implement CRUD (cluster)
-native-<service>-<resource>-ns        — Implement CRUD (namespaced)
+native-<service>-baseline-<resource>  — Baseline e2e (TF) — HARD GATE
+native-<service>-scaffold             — Scaffold (both scopes)
+native-<service>-<resource>           — Implement shared CRUD + both wrappers
 native-<service>-<resource>-e2e       — E2E test RAW
+native-<service>-tf-regression        — TF regression test (new)
 native-<service>-verify               — Agent verification
 native-<service>-cutover              — Cutover
 ```
@@ -543,10 +614,8 @@ native-<service>-cutover              — Cutover
 
 ```
 baseline (TF e2e) ──┐
-                     ├──→ implement-cluster ──→ implement-ns
-scaffold-cluster ────┘           │
-                                 ↓
-                          e2e-RAW ──→ verify ──→ cutover
+                     ├──→ implement (shared CRUD + both wrappers) ──→ e2e-RAW ──→ tf-regression ──→ verify ──→ cutover
+scaffold ────────────┘
 ```
 
 If baseline **fails**, the entire downstream chain for that resource is blocked. Other resources in the same service proceed independently.
@@ -555,16 +624,20 @@ If baseline **fails**, the entire downstream chain for that resource is blocked.
 
 ## Plan Skill Design: `plan-native-migration`
 
+This is a Claude skill at `.claude/skills/plan-native-migration/SKILL.md`:
+
 ```yaml
 ---
-name: plan-native-migration
 description: "Create pheromone tickets to migrate one AWS service from Terraform to native SDK."
+context: fork
+agent: general-purpose
 allowed-tools:
   - Read
   - Glob
   - Grep
   - Bash
   - Write
+  - CreateTicket
   - AskUserQuestion
 argument-hint: "[service-name] e.g. 's3', 'dynamodb', 'ec2'"
 ---
@@ -589,27 +662,30 @@ argument-hint: "[service-name] e.g. 's3', 'dynamodb', 'ec2'"
 5. **Create tickets** (all with `stage:executor,plan:native-<service>`):
 
 ```
-[BLOCKING] Scaffold RAW types for <service> (cluster)
+[BLOCKING] Scaffold RAW types for <service> (both scopes)
+  id: native-<service>-scaffold
   depends_on: []
 
-[BLOCKING] Scaffold RAW types for <service> (namespaced)
-  depends_on: []
-
-Per resource: Implement native <Resource>RAW controller (cluster)
-  depends_on: [scaffold-cluster]
+Per resource: Implement native <Resource>RAW (shared CRUD + both wrappers)
+  id: native-<service>-<resource>
+  depends_on: [native-<service>-scaffold, native-<service>-baseline-<resource>]
   Special notes: {async?, injector?, custom_diff?, connection_details?}
 
-Per resource: Implement native <Resource>RAW controller (namespaced)
-  depends_on: [scaffold-namespaced, <resource>-cluster]
-
 Per resource: E2E test <Resource>RAW
-  depends_on: [<resource>-cluster impl]
+  id: native-<service>-<resource>-e2e
+  depends_on: [native-<service>-<resource>]
+
+TF regression test for <service> (re-run TF e2e after native work)
+  id: native-<service>-tf-regression
+  depends_on: [all e2e test tickets for service]
 
 Agent verification for <service>
-  depends_on: [all e2e test tickets]
+  id: native-<service>-verify
+  depends_on: [native-<service>-tf-regression]
 
 Cutover <service> from TF to native
-  depends_on: [agent verification]
+  id: native-<service>-cutover
+  depends_on: [native-<service>-verify]
   Special notes: {versions to support, conversion webhooks needed?}
 ```
 
@@ -623,7 +699,10 @@ Each implementation ticket MUST include:
 
 ### Files to create/modify
 - apis/cluster/<service>/<version>/native/<resource>_raw_types.go
+- apis/namespaced/<service>/<version>/native/<resource>_raw_types.go
+- internal/controller/<service>/<resource>/crud.go
 - internal/controller/cluster/<service>/<resource>raw/controller.go
+- internal/controller/namespaced/<service>/<resource>raw/controller.go
 
 ### AWS SDK v2 Operations
 - Create: <service>.Create<Resource>
@@ -646,6 +725,7 @@ Set: <how to pass to AWS API>
 
 ### Acceptance Criteria
 - [ ] Controller compiles without upjet imports
+- [ ] go test ./internal/controller/<service>/<resource>/... passes (shared CRUD)
 - [ ] go test ./internal/controller/cluster/<service>/<resource>raw/... passes
 - [ ] External name is correctly set on Create
 - [ ] Observe returns ResourceExists:false for missing resources
@@ -656,7 +736,13 @@ Set: <how to pass to AWS API>
 
 ## Executor Ant Adaptations
 
-The executor ant directive graph does NOT need structural changes. The current loop (claim → read specs → implement TDD → commit → mark Done) works. What changes:
+The executor ant directive graph does NOT need structural changes. The current loop (claim → read specs → implement TDD → commit → mark Done) works.
+
+**Executor workflow is Full TDD**: Each ticket follows failing test → implement → verify. The executor writes tests first, confirms they fail, implements the CRUD logic, then verifies tests pass before committing.
+
+**Rich tickets**: Each implementation ticket embeds the specific AWS API calls, external name strategy, and special handling flags (async, business logic, connection details, multi-version) needed for autonomous implementation. The plan skill generates these descriptions automatically from codebase analysis.
+
+What changes:
 
 ### 1. Executor Spec Update
 
@@ -766,81 +852,41 @@ Overall: 11/11 PASS → READY FOR CUTOVER
 
 ## Cutover Process (per service)
 
-### Critical Finding: CRD Schemas Are NOT Identical
+### CRD Schema Compatibility Is Ensured by Design
 
-Investigation revealed six concrete divergences between TF-generated and native CRDs:
-1. `spec.deletionPolicy` — present in TF (cluster), absent in native (namespaced) schema
-2. `spec.providerConfigRef` — TF requires only `name`; native requires `kind` + `name`
-3. Storage version — TF stores as `v1beta2`; naive native would serve only `v1beta1`
-4. `status.atProvider.tagsAll` — populated by TF (from provider `default_tags`), never by naive native
-5. `description` fields — TF descriptions come from TF schema JSON; native from Go doc comments
-6. Conversion webhooks — use `.(resource.Terraformed)` type assertion that panics on native types
+Rather than discovering divergences at cutover time and running data migration jobs, the RAW type implementation is designed from the start to produce CRD schemas fully compatible with the TF types. Here is how each potential divergence is handled at implementation time:
 
-**These findings mean "just rename RAW → original" is invalid.** Full CRD replacement with pre-migration jobs is required.
+| Divergence | Resolution |
+|-----------|------------|
+| `spec.deletionPolicy` | Native types embed the same `v1.ResourceSpec` from crossplane-runtime, which already includes `deletionPolicy` — no schema difference |
+| `spec.providerConfigRef` | Same `v1.ResourceSpec` embedding → same `providerConfigRef` schema as TF types |
+| Storage version | Native types serve ALL versions the TF type served (documented per-resource in 0.8 CRD versioning catalog) — no storage migration needed |
+| `status.atProvider.tagsAll` | Phase 0 item 0.19 ensures native controllers populate `tagsAll` from merged `default_tags` — field is present and populated |
+| Field descriptions | Cosmetic only; no API or behavioral impact |
+| Conversion spokes | At cutover, native conversion is written (JSON round-trip or hand-written hub-spoke); no `resource.Terraformed` stubs needed |
 
-### Pre-Cutover Migration Jobs (MANDATORY — run before deploying native controller)
-
-#### Job 1: Storage Version Migration
-```bash
-# Migrate all stored objects from v1beta2 → v1beta1 (or whichever the native stored version is)
-kubectl-migrate --resource buckets.s3.aws.upbound.io
-```
-**Why**: etcd stores objects in the storage version. If TF CRD stores as v1beta2 and native CRD only serves v1beta1, all existing objects become unreadable.
-
-**Alternative**: Native types MUST serve v1beta2 (even if the internal representation matches v1beta1). This avoids storage migration entirely.
-
-#### Job 2: Patch `providerConfigRef.kind` on All Existing CRs
-```bash
-# For cluster-scoped resources:
-kubectl get buckets.s3.aws.upbound.io -o name | xargs -I{} \
-  kubectl patch {} --type=merge -p '{"spec":{"providerConfigRef":{"kind":"ProviderConfig"}}}'
-```
-**Why**: TF CRD defaults `providerConfigRef` to `{name: "default"}` (no `kind`). If the native CRD schema requires `kind`, existing CRs fail validation on any write.
-
-#### Job 3: Map `deletionPolicy` → `managementPolicies`
-```bash
-# For any CR with deletionPolicy: Orphan, set managementPolicies: ["Observe"]
-# This preserves the user's intent to not delete the AWS resource
-```
-**Why**: If the native CRD drops `deletionPolicy`, Kubernetes structural schema pruning silently removes it from all CRs on first write. Users lose deletion protection.
-
-#### Job 4: Drain Async Operations
-```bash
-# Verify no resources are in Creating/Updating/Deleting state
-kubectl get managed -o jsonpath='{range .items[?(@.status.conditions)]}{.metadata.name}{"\t"}{range .status.conditions[*]}{.type}={.reason}{" "}{end}{"\n"}{end}' | grep -E 'Creating|Updating|Deleting'
-```
-**Why**: `OperationTrackerStore` is in-memory. Pod restart (to deploy native controller) loses all tracked operations → potential double-create/delete for resources mid-operation.
-
-#### Job 5: Rewrite Conversion Spokes
-Replace `ujconversion.RoundTrip(dstRaw.(resource.Terraformed), tr)` in `zz_generated.conversion_spokes.go` with a non-upjet conversion path (plain JSON round-trip or hand-written hub-spoke converter).
-
-**Why**: The `.(resource.Terraformed)` type assertion panics when the hub type is native. This blocks ALL API access to the resource in the old version.
+This means **rename RAW → original and swap controllers** is the entire cutover — no pre-migration data jobs required.
 
 ### Pre-Cutover Checklist
 - [ ] All resources in service pass e2e tests as RAW (both scopes)
+- [ ] TF regression test passes (Step 4 gate)
 - [ ] Agent verification report shows parity pass
 - [ ] No other service is mid-cutover (one at a time)
-- [ ] **Migration Job 1**: Storage version migrated (or native serves all TF versions)
-- [ ] **Migration Job 2**: All CRs patched with `providerConfigRef.kind`
-- [ ] **Migration Job 3**: `deletionPolicy: Orphan` mapped to `managementPolicies`
-- [ ] **Migration Job 4**: No async operations in flight
-- [ ] **Migration Job 5**: Conversion spokes rewritten
-- [ ] Native types registered under SAME GVKs as TF types (including v1beta2)
-- [ ] `status.atProvider.tagsAll` populated by native controller (or field preserved)
+- [ ] Native types serve all versions the TF types served (from 0.8 catalog)
+- [ ] `status.atProvider.tagsAll` populated by native controller (validated by agent verification)
+- [ ] Conversion implementation ready for multi-version CRDs (JSON round-trip or hub-spoke)
 
 ### Cutover Steps
 
-1. **Run pre-migration jobs** (1-5 above)
-2. **Move native types**: From `native/` sub-package to parent package
-3. **Rename types**: `BucketRAW` → `Bucket` (json tags stay identical)
-4. **Register all API versions**: Native type must serve v1beta1 AND v1beta2 (matching TF)
-5. **Register conversion webhooks**: Using non-upjet conversion path (from Job 5)
-6. **Register in scheme**: Under same GVK so cross-resource resolvers (`GetManagedResource("v1beta2")`) still work
-7. **Replace controller**: Point provider binary at native controller
-8. **Handle `default_tags`**: Native controller reads ProviderConfig's `default_tags` and merges with resource tags
-9. **Remove TF code**: Delete `zz_*` files, TF config for this service
-10. **Run full e2e**: With original kind names
-11. **Commit**: `refactor: migrate <service> from terraform to native SDK`
+1. **Move native types**: From `native/` sub-package to parent package
+2. **Rename types**: `BucketRAW` → `Bucket` (json tags stay identical)
+3. **Register all API versions**: Native type must serve v1beta1 AND v1beta2 (matching TF CRD)
+4. **Write native conversion**: For multi-version CRDs, implement hub-spoke conversion using plain JSON round-trip (not `ujconversion.RoundTrip` — that requires `resource.Terraformed`)
+5. **Register in scheme**: Under same GVK so cross-resource resolvers still work
+6. **Replace controller**: Point provider binary at native controller
+7. **Delete TF code**: `zz_*` files, TF config for this service (see Final Phase for full cleanup)
+8. **Run full e2e**: With original kind names
+9. **Commit**: `refactor: migrate <service> from terraform to native SDK`
 
 ### Post-Cutover Verification
 - E2e tests pass with original kind names
@@ -849,13 +895,23 @@ Replace `ujconversion.RoundTrip(dstRaw.(resource.Terraformed), tr)` in `zz_gener
 - `make generate` doesn't clobber native types
 - Existing CRs (created by TF controller) are reconciled correctly by native controller
 - Tags (including `default_tags`) are not spuriously modified
-- Resources with `deletionPolicy: Orphan` (now `managementPolicies: [Observe]`) are not deleted
 
 ---
 
 ## Final Phase: TF Stack Removal
 
-After ALL services are cut over:
+This is a big cleanup phase executed after all services are cut over. Remove TF code service by service first, then remove the shared upjet/terraform-provider-aws dependencies last.
+
+### Per-Service TF Cleanup (after each service's cutover is stable)
+
+For each service (any order — each is independent once cut over):
+1. Delete `zz_*` generated files for the service (types, controllers, setup)
+2. Delete `config/cluster/<service>/config.go` and `config/namespaced/<service>/config.go`
+3. Remove service entry from `config/cluster/provider.go` and `config/namespaced/provider.go`
+4. Confirm `make build` still passes
+5. Commit: `chore: remove TF scaffolding for <service>`
+
+### Final Dependency Removal (after ALL services cleaned up)
 
 1. **Remove upjet dependency**: `go.mod` — remove `github.com/crossplane/upjet/v2`
 2. **Remove TF provider**: `go.mod` — remove `github.com/hashicorp/terraform-provider-aws`
@@ -871,17 +927,18 @@ After ALL services are cut over:
 
 ## Estimated Scale
 
-| Phase | Per service (avg) | Total (both scopes) |
-|-------|-------------------|---------------------|
-| Phase 0 Infrastructure | — | ~25-30 tickets |
-| Baseline E2E (TF) | ~3.5 | ~349 |
-| Scaffold | 2 (cluster + ns) | ~200 |
-| Implement CRUD | ~7 (3.5 × 2 scopes) | ~698 |
-| E2E Test RAW | ~3.5 | ~349 |
-| Agent Verify | 1 | ~100 |
-| Cutover | 1 | ~100 |
-| Final TF Removal | — | ~10 |
-| **Grand Total** | | **~1,840 tickets** |
+| Phase | Count |
+|-------|-------|
+| Phase 0 Infrastructure | ~25-30 |
+| Baseline E2E (TF) | ~349 |
+| Scaffold (both scopes) | ~100 |
+| Implement CRUD (shared) | ~349 |
+| E2E Test RAW | ~349 |
+| TF Regression (new) | ~100 |
+| Agent Verify | ~100 |
+| Cutover | ~100 |
+| Final TF Removal | ~10 |
+| **Grand Total** | **~1,490** |
 
 ---
 

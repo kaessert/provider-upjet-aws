@@ -311,7 +311,7 @@ K8s CR → native Connector → TypedExternalClient → AWS SDK v2 → AWS API
 
 | Spec | Path | Summary |
 |------|------|---------|
-| Migration Design | [`.agents/specs/terraform-removal-migration.md`](.agents/specs/terraform-removal-migration.md) | Master plan: 349 resources, 5 phases, ~1,840 tickets |
+| Migration Design | [`.agents/specs/terraform-removal-migration.md`](.agents/specs/terraform-removal-migration.md) | Master plan: 349 resources, 5 phases, ~1,490 tickets |
 | Native Controller Pattern | [`.agents/specs/native-controller-pattern.md`](.agents/specs/native-controller-pattern.md) | Implementation guide for RAW controllers |
 
 ### Migration Strategy
