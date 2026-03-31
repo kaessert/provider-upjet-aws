@@ -5,13 +5,14 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Task
+  - Agent
   - AskUserQuestion
   - Bash
   - Write
+  - CreateTicket
 ---
 
-# Plan Creation Skill (hive-classic-ralph)
+# Plan Creation Skill
 
 Create a detailed implementation plan and publish it as pheromone tickets. The executor ant will automatically pick up and work through each ticket.
 
@@ -30,7 +31,7 @@ Parse `$ARGUMENTS` for the plan name:
 - **First word/argument present**: Use it as the plan name
 - **No arguments**: Use AskUserQuestion to ask for a name
 
-Valid name format: lowercase with hyphens (e.g., `add-user-auth`, `refactor-api`).
+Valid name format: lowercase with hyphens (e.g., `phase-0`, `native-sfn`, `add-credential-cache`).
 
 ### Step 2: Gather Requirements
 
@@ -54,16 +55,17 @@ Do NOT ask when:
 ### Step 3: Research the Codebase
 
 <research_approach>
-Use Read, Glob, Grep, and Task (with Explore agent) to understand:
+Use Read, Glob, Grep, and Agent (with explore subagent) to understand:
 - Relevant existing code and patterns
-- Files that will need modification
+- Files that will need creation or modification
 - Dependencies and constraints
-- Similar implementations to follow
+- Existing specs in `.agents/specs/` that define requirements
 
-Thoroughness: Spend adequate time exploring before writing the plan. A well-researched plan prevents rework. Use the Explore agent for open-ended searches.
+Start with `.agents/specs/INDEX.md` — it lists all specs and catalogs. Read the relevant spec
+sections that map to the plan being created.
+
+Thoroughness: Spend adequate time exploring before writing the plan. A well-researched plan prevents rework.
 </research_approach>
-
-**E2E Spec Check**: If the plan touches user-facing features, check `.agents/tests/e2e/INDEX.md` for existing specs.
 
 ### Step 4: Design the Tasks
 
@@ -72,11 +74,13 @@ Based on what the plan modifies, include relevant verification:
 
 | Modified Area | Verification Type |
 |--------------|-------------------|
-| `crates/hive/` (TUI) | tmux pane testing |
-| `crates/hive/` (CLI) | CLI command testing |
-| `crates/hived/` | Backend unit tests + API testing |
-| `hive-frontend/` | Vitest + Playwright E2E |
-| User-facing features | Playwright E2E spec |
+| `internal/native/` | `go test ./internal/native/...` |
+| `internal/controller/` | `go test ./internal/controller/...` |
+| `apis/cluster/` or `apis/namespaced/` | `go build ./apis/...` |
+| Config changes | `make check-diff` |
+| Build hooks / templates | `make generate` + verify output |
+| Any Go code | `golangci-lint run ./<changed-packages>/...` |
+| E2E test resources | `make e2e SUBPACKAGES="config <service>"` |
 </verification_scope_guidance>
 
 Design tasks using these guidelines:
@@ -93,51 +97,42 @@ Design tasks using these guidelines:
 
 ### Step 5: Create Pheromone Tickets
 
-Create one ticket per task using `pheromone create`. Use readable IDs like `<plan-name>-01`, `<plan-name>-02`:
+Create one ticket per task using `CreateTicket`. Use readable IDs like `<plan-name>-01`, `<plan-name>-02`:
 
-```bash
-pheromone create <plan-name>-01 \
-  --status ToDo \
-  --title "<Task title>" \
-  --description "<Description>\n\nAcceptance: <measurable criteria>" \
-  --labels "stage:executor,plan:<plan-name>"
+```
+CreateTicket:
+  id: <plan-name>-01
+  title: "<Task title>"
+  description: "<Description with file paths, implementation details, and spec references>"
+  acceptance_criteria: ["criteria 1", "criteria 2"]
+  labels: ["stage:executor", "plan:<plan-name>"]
+  plan: <plan-name>
+  priority: High  (for BLOCKING/P0) or Normal
 ```
 
-**For [BLOCKING] / [P0] tasks**: Create these first. The executor ant processes in creation order.
+**For tasks with dependencies**: Use `depends_on` to enforce ordering:
 
-**For tasks with dependencies**: Use `--depends-on <ticket-id>` to enforce ordering:
-
-```bash
-pheromone create <plan-name>-02 \
-  --status ToDo \
-  --title "<Dependent task>" \
-  --description "..." \
-  --labels "stage:executor,plan:<plan-name>" \
-  --depends-on <plan-name>-01
 ```
-
-**For verification tasks** (run tests, check linting): Create them last:
-
-```bash
-pheromone create <plan-name>-verify-01 \
-  --status ToDo \
-  --title "All tests pass: run cargo test" \
-  --description "Run cargo test -- --quiet. Confirm all tests pass with no failures." \
-  --labels "stage:executor,plan:<plan-name>"
+CreateTicket:
+  id: <plan-name>-02
+  title: "<Dependent task>"
+  depends_on: ["<plan-name>-01"]
 ```
 
 **Ticket content guidelines**:
-- Title: concise, action-oriented (e.g., "Add user auth types to models.rs")
-- Description: task details + acceptance criteria in one field
+- Title: concise, action-oriented (e.g., "Create native connector framework at internal/native/connector.go")
+- Description: task details + file paths + spec references
+- Acceptance criteria: testable conditions that define "done"
 - Labels: always include `stage:executor` and `plan:<plan-name>`
+- Reference specs: every ticket description should point to the relevant section of `.agents/specs/`
 
 ### Step 6: Report Completion
 
 Tell the user:
 - Number of tickets created on the pheromone board
 - Key [BLOCKING] / [P0] tickets highlighted
+- Dependency chain visualization
 - The executor ant will automatically pick them up
-- If execution gets stuck, run `/investigate <symptom>` then `/plan fix-<issue>` to create a fix ticket
 
 ## Important Rules
 
@@ -149,40 +144,66 @@ Tell the user:
 
 <task_format_rules>
 4. **One ticket per logical unit** — 30min to 2hr effort each
-5. **Order by critical path** — [BLOCKING] and [P0] tasks first, use depends-on
-6. **Include acceptance criteria** — In the description field of every implementation ticket
-7. **Verification tickets are simple** — Just describe the command to run
+5. **Order by critical path** — [BLOCKING] and [P0] tasks first, use depends_on
+6. **Include acceptance criteria** — As a list on every implementation ticket
+7. **Verification tickets** — Just describe the command to run
 </task_format_rules>
 
 <quality_guidelines>
-8. **Be thorough** — Research codebase before writing
+8. **Be thorough** — Research codebase and specs before writing
 9. **Be specific** — Include file paths, function names, implementation details in descriptions
 10. **Be realistic** — Break complex tasks into manageable units
 11. **Follow conventions** — Match existing code patterns
-12. **Executor performs verification** — Include verify tickets at the end
-13. **Playwright for E2E** — Use Playwright tests in `hive-frontend/e2e/`, not deprecated Chrome plugin specs
+12. **Reference specs** — Every ticket should point to relevant spec sections
+13. **Never edit zz_ files** — They are auto-generated
 </quality_guidelines>
+
+## Project Context
+
+This is a Go project (provider-upjet-aws) — a Crossplane provider managing AWS resources.
+Key specs live in `.agents/specs/`. The executor ant follows TDD (test first, then implement).
+Build/test commands: `go test`, `go build`, `golangci-lint run`, `make generate`, `make check-diff`.
+See `CLAUDE.md` at the repo root for full project context.
 
 ## Example Ticket Creation
 
-```bash
-# BLOCKING: types must exist before middleware can use them
-pheromone create add-auth-01 \
-  --status ToDo \
-  --title "[BLOCKING] Create auth types in src/types/auth.rs" \
-  --description "Define User, Session, and JWT payload types.\n- User struct: id, email, password_hash fields\n- Session struct: user_id, token, expires_at\n- JwtPayload struct for token claims\n\nAcceptance: Types compile; used by auth middleware" \
-  --labels "stage:executor,plan:add-auth"
+```
+CreateTicket:
+  id: phase-0-01
+  title: "[BLOCKING] Create native controller options struct"
+  description: |
+    Create internal/native/options.go with a native Options struct that wraps
+    crossplane-runtime's controller.Options. No upjet imports.
 
-pheromone create add-auth-02 \
-  --status ToDo \
-  --title "Add JWT middleware to protected routes" \
-  --description "Validate JWT tokens on protected routes.\n- Extract token from Authorization header or cookie\n- Verify signature and expiration\n- Attach user to request context\n\nAcceptance: Middleware rejects invalid tokens, passes valid ones" \
-  --labels "stage:executor,plan:add-auth" \
-  --depends-on add-auth-01
+    Spec: .agents/specs/terraform-removal-migration.md section 0.1
 
-pheromone create add-auth-verify-01 \
-  --status ToDo \
-  --title "Auth tests pass" \
-  --description "Run cargo test -p hived -- auth. All auth tests pass." \
-  --labels "stage:executor,plan:add-auth"
+    Files:
+    - internal/native/options.go
+  acceptance_criteria:
+    - "Options struct compiles without upjet imports"
+    - "go test ./internal/native/... passes"
+    - "Can be used in a Setup() function signature"
+  labels: ["stage:executor", "plan:phase-0"]
+  plan: phase-0
+  priority: High
+
+CreateTicket:
+  id: phase-0-02
+  title: "Create native connector framework"
+  description: |
+    Create internal/native/connector.go with ProviderConfig → aws.Config resolution.
+    Must call clients.GetAWSConfigWithTracking.
+
+    Spec: .agents/specs/terraform-removal-migration.md section 0.2
+
+    Files:
+    - internal/native/connector.go
+  acceptance_criteria:
+    - "Connector resolves ProviderConfig to aws.Config"
+    - "Integration test passes with mock ProviderConfig"
+    - "No upjet imports"
+  labels: ["stage:executor", "plan:phase-0"]
+  plan: phase-0
+  depends_on: ["phase-0-01"]
+  priority: High
 ```
