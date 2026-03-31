@@ -210,6 +210,44 @@ generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 .PHONY: pull-docs
 
 # ====================================================================================
+# Native Code Generation
+#
+# generate.native runs only the code-generation steps relevant to native controllers.
+# It targets:
+#   - apis/cluster/v1beta1/... and apis/namespaced/v1beta1/... (hand-written ProviderConfig types)
+#   - every apis/**/native/ subpackage (dynamically discovered)
+#
+# Steps performed:
+#   1. controller-gen object: — regenerates zz_generated.deepcopy.go for native + ProviderConfig
+#   2. angryjet generate-methodsets — regenerates zz_generated.managed.go,
+#      zz_generated.managedlist.go, and zz_generated.resolvers.go for native packages
+#
+# This target intentionally does NOT:
+#   - Download Terraform provider schema (no generate.init dependency)
+#   - Run the upjet generator
+#   - Run the upjet resolver (only for TF-bridged types)
+#   - Regenerate CRD manifests (native types share the TF-generated CRDs in phase 0)
+#
+# Usage:
+#   make generate.native
+#
+# Typical wall-clock time: seconds to ~1 minute vs 15-30 min for full `make generate`.
+generate.native:
+	@$(INFO) Generating native controller code...
+	go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen \
+		object:headerFile=hack/boilerplate.go.txt \
+		paths=./apis/cluster/v1beta1/... \
+		paths=./apis/namespaced/v1beta1/... \
+		$(shell find apis -path '*/native' -type d | sed 's|^|paths=./|' | tr '\n' ' ')
+	go run -tags generate github.com/crossplane/crossplane-tools/cmd/angryjet \
+		generate-methodsets \
+		--header-file=hack/boilerplate.go.txt \
+		$(shell find apis -path '*/native' -type d | sed 's|^|./|' | tr '\n' ' ')
+	@$(OK) Native code generation complete
+
+.PHONY: generate.native
+
+# ====================================================================================
 # End to End Testing
 CROSSPLANE_NAMESPACE = upbound-system
 -include build/makelib/local.xpkg.mk
