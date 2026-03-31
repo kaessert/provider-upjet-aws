@@ -64,11 +64,12 @@ directive_graph:
         ```
         Output `[DIRECTIVE_STATUS: COMPLETE]` and STOP.
 
-        ## Step 5: Commit
+        ## Step 5: Commit and push
 
         ```bash
         git add <specific files changed>
         git commit -m "feat: <description of what was implemented>"
+        git push
         ```
 
         Do NOT use `git add -A` or `git add .`.
