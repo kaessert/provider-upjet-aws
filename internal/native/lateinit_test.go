@@ -36,9 +36,9 @@ type lateInitNest struct {
 
 // strPtr / int64Ptr / boolPtr / float64Ptr are local helpers (avoid collision
 // with the ptr() helper defined in tags_test.go, which is also in package native).
-func strP(s string) *string  { return &s }
-func i64P(n int64) *int64    { return &n }
-func boolP(b bool) *bool     { return &b }
+func strP(s string) *string   { return &s }
+func i64P(n int64) *int64     { return &n }
+func boolP(b bool) *bool      { return &b }
 func f64P(f float64) *float64 { return &f }
 
 // newCR returns a fake managed resource for conditional-ignore tests.

@@ -15,7 +15,7 @@ import (
 // crossplane-runtime's controller.Options and exposes all its fields.
 func TestOptions_EmbedControllerOptions(t *testing.T) {
 	// Verify that the embedded Options field is accessible and of the right type.
-	var base xpcontroller.Options = xpcontroller.DefaultOptions()
+	base := xpcontroller.DefaultOptions()
 	opts := Options{
 		Options:      base,
 		PollInterval: 5 * time.Minute,

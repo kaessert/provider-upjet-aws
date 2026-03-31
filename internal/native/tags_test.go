@@ -54,11 +54,11 @@ func sortTags(tags []Tag) []Tag {
 
 func TestDiffTags(t *testing.T) {
 	type testCase struct {
-		name           string
-		desired        map[string]string
-		observed       map[string]string
-		wantAdd        map[string]string
-		wantRemove     map[string]string
+		name       string
+		desired    map[string]string
+		observed   map[string]string
+		wantAdd    map[string]string
+		wantRemove map[string]string
 	}
 
 	cases := []testCase{
@@ -150,12 +150,12 @@ func TestDiffTags(t *testing.T) {
 
 func TestDiffTagsWithDefaults(t *testing.T) {
 	type testCase struct {
-		name         string
-		desired      map[string]string
-		observed     map[string]string
-		defaults     map[string]string
-		wantAdd      map[string]string
-		wantRemove   map[string]string
+		name       string
+		desired    map[string]string
+		observed   map[string]string
+		defaults   map[string]string
+		wantAdd    map[string]string
+		wantRemove map[string]string
 	}
 
 	cases := []testCase{

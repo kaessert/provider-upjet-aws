@@ -158,42 +158,42 @@ func lateInitStruct(cr resource.Managed, dst, src reflect.Value, cfg LateInitCon
 			}
 		}
 
-		dstField := dst.Field(i)
-		srcField := src.Field(i)
-
-		switch dstField.Kind() { //nolint:exhaustive
-		case reflect.Ptr:
-			if dstField.IsNil() && !srcField.IsNil() {
-				// Check whether the pointed-to type is a struct: if so, recurse.
-				elem := srcField.Elem()
-				if elem.Kind() == reflect.Struct {
-					// Allocate a new value and recurse.
-					newVal := reflect.New(elem.Type())
-					if lateInitStruct(cr, newVal.Elem(), elem, cfg) {
-						changed = true
-					}
-					// Always set when dst was nil and src was non-nil.
-					dstField.Set(newVal)
-					changed = true
-				} else {
-					dstField.Set(srcField)
-					changed = true
-				}
-			} else if !dstField.IsNil() && !srcField.IsNil() {
-				// Both non-nil: recurse if struct pointer.
-				if dstField.Elem().Kind() == reflect.Struct {
-					if lateInitStruct(cr, dstField.Elem(), srcField.Elem(), cfg) {
-						changed = true
-					}
-				}
+		if dst.Field(i).Kind() == reflect.Ptr {
+			if lateInitPtrField(cr, dst.Field(i), src.Field(i), cfg) {
+				changed = true
 			}
-		default:
-			// Non-pointer fields are not late-initialized (they already have
-			// zero values and cannot distinguish "not set" from "zero").
 		}
+		// Non-pointer fields are not late-initialized (they already have
+		// zero values and cannot distinguish "not set" from "zero").
 	}
 
 	return changed
+}
+
+// lateInitPtrField handles late-initialization of a single pointer field.
+// Returns true when any change was made.
+func lateInitPtrField(cr resource.Managed, dstField, srcField reflect.Value, cfg LateInitConfig) bool {
+	if srcField.IsNil() {
+		return false
+	}
+	if dstField.IsNil() {
+		// dst is nil, src is non-nil: populate.
+		elem := srcField.Elem()
+		if elem.Kind() == reflect.Struct {
+			// Allocate a new value, recurse, then always set.
+			newVal := reflect.New(elem.Type())
+			lateInitStruct(cr, newVal.Elem(), elem, cfg)
+			dstField.Set(newVal)
+		} else {
+			dstField.Set(srcField)
+		}
+		return true
+	}
+	// Both non-nil: recurse if struct pointer.
+	if dstField.Elem().Kind() == reflect.Struct {
+		return lateInitStruct(cr, dstField.Elem(), srcField.Elem(), cfg)
+	}
+	return false
 }
 
 // jsonFieldName returns the lowercase JSON key for a struct field, using the
