@@ -1,0 +1,112 @@
+{
+  "aws_api_gateway_rest_api": {
+    "status_only_fields": ["policy"],
+    "notes": "policy is mutually exclusive with aws_api_gateway_rest_api_policy resource; managed separately",
+    "source": "config/cluster/apigateway/config.go:16"
+  },
+  "aws_appstream_image_builder": {
+    "status_only_fields": ["image_name"],
+    "notes": "image_name conflicts with image_arn — only one of image_arn or image_name can be specified at creation; image_name is treated as observed-only",
+    "source": "config/cluster/appstream/config.go:30"
+  },
+  "aws_autoscaling_group": {
+    "status_only_fields": ["load_balancers", "target_group_arns"],
+    "notes": "mutually exclusive with aws_autoscaling_attachment resource; these fields must not be set in ForProvider",
+    "source": "config/cluster/autoscaling/config.go:23"
+  },
+  "aws_docdb_cluster": {
+    "status_only_fields": ["cluster_members"],
+    "notes": "cluster_members is managed via aws_docdb_cluster_instance resources, not directly on the cluster",
+    "source": "config/cluster/docdb/config.go:19"
+  },
+  "aws_ecs_cluster": {
+    "status_only_fields": ["capacity_providers"],
+    "notes": "mutually exclusive with aws_ecs_cluster_capacity_providers resource",
+    "source": "config/cluster/ecs/config.go:31"
+  },
+  "aws_instance": {
+    "status_only_fields": ["security_groups"],
+    "notes": "security_groups is the legacy EC2-Classic security group name list; vpc_security_group_ids is used for VPC instances",
+    "source": "config/cluster/ec2/config.go:61"
+  },
+  "aws_kinesis_firehose_delivery_stream": {
+    "status_only_fields": ["arn"],
+    "notes": "arn is a computed-only field returned by AWS after creation",
+    "source": "config/cluster/firehose/config.go:42"
+  },
+  "aws_kinesis_stream": {
+    "status_only_fields": ["arn"],
+    "notes": "arn is a computed-only field returned by AWS after creation",
+    "source": "config/cluster/kinesis/config.go:26"
+  },
+  "aws_network_acl": {
+    "status_only_fields": ["ingress", "egress"],
+    "notes": "mutually exclusive with aws_network_acl_rule resource; rules must not be set inline on the ACL",
+    "source": "config/cluster/ec2/config.go:346"
+  },
+  "aws_network_interface": {
+    "status_only_fields": ["attachment"],
+    "notes": "mutually exclusive with aws_network_interface_attachment resource",
+    "source": "config/cluster/ec2/config.go:200"
+  },
+  "aws_opensearch_domain": {
+    "status_only_fields": ["access_policies"],
+    "notes": "access_policies is managed via aws_opensearch_domain_policy resource; must not be set inline",
+    "source": "config/cluster/opensearch/config.go:17"
+  },
+  "aws_rds_cluster": {
+    "status_only_fields": ["iam_roles"],
+    "notes": "mutually exclusive with aws_rds_cluster_role_association resource",
+    "source": "config/cluster/rds/config.go:24"
+  },
+  "aws_route_table": {
+    "status_only_fields": ["route", "propagating_vgws"],
+    "notes": "route is mutually exclusive with aws_route resource; propagating_vgws is mutually exclusive with aws_vpn_gateway_route_propagation",
+    "source": "config/cluster/ec2/config.go:310"
+  },
+  "aws_s3_bucket": {
+    "status_only_fields": [
+      "acceleration_status",
+      "acl",
+      "grant",
+      "cors_rule",
+      "lifecycle_rule",
+      "logging",
+      "object_lock_configuration",
+      "policy",
+      "replication_configuration",
+      "request_payer",
+      "server_side_encryption_configuration",
+      "versioning",
+      "website",
+      "arn"
+    ],
+    "notes": "these fields are each managed by dedicated aws_s3_bucket_* resources (accelerate_configuration, acl, cors_configuration, lifecycle_configuration, logging, object_lock_configuration, policy, replication_configuration, request_payment_configuration, server_side_encryption_configuration, versioning, website_configuration); arn is computed-only",
+    "source": "config/cluster/s3/config.go:42-44"
+  },
+  "aws_secretsmanager_secret": {
+    "status_only_fields": ["rotation_rules", "rotation_lambda_arn", "policy"],
+    "notes": "rotation_rules and rotation_lambda_arn are managed via aws_secretsmanager_secret_rotation; policy is managed via aws_secretsmanager_secret_policy",
+    "source": "config/cluster/secretsmanager/config.go:22-24"
+  },
+  "aws_security_group": {
+    "status_only_fields": ["ingress", "egress"],
+    "notes": "mutually exclusive with aws_security_group_rule resource; inline rules must not be set",
+    "source": "config/cluster/ec2/config.go:205"
+  },
+  "aws_vpc_endpoint": {
+    "status_only_fields": ["subnet_ids", "security_group_ids", "route_table_ids"],
+    "notes": "mutually exclusive with aws_vpc_endpoint_subnet_association, aws_vpc_endpoint_security_group_association, aws_vpc_endpoint_route_table_association resources",
+    "source": "config/cluster/ec2/config.go:167"
+  },
+  "aws_vpc_endpoint_service": {
+    "status_only_fields": ["allowed_principals"],
+    "notes": "mutually exclusive with aws_vpc_endpoint_service_allowed_principal resource",
+    "source": "config/cluster/ec2/config.go:352"
+  },
+  "aws_vpc_peering_connection": {
+    "status_only_fields": ["accepter", "requester"],
+    "notes": "accepter and requester connection options are mutually exclusive with aws_vpc_peering_connection_options resource",
+    "source": "config/cluster/ec2/config.go:271"
+  }
+}
