@@ -27,7 +27,7 @@ type ConfigResolverFn func(ctx context.Context, c client.Client, mg resource.Man
 // T is the concrete managed resource type (e.g. *BucketRAW).
 // C is the AWS service client type (e.g. *s3.Client).
 type TypedConnector[T resource.Managed, C any] struct {
-	// kube is forwarded to GetAWSConfigWithTracking and to the newExternal
+	// kube is forwarded to GetAWSConfigWithTrackingAndCache and to the newExternal
 	// factory so that controllers can perform k8s reads during reconciliation.
 	kube client.Client
 
@@ -39,14 +39,16 @@ type TypedConnector[T resource.Managed, C any] struct {
 	newExternal func(svcClient C, kube client.Client) managed.TypedExternalClient[T]
 
 	// configFn resolves the AWS config. Defaults to
-	// clients.GetAWSConfigWithTracking; overridable for testing.
+	// clients.GetAWSConfigWithTrackingAndCache; overridable for testing.
 	configFn ConfigResolverFn
 }
 
-// NewTypedConnector creates a TypedConnector that uses the standard
-// clients.GetAWSConfigWithTracking resolver. This is the production constructor.
+// NewTypedConnector creates a TypedConnector that uses the
+// clients.GetAWSConfigWithTrackingAndCache resolver. This is the production
+// constructor. The cache-aware resolver shares the IRSA credential cache with
+// the TF controller path, preventing excessive STS token refresh calls.
 //
-//   connector := native.NewTypedConnector(mgr.GetClient(), s3.NewFromConfig, newExternal)
+//	connector := native.NewTypedConnector(mgr.GetClient(), s3.NewFromConfig, newExternal)
 func NewTypedConnector[T resource.Managed, C any](
 	kube client.Client,
 	clientFactory func(aws.Config) C,
@@ -56,7 +58,7 @@ func NewTypedConnector[T resource.Managed, C any](
 		kube:          kube,
 		clientFactory: clientFactory,
 		newExternal:   newExternal,
-		configFn:      clients.GetAWSConfigWithTracking,
+		configFn:      clients.GetAWSConfigWithTrackingAndCache,
 	}
 }
 

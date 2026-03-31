@@ -92,7 +92,10 @@ var globalGroups = map[string]string{
 }
 
 func SelectTerraformSetup(config *SetupConfig) terraform.SetupFn { // nolint:gocyclo
-	credsCache := NewAWSCredentialsProviderCache(WithCacheLogger(config.Logger))
+	// Use the package-level global cache so that TF and native controllers
+	// share the same *aws.CredentialsCache instances for IRSA auth.
+	credsCache := GlobalAWSCredentialsProviderCache
+	credsCache.SetLogger(config.Logger)
 	return func(ctx context.Context, c client.Client, mg resource.Managed) (terraform.Setup, error) {
 		pc, err := resolveProviderConfig(ctx, c, mg)
 		if err != nil {

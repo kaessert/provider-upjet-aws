@@ -148,6 +148,34 @@ func GetAWSConfigWithTracking(ctx context.Context, c client.Client, mg resource.
 	return GetAWSConfigWithoutTracking(ctx, c, mg, pc)
 }
 
+// GetAWSConfigWithTrackingAndCache is like GetAWSConfigWithTracking but
+// additionally consults the GlobalAWSCredentialsProviderCache for IRSA
+// credentials. When the auth method is IRSA the returned aws.Config uses a
+// shared *aws.CredentialsCache instance, so the underlying STS token is only
+// refreshed when it actually expires — not on every reconcile.
+//
+// This is the recommended resolver for native controllers. It satisfies the
+// same function signature as GetAWSConfigWithTracking and is safe for use as
+// the default ConfigResolverFn in native.NewTypedConnector.
+func GetAWSConfigWithTrackingAndCache(ctx context.Context, c client.Client, mg resource.Managed) (*aws.Config, error) {
+	pc, err := resolveProviderConfig(ctx, c, mg)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := GetAWSConfigWithoutTracking(ctx, c, mg, pc)
+	if err != nil {
+		return nil, err
+	}
+	// For IRSA, replace cfg.Credentials with the shared cached provider to
+	// avoid excessive STS token refresh calls across reconciliations.
+	cachedProvider, err := GlobalAWSCredentialsProviderCache.GetCachedCredentialsProvider(pc, cfg.Region, cfg.Credentials)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot get cached credentials provider")
+	}
+	cfg.Credentials = cachedProvider
+	return cfg, nil
+}
+
 // TODO: Update to use the new endpoint resolution method. SA1019: aws.Endpoint is deprecated.
 type awsEndpointResolverAdaptorWithOptions func(service, region string, options interface{}) (aws.Endpoint, error) // nolint: staticcheck
 

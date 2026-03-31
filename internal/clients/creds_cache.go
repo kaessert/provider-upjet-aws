@@ -28,6 +28,12 @@ const (
 	errGetAccountID = "cannot retrieve the AWS account ID"
 )
 
+// GlobalAWSCredentialsProviderCache is the global IRSA credential cache shared
+// between native and TF controllers. Both call paths use this singleton so that
+// the same *aws.CredentialsCache is reused across reconciliations, preventing
+// excessive STS token refresh calls at scale.
+var GlobalAWSCredentialsProviderCache = NewAWSCredentialsProviderCache()
+
 // AWSCredentialsProviderCacheOption lets you configure
 // a *GlobalAWSCredentialsProviderCache.
 type AWSCredentialsProviderCacheOption func(cache *AWSCredentialsProviderCache)
@@ -143,6 +149,109 @@ func newCredentials(ctx context.Context, credsProvider aws.CredentialsProvider, 
 	return result, nil
 }
 
+// SetLogger updates the logger used by the cache. This is safe to call at any
+// time; it acquires the write lock to ensure visibility. Passing a nil logger
+// resets to a nop logger.
+func (c *AWSCredentialsProviderCache) SetLogger(l logging.Logger) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if l == nil {
+		l = logging.NewNopLogger()
+	}
+	c.logger = l
+}
+
+// cacheKeyForIRSA computes a deterministic cache key for IRSA credentials that
+// captures all parameters that can affect the resulting AWS credentials:
+//   - ProviderConfig UUID + Generation (changes when the object is modified)
+//   - region (same PC in different regions yields different credentials)
+//   - auth source (always "IRSA" here, included for completeness)
+//   - SHA-256 hash of the IRSA token file content (detects token rotation)
+//   - token file path and role ARN env vars
+//
+// Callers must ensure the credential source is IRSA before calling this.
+func (c *AWSCredentialsProviderCache) cacheKeyForIRSA(pc *v1beta1.ClusterProviderConfig, region string) (string, error) {
+	params := []string{ // nolint:prealloc
+		string(pc.UID),
+		strconv.FormatInt(pc.Generation, 10),
+		region,
+		string(pc.Spec.Credentials.Source),
+	}
+	tokenHash, err := hashTokenFile(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
+	if err != nil {
+		return "", errors.Wrap(err, "cannot calculate the hash for the credentials file")
+	}
+	params = append(params, tokenHash, os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"), os.Getenv("AWS_ROLE_ARN"))
+	return strings.Join(params, ":"), nil
+}
+
+// GetCachedCredentialsProvider returns a shared *aws.CredentialsCache for the
+// given IRSA ProviderConfig+region combination. If a cache entry already exists
+// for the computed key, the stored *aws.CredentialsCache is returned so that its
+// internal token cache is shared across reconciliations (preventing excessive
+// STS refreshes). On a cache miss the supplied credsProvider is stored and
+// returned.
+//
+// For non-IRSA credential sources, or when credsProvider is not an
+// *aws.CredentialsCache, the original provider is returned unchanged.
+//
+// Callers should replace cfg.Credentials with the returned provider before
+// building an AWS service client.
+func (c *AWSCredentialsProviderCache) GetCachedCredentialsProvider(
+	pc *v1beta1.ClusterProviderConfig,
+	region string,
+	credsProvider aws.CredentialsProvider,
+) (aws.CredentialsProvider, error) {
+	// Only IRSA credentials benefit from sharing: other auth methods either
+	// have static credentials or their own caching mechanisms.
+	if pc.Spec.Credentials.Source != authKeyIRSA {
+		return credsProvider, nil
+	}
+	// The underlying provider must already be an *aws.CredentialsCache.
+	// config.LoadDefaultConfig wraps IRSA providers in one by default.
+	awsCredsCache, ok := credsProvider.(*aws.CredentialsCache)
+	if !ok {
+		c.logger.Debug("credentials provider is not *aws.CredentialsCache for IRSA, skipping credential cache")
+		return credsProvider, nil
+	}
+
+	cacheKey, err := c.cacheKeyForIRSA(pc, region)
+	if err != nil {
+		return nil, err
+	}
+
+	c.logger.Debug("Checking credential provider cache entry", "cacheKey", cacheKey)
+	c.mu.RLock()
+	entry, ok := c.cache[cacheKey]
+	c.mu.RUnlock()
+
+	if ok {
+		c.logger.Debug("Credential provider cache hit", "cacheKey", cacheKey)
+		// Hot path: update access time only periodically to reduce lock contention.
+		if time.Since(entry.accessedAt.Load().(time.Time)) > 10*time.Minute {
+			entry.accessedAt.Store(time.Now())
+		}
+		return entry.awsCredCache, nil
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	// Double-checked locking: another goroutine may have populated the entry
+	// between our read unlock and write lock.
+	entry, ok = c.cache[cacheKey]
+	if !ok {
+		c.logger.Debug("Credential provider cache miss", "cacheKey", cacheKey, "cacheSize", len(c.cache))
+		c.makeRoom()
+		entry = &awsCredentialsProviderCacheEntry{
+			awsCredCache: awsCredsCache,
+		}
+		entry.accountID.Store("") // account ID is not resolved here
+		entry.accessedAt.Store(time.Now())
+		c.cache[cacheKey] = entry
+	}
+	return entry.awsCredCache, nil
+}
+
 // RetrieveCredentials returns a Credentials either from the credential cache.
 // If the authentication scheme is IRSA and the supplied
 // aws.CredentialsProvider implementation is an aws.CredentialsCache, then the
@@ -179,18 +288,10 @@ func (c *AWSCredentialsProviderCache) RetrieveCredentials(ctx context.Context, p
 	// credentials and does not appear in the ProviderConfig directly
 	// (i.e. the same provider config content produces a different config),
 	// should be included in the cache key.
-	cacheKeyParams := []string{ // nolint:prealloc
-		string(pc.UID),
-		strconv.FormatInt(pc.Generation, 10),
-		region,
-		string(pc.Spec.Credentials.Source),
-	}
-	tokenHash, err := hashTokenFile(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"))
+	cacheKey, err := c.cacheKeyForIRSA(pc, region)
 	if err != nil {
-		return Credentials{}, errors.Wrap(err, "cannot calculate the hash for the credentials file")
+		return Credentials{}, errors.Wrap(err, "cannot calculate the cache key for the credentials")
 	}
-	cacheKeyParams = append(cacheKeyParams, tokenHash, os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE"), os.Getenv("AWS_ROLE_ARN"))
-	cacheKey := strings.Join(cacheKeyParams, ":")
 	c.logger.Debug("Checking cache entry", "cacheKey", cacheKey, "pc", pc.GroupVersionKind().String())
 	c.mu.RLock()
 	cacheEntry, ok := c.cache[cacheKey]
