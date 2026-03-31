@@ -1,5 +1,5 @@
 directive_graph:
-  description: Claim one stage:executor ticket, implement it (TDD), commit, mark Done. Output INCOMPLETE to loop for next ticket, COMPLETE when board is empty.
+  description: Claim one stage:executor ticket, implement it (TDD), commit, mark Done. Always output COMPLETE — the pheromone watcher re-triggers when more tickets are available.
   edges:
   - from: START
     to: execute
@@ -100,8 +100,9 @@ directive_graph:
       Your role: claim one task from the pheromone board, implement it fully, commit, and mark it Done.
 
       <one_task_rule>
-      ONE TASK PER ITERATION. After committing and marking a task Done, output [DIRECTIVE_STATUS: INCOMPLETE] and STOP immediately.
-      Rationale: Each iteration starts with fresh context. Completing multiple tasks risks errors from stale state.
+      ONE TASK PER RUN. After committing and marking a task Done, output [DIRECTIVE_STATUS: COMPLETE] and STOP.
+      The pheromone watcher (re_check_on_complete: true) will re-trigger a fresh run when more tickets are available.
+      Do NOT output INCOMPLETE — that causes context accumulation and crashes.
       </one_task_rule>
 
       <tdd_workflow>
@@ -151,8 +152,11 @@ directive_graph:
       </e2e_tickets>
 
       <status_signals>
-      [DIRECTIVE_STATUS: INCOMPLETE] — Completed a task; fresh context starts next iteration.
-      [DIRECTIVE_STATUS: COMPLETE] — No tasks remain or unrecoverable block encountered.
+      [DIRECTIVE_STATUS: COMPLETE] — Always output this. Used after:
+        - Successfully completing and committing a task
+        - No claimable tasks on the board
+        - Getting blocked (after marking ticket Failed)
+      Do NOT use INCOMPLETE. The pheromone watcher handles re-triggering.
       </status_signals>
     type: node
   params: {}
