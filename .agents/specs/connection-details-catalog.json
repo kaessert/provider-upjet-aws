@@ -1,0 +1,492 @@
+{
+  "_meta": {
+    "generated_from": "config/cluster/*/config.go",
+    "pattern": "r.Sensitive.AdditionalConnectionDetailsFn",
+    "resources_count": 17,
+    "notes": [
+      "All source_field values are Terraform attribute keys (attr map keys passed to AdditionalConnectionDetailsFn).",
+      "aws_sdk_field gives the equivalent AWS SDK v2 Go struct field path for native controller implementors.",
+      "creation_only=true means the value is returned by AWS only at creation time and cannot be retrieved from describe/get APIs.",
+      "Indexed keys (e.g. instance_0_console_url) use runtime indices; actual key names at runtime include the numeric index."
+    ]
+  },
+
+  "aws_iam_access_key": {
+    "tf_resource": "aws_iam_access_key",
+    "config_file": "config/cluster/iam/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "username",
+        "source_field": "id",
+        "aws_sdk_field": "CreateAccessKeyOutput.AccessKey.AccessKeyId",
+        "description": "The IAM access key ID, used as the username for programmatic access.",
+        "creation_only": false,
+        "notes": "Available as the external-name / resource ID. Can be retrieved via ListAccessKeys."
+      },
+      {
+        "key": "password",
+        "source_field": "secret",
+        "aws_sdk_field": "CreateAccessKeyOutput.AccessKey.SecretAccessKey",
+        "description": "The IAM secret access key. Used as password for programmatic access.",
+        "creation_only": true,
+        "notes": "AWS only returns the secret access key once at creation. Cannot be retrieved afterwards. Native controller must store it from the Create response."
+      }
+    ]
+  },
+
+  "aws_rds_cluster": {
+    "tf_resource": "aws_rds_cluster",
+    "config_file": "config/cluster/rds/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint",
+        "source_field": "endpoint",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].Endpoint",
+        "description": "The DNS address of the RDS cluster writer endpoint.",
+        "creation_only": false,
+        "notes": "Available via DescribeDBClusters. Type: *string."
+      },
+      {
+        "key": "reader_endpoint",
+        "source_field": "reader_endpoint",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].ReaderEndpoint",
+        "description": "The DNS address of the RDS cluster reader endpoint (load-balanced across replicas).",
+        "creation_only": false,
+        "notes": "Available via DescribeDBClusters. Type: *string."
+      },
+      {
+        "key": "master_username",
+        "source_field": "master_username",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].MasterUsername",
+        "description": "The master username for the RDS cluster.",
+        "creation_only": false,
+        "notes": "Available via DescribeDBClusters. Type: *string."
+      },
+      {
+        "key": "port",
+        "source_field": "port",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].Port",
+        "description": "The port on which the RDS cluster accepts connections.",
+        "creation_only": false,
+        "notes": "Available via DescribeDBClusters. Type: *int32. Formatted as string with fmt.Sprintf(\"%v\", port)."
+      }
+    ]
+  },
+
+  "aws_db_instance": {
+    "tf_resource": "aws_db_instance",
+    "config_file": "config/cluster/rds/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint",
+        "source_field": "endpoint",
+        "aws_sdk_field": "DescribeDBInstancesOutput.DBInstances[0].Endpoint (composite address:port)",
+        "description": "The connection endpoint in address:port format.",
+        "creation_only": false,
+        "notes": "Terraform composes this as address:port. AWS SDK has Endpoint.Address and Endpoint.Port separately."
+      },
+      {
+        "key": "address",
+        "source_field": "address",
+        "aws_sdk_field": "DescribeDBInstancesOutput.DBInstances[0].Endpoint.Address",
+        "description": "The hostname of the RDS instance.",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "host",
+        "source_field": "address",
+        "aws_sdk_field": "DescribeDBInstancesOutput.DBInstances[0].Endpoint.Address",
+        "description": "Alias for address — the hostname of the RDS instance. Same value as 'address'.",
+        "creation_only": false,
+        "notes": "Both 'address' and 'host' keys are set from the same source field."
+      },
+      {
+        "key": "username",
+        "source_field": "username",
+        "aws_sdk_field": "DescribeDBInstancesOutput.DBInstances[0].MasterUsername",
+        "description": "The master username for the RDS instance.",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "port",
+        "source_field": "port",
+        "aws_sdk_field": "DescribeDBInstancesOutput.DBInstances[0].Endpoint.Port",
+        "description": "The port on which the RDS instance accepts connections.",
+        "creation_only": false,
+        "notes": "Type: *int32. Formatted as string with fmt.Sprintf(\"%v\", port)."
+      },
+      {
+        "key": "password",
+        "source_field": "password",
+        "aws_sdk_field": "N/A — not available via AWS describe APIs",
+        "description": "The master password. Only available in TF state immediately after creation/update.",
+        "creation_only": true,
+        "notes": "AWS does not return the password in DescribeDBInstances. Native controller must persist it from CreateDBInstance input or a password secret. If auto-generated via PasswordGenerator, read from the referenced secret."
+      }
+    ]
+  },
+
+  "aws_rds_global_cluster": {
+    "tf_resource": "aws_rds_global_cluster",
+    "config_file": "config/cluster/rds/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint",
+        "source_field": "endpoint",
+        "aws_sdk_field": "DescribeGlobalClustersOutput.GlobalClusters[0] (no direct Endpoint field in AWS API — may not be populated)",
+        "description": "The endpoint for the global cluster, if available.",
+        "creation_only": false,
+        "notes": "The aws_rds_global_cluster TF resource exposes an 'endpoint' attribute but it may be empty/null in practice. Check if the AWS SDK GlobalCluster struct has an Endpoint field; if not, this key will never be populated."
+      }
+    ]
+  },
+
+  "aws_elasticache_cluster": {
+    "tf_resource": "aws_elasticache_cluster",
+    "config_file": "config/cluster/elasticache/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "cluster_address",
+        "source_field": "cluster_address",
+        "aws_sdk_field": "DescribeCacheClustersOutput.CacheClusters[0].ConfigurationEndpoint.Address",
+        "description": "The DNS name of the Memcached cluster configuration endpoint. Only populated for Memcached engine clusters.",
+        "creation_only": false,
+        "notes": "Only applicable to Memcached clusters (not Redis). Type: *string."
+      },
+      {
+        "key": "port",
+        "source_field": "port",
+        "aws_sdk_field": "DescribeCacheClustersOutput.CacheClusters[0].ConfigurationEndpoint.Port",
+        "description": "The port number on which the cache cluster accepts connections.",
+        "creation_only": false,
+        "notes": "Formatted as string with fmt.Sprintf(\"%v\", port). For Redis, use CacheNodes[0].Endpoint.Port."
+      }
+    ]
+  },
+
+  "aws_elasticache_replication_group": {
+    "tf_resource": "aws_elasticache_replication_group",
+    "config_file": "config/cluster/elasticache/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "configuration_endpoint_address",
+        "source_field": "configuration_endpoint_address",
+        "aws_sdk_field": "DescribeReplicationGroupsOutput.ReplicationGroups[0].ConfigurationEndpoint.Address",
+        "description": "The address of the replication group configuration endpoint. Only set for cluster-mode enabled groups.",
+        "creation_only": false,
+        "notes": "Populated only when cluster mode is enabled. Type: *string."
+      },
+      {
+        "key": "primary_endpoint_address",
+        "source_field": "primary_endpoint_address",
+        "aws_sdk_field": "DescribeReplicationGroupsOutput.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Address",
+        "description": "The address of the primary node endpoint for the replication group.",
+        "creation_only": false,
+        "notes": "Type: *string. Populated when cluster mode is disabled."
+      },
+      {
+        "key": "reader_endpoint_address",
+        "source_field": "reader_endpoint_address",
+        "aws_sdk_field": "DescribeReplicationGroupsOutput.ReplicationGroups[0].NodeGroups[0].ReaderEndpoint.Address",
+        "description": "The address of the reader endpoint for the replication group (load-balanced across replicas).",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "port",
+        "source_field": "port",
+        "aws_sdk_field": "DescribeReplicationGroupsOutput.ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.Port",
+        "description": "The port number on which the replication group accepts connections.",
+        "creation_only": false,
+        "notes": "Formatted as string with fmt.Sprintf(\"%v\", port). Type: *int32."
+      }
+    ]
+  },
+
+  "aws_elasticache_serverless_cache": {
+    "tf_resource": "aws_elasticache_serverless_cache",
+    "config_file": "config/cluster/elasticache/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint_{i}_address",
+        "source_field": "endpoint[i].address",
+        "aws_sdk_field": "DescribeServerlessCachesOutput.ServerlessCaches[0].Endpoint.Address",
+        "description": "Address of the Nth endpoint (indexed). Key format: endpoint_0_address, endpoint_1_address, etc.",
+        "creation_only": false,
+        "notes": "The TF attr 'endpoint' is a list; each entry has 'address' and 'port' sub-fields. In practice, there is typically only one endpoint (i=0). AWS SDK ServerlessCache has a single Endpoint field."
+      },
+      {
+        "key": "endpoint_{i}_port",
+        "source_field": "endpoint[i].port",
+        "aws_sdk_field": "DescribeServerlessCachesOutput.ServerlessCaches[0].Endpoint.Port",
+        "description": "Port of the Nth endpoint (indexed). Key format: endpoint_0_port, endpoint_1_port, etc.",
+        "creation_only": false,
+        "notes": "Formatted with fmt.Sprintf(\"%v\", port)."
+      },
+      {
+        "key": "reader_endpoint_{i}_address",
+        "source_field": "reader_endpoint[i].address",
+        "aws_sdk_field": "DescribeServerlessCachesOutput.ServerlessCaches[0].ReaderEndpoint.Address",
+        "description": "Address of the Nth reader endpoint (indexed). Key format: reader_endpoint_0_address, etc.",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "reader_endpoint_{i}_port",
+        "source_field": "reader_endpoint[i].port",
+        "aws_sdk_field": "DescribeServerlessCachesOutput.ServerlessCaches[0].ReaderEndpoint.Port",
+        "description": "Port of the Nth reader endpoint (indexed). Key format: reader_endpoint_0_port, etc.",
+        "creation_only": false,
+        "notes": "Formatted with fmt.Sprintf(\"%v\", port)."
+      }
+    ]
+  },
+
+  "aws_opensearch_domain": {
+    "tf_resource": "aws_opensearch_domain",
+    "config_file": "config/cluster/opensearch/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint",
+        "source_field": "endpoint",
+        "aws_sdk_field": "DescribeDomainOutput.DomainStatus.Endpoint",
+        "description": "The domain-specific endpoint used to submit index, search, and data upload requests to the OpenSearch domain.",
+        "creation_only": false,
+        "notes": "Type: *string. Note: newer OpenSearch SDK versions may use Endpoints map instead of Endpoint string for VPC domains."
+      }
+    ]
+  },
+
+  "aws_acmpca_certificate_authority": {
+    "tf_resource": "aws_acmpca_certificate_authority",
+    "config_file": "config/cluster/acmpca/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "certificate",
+        "source_field": "certificate",
+        "aws_sdk_field": "GetCertificateAuthorityCertificateOutput.Certificate",
+        "description": "The PEM-encoded certificate for the private CA.",
+        "creation_only": false,
+        "notes": "Retrieved via GetCertificateAuthorityCertificate API call. Available only after the CA has been activated."
+      },
+      {
+        "key": "certificate_chain",
+        "source_field": "certificate_chain",
+        "aws_sdk_field": "GetCertificateAuthorityCertificateOutput.CertificateChain",
+        "description": "The PEM-encoded certificate chain for the private CA.",
+        "creation_only": false,
+        "notes": "Retrieved via GetCertificateAuthorityCertificate API call. May be empty for root CAs."
+      },
+      {
+        "key": "certificate_signing_request",
+        "source_field": "certificate_signing_request",
+        "aws_sdk_field": "GetCertificateAuthorityCsrOutput.Csr",
+        "description": "The PEM-encoded certificate signing request (CSR) for the private CA.",
+        "creation_only": false,
+        "notes": "Retrieved via GetCertificateAuthorityCsr API call. Used to issue the CA certificate from a parent CA."
+      }
+    ]
+  },
+
+  "aws_acmpca_certificate": {
+    "tf_resource": "aws_acmpca_certificate",
+    "config_file": "config/cluster/acmpca/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "certificate",
+        "source_field": "certificate",
+        "aws_sdk_field": "GetCertificateOutput.Certificate",
+        "description": "The PEM-encoded certificate issued by the private CA.",
+        "creation_only": false,
+        "notes": "Retrieved via GetCertificate API call using certificate ARN and CA ARN."
+      },
+      {
+        "key": "certificate_chain",
+        "source_field": "certificate_chain",
+        "aws_sdk_field": "GetCertificateOutput.CertificateChain",
+        "description": "The PEM-encoded certificate chain for the issued certificate.",
+        "creation_only": false,
+        "notes": "Retrieved via GetCertificate API call."
+      }
+    ]
+  },
+
+  "aws_s3_bucket": {
+    "tf_resource": "aws_s3_bucket",
+    "config_file": "config/cluster/s3/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "id",
+        "source_field": "id",
+        "aws_sdk_field": "bucket name (external-name; used in all S3 API calls as Bucket parameter)",
+        "description": "The S3 bucket name (same as the resource external name / Terraform ID).",
+        "creation_only": false,
+        "notes": "This is the bucket name, not a generated ID. Available as the external name."
+      },
+      {
+        "key": "arn",
+        "source_field": "arn",
+        "aws_sdk_field": "constructed as arn:aws:s3:::{bucket_name} — not returned directly by S3 APIs",
+        "description": "The ARN of the S3 bucket.",
+        "creation_only": false,
+        "notes": "The S3 GetBucketLocation and related APIs do not return the ARN. Native controllers should construct it: arn:aws:s3:::{bucket_name}."
+      },
+      {
+        "key": "region",
+        "source_field": "region",
+        "aws_sdk_field": "GetBucketLocationOutput.LocationConstraint",
+        "description": "The AWS region where the S3 bucket resides.",
+        "creation_only": false,
+        "notes": "Type: types.BucketLocationConstraint (string). Note: us-east-1 returns empty string from GetBucketLocation."
+      }
+    ]
+  },
+
+  "aws_efs_file_system": {
+    "tf_resource": "aws_efs_file_system",
+    "config_file": "config/cluster/efs/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "id",
+        "source_field": "id",
+        "aws_sdk_field": "DescribeFileSystemsOutput.FileSystems[0].FileSystemId",
+        "description": "The EFS file system ID (e.g. fs-12345678).",
+        "creation_only": false,
+        "notes": "Type: *string. This is the external name / Terraform resource ID."
+      }
+    ]
+  },
+
+  "aws_mq_broker": {
+    "tf_resource": "aws_mq_broker",
+    "config_file": "config/cluster/mq/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "instance_{i}_console_url",
+        "source_field": "instances[i].console_url",
+        "aws_sdk_field": "DescribeBrokerOutput.BrokerInstances[i].ConsoleURL",
+        "description": "The URL of the ActiveMQ Web Console for broker instance i. Key format: instance_0_console_url, instance_1_console_url, etc.",
+        "creation_only": false,
+        "notes": "Type: *string. Only available for ActiveMQ brokers."
+      },
+      {
+        "key": "instance_{i}_ip_address",
+        "source_field": "instances[i].ip_address",
+        "aws_sdk_field": "DescribeBrokerOutput.BrokerInstances[i].IpAddress",
+        "description": "The IP address of broker instance i. Key format: instance_0_ip_address, instance_1_ip_address, etc.",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "instance_{i}_endpoint_{j}",
+        "source_field": "instances[i].endpoints[j]",
+        "aws_sdk_field": "DescribeBrokerOutput.BrokerInstances[i].Endpoints[j]",
+        "description": "The Jth endpoint URL of broker instance i. Key format: instance_0_endpoint_0, instance_0_endpoint_1, etc.",
+        "creation_only": false,
+        "notes": "Type: []string. Endpoints include AMQP, STOMP, MQTT, OpenWire protocol URLs depending on broker type."
+      }
+    ]
+  },
+
+  "aws_sns_topic": {
+    "tf_resource": "aws_sns_topic",
+    "config_file": "config/cluster/sns/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "arn",
+        "source_field": "arn",
+        "aws_sdk_field": "CreateTopicOutput.TopicArn",
+        "description": "The ARN of the SNS topic.",
+        "creation_only": false,
+        "notes": "Available from CreateTopic response and also from GetTopicAttributes (Attributes[TopicArn]). Type: *string."
+      }
+    ]
+  },
+
+  "aws_docdb_cluster": {
+    "tf_resource": "aws_docdb_cluster",
+    "config_file": "config/cluster/docdb/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "endpoint",
+        "source_field": "endpoint",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].Endpoint",
+        "description": "The DNS address of the DocumentDB cluster.",
+        "creation_only": false,
+        "notes": "Type: *string. Primary writer endpoint."
+      },
+      {
+        "key": "arn",
+        "source_field": "arn",
+        "aws_sdk_field": "DescribeDBClustersOutput.DBClusters[0].DBClusterArn",
+        "description": "The ARN of the DocumentDB cluster.",
+        "creation_only": false,
+        "notes": "Type: *string."
+      },
+      {
+        "key": "password",
+        "source_field": "master_password",
+        "aws_sdk_field": "N/A — not available via AWS describe APIs",
+        "description": "The master password for the DocumentDB cluster.",
+        "creation_only": true,
+        "notes": "AWS does not return the master_password in DescribeDBClusters. Native controller must persist it from CreateDBCluster input or from the referenced password secret (if using PasswordGenerator / auto_generate_password)."
+      }
+    ]
+  },
+
+  "aws_sqs_queue": {
+    "tf_resource": "aws_sqs_queue",
+    "config_file": "config/cluster/sqs/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "url",
+        "source_field": "url",
+        "aws_sdk_field": "GetQueueUrlOutput.QueueUrl",
+        "description": "The URL of the SQS queue.",
+        "creation_only": false,
+        "notes": "Type: *string. Also returned in CreateQueueOutput.QueueUrl. This is the primary identifier for sending/receiving messages."
+      }
+    ]
+  },
+
+  "aws_memorydb_cluster": {
+    "tf_resource": "aws_memorydb_cluster",
+    "config_file": "config/cluster/memorydb/config.go",
+    "connection_detail_keys": [
+      {
+        "key": "cluster_endpoint_{i}_address",
+        "source_field": "cluster_endpoint[i].address",
+        "aws_sdk_field": "DescribeClustersOutput.Clusters[0].ClusterEndpoint.Address",
+        "description": "Address of the cluster configuration endpoint. Key format: cluster_endpoint_0_address. In practice i=0 always.",
+        "creation_only": false,
+        "notes": "The TF attr 'cluster_endpoint' is a list but AWS SDK exposes a single ClusterEndpoint. Type: *string."
+      },
+      {
+        "key": "cluster_endpoint_{i}_port",
+        "source_field": "cluster_endpoint[i].port",
+        "aws_sdk_field": "DescribeClustersOutput.Clusters[0].ClusterEndpoint.Port",
+        "description": "Port of the cluster configuration endpoint. Key format: cluster_endpoint_0_port.",
+        "creation_only": false,
+        "notes": "Formatted with fmt.Sprintf(\"%g\", port). Type: *int32 in AWS SDK (float64 in TF)."
+      },
+      {
+        "key": "shard_node_{shard+1}_{node+1}_endpoint_address",
+        "source_field": "shards[shard].nodes[node].endpoint[0].address",
+        "aws_sdk_field": "DescribeClustersOutput.Clusters[0].Shards[shard].Nodes[node].Endpoint.Address",
+        "description": "Per-node endpoint address. Key format: shard_node_1_1_endpoint_address (1-indexed). Iterate over all shards and nodes.",
+        "creation_only": false,
+        "notes": "Requires DescribeClusters with ShowShardDetails=true to populate Shard.Nodes. Type: *string."
+      },
+      {
+        "key": "shard_node_{shard+1}_{node+1}_endpoint_port",
+        "source_field": "shards[shard].nodes[node].endpoint[0].port",
+        "aws_sdk_field": "DescribeClustersOutput.Clusters[0].Shards[shard].Nodes[node].Endpoint.Port",
+        "description": "Per-node endpoint port. Key format: shard_node_1_1_endpoint_port (1-indexed).",
+        "creation_only": false,
+        "notes": "Formatted with fmt.Sprintf(\"%g\", port). Type: *int32 in AWS SDK (float64 in TF)."
+      }
+    ]
+  }
+}
