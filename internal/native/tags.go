@@ -30,6 +30,24 @@ func tagValue(t Tag) string {
 	return *t.Value
 }
 
+// buildTagMap converts a []Tag to a map[string]string keyed by tag key.
+func buildTagMap(tags []Tag) map[string]string {
+	m := make(map[string]string, len(tags))
+	for _, t := range tags {
+		m[tagKey(t)] = tagValue(t)
+	}
+	return m
+}
+
+// ensureSlice returns an initialised (non-nil) empty slice when s is nil,
+// so callers never receive a nil slice from Diff functions.
+func ensureSlice(s []Tag) []Tag {
+	if s == nil {
+		return []Tag{}
+	}
+	return s
+}
+
 // DiffTags computes the set of tags to add and the set to remove when
 // reconciling from observed to desired.
 //
@@ -39,22 +57,12 @@ func tagValue(t Tag) string {
 //     that has a different value in desired (the old observed value is removed
 //     and the new desired value is added).
 func DiffTags(desired, observed []Tag) (toAdd, toRemove []Tag) {
-	// Index observed tags by key for O(1) lookup.
-	observedMap := make(map[string]string, len(observed))
-	for _, t := range observed {
-		observedMap[tagKey(t)] = tagValue(t)
-	}
-
-	// Index desired tags by key so we can detect removals.
-	desiredMap := make(map[string]string, len(desired))
-	for _, t := range desired {
-		desiredMap[tagKey(t)] = tagValue(t)
-	}
+	observedMap := buildTagMap(observed)
+	desiredMap := buildTagMap(desired)
 
 	// Determine tags to add (new or changed).
 	for _, t := range desired {
-		k := tagKey(t)
-		if v, exists := observedMap[k]; !exists || v != tagValue(t) {
+		if v, exists := observedMap[tagKey(t)]; !exists || v != tagValue(t) {
 			toAdd = append(toAdd, t)
 		}
 	}
@@ -63,21 +71,12 @@ func DiffTags(desired, observed []Tag) (toAdd, toRemove []Tag) {
 	// OR present in both but with a different value (stale value must be
 	// removed before/alongside the new value being added).
 	for _, t := range observed {
-		k := tagKey(t)
-		desiredVal, exists := desiredMap[k]
-		if !exists || desiredVal != tagValue(t) {
+		if desiredVal, exists := desiredMap[tagKey(t)]; !exists || desiredVal != tagValue(t) {
 			toRemove = append(toRemove, t)
 		}
 	}
 
-	// Return empty slices rather than nil for consistent nil-safe callers.
-	if toAdd == nil {
-		toAdd = []Tag{}
-	}
-	if toRemove == nil {
-		toRemove = []Tag{}
-	}
-	return toAdd, toRemove
+	return ensureSlice(toAdd), ensureSlice(toRemove)
 }
 
 // DiffTagsWithDefaults is like DiffTags but protects default tags provided by
