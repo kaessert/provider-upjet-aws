@@ -42,6 +42,14 @@ type ProviderConfigSpec struct {
 	// Useful for AWS API implementations that do not have the IAM, STS API, or metadata API
 	// +optional
 	SkipReqAccountId bool `json:"skip_requesting_account_id,omitempty"`
+
+	// DefaultTags is a map of tags to apply to all AWS resources managed by this
+	// ProviderConfig. These tags are merged with resource-level tags defined in
+	// spec.forProvider.tags; resource-level tags take precedence on key conflicts.
+	// Native controllers use these tags to populate status.atProvider.tagsAll and
+	// to ensure default tags are never removed during reconciliation.
+	// +optional
+	DefaultTags map[string]string `json:"default_tags,omitempty"`
 }
 
 // AssumeRoleOptions define the options for assuming an IAM Role
