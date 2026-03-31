@@ -9,6 +9,8 @@
 
 - **[../docs/architecture.md](../docs/architecture.md)** — Provider architecture, family structure, dual scope, resource lifecycle, authentication, code generation pipeline, generated file patterns
 - **[../docs/build-system.md](../docs/build-system.md)** — Makefile targets, CI/CD workflows, tool versions, code generation flow, buildtagger, linting
+- **[../docs/build-system-isolation.md](../docs/build-system-isolation.md)** — Proof that `make generate` does NOT clobber `native/` sub-packages; per-stage analysis
+- **[../docs/chimera-generate-guide.md](../docs/chimera-generate-guide.md)** — Two generate paths (`make generate` vs `make generate.native`), when to use which, chimera invariants, common pitfalls, troubleshooting
 - **[../docs/config-patterns.md](../docs/config-patterns.md)** — Resource configuration patterns: external names, references, late init, custom diff, connection details, overrides
 - **[../docs/testing.md](../docs/testing.md)** — Unit tests, E2E (Uptest), CI pipeline, test patterns, test gaps
 - **[../docs/native-controller-guide.md](../docs/native-controller-guide.md)** — Provider-template patterns, ExternalClient interface, migration file layout, CRUD implementation

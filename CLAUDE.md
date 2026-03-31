@@ -314,6 +314,20 @@ K8s CR → native Connector → TypedExternalClient → AWS SDK v2 → AWS API
 | Migration Design | [`.agents/specs/terraform-removal-migration.md`](.agents/specs/terraform-removal-migration.md) | Master plan: 349 resources, 5 phases, ~1,490 tickets |
 | Native Controller Pattern | [`.agents/specs/native-controller-pattern.md`](.agents/specs/native-controller-pattern.md) | Implementation guide for RAW controllers |
 
+### Chimera Code Generation
+
+During the migration, two generate paths are available:
+
+| Command | When to use | Duration |
+|---------|-------------|----------|
+| `make generate.native` | Changed native types in `native/` subpackages or ProviderConfig types | Seconds–1 min |
+| `make generate` | Changed `config/externalname.go`, service configs, or `hack/main.go.tmpl` | 15–30 min |
+
+**Critical**: Running `make generate` when only native types changed produces hundreds of
+cosmetic `zz_*` diffs from tool-version variance.  Use `make generate.native` for native-only changes.
+
+→ **Full guide**: [`.agents/docs/chimera-generate-guide.md`](.agents/docs/chimera-generate-guide.md) — Two paths, when to use which, chimera invariants, common pitfalls, troubleshooting
+
 ### Migration Strategy
 
 - **Parallel coexistence**: `Kind: Bucket` (TF) + `Kind: BucketRAW` (native) run simultaneously
@@ -362,6 +376,7 @@ When creating tickets for the executor:
 | Config Patterns | [`.agents/docs/config-patterns.md`](.agents/docs/config-patterns.md) | External names, references, late init, custom diff, overrides |
 | Testing | [`.agents/docs/testing.md`](.agents/docs/testing.md) | Unit tests, E2E (Uptest), CI pipeline, test patterns |
 | Native Controllers | [`.agents/docs/native-controller-guide.md`](.agents/docs/native-controller-guide.md) | Provider-template pattern, ExternalClient, migration |
+| Chimera Generate Guide | [`.agents/docs/chimera-generate-guide.md`](.agents/docs/chimera-generate-guide.md) | Two generate paths, when to use which, invariants, pitfalls, troubleshooting |
 | Migration Spec | [`.agents/specs/terraform-removal-migration.md`](.agents/specs/terraform-removal-migration.md) | Full migration plan, phases, design decisions |
 | Native Pattern Spec | [`.agents/specs/native-controller-pattern.md`](.agents/specs/native-controller-pattern.md) | Implementation guide for RAW controllers |
 
