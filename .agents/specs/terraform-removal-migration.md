@@ -413,6 +413,39 @@ For each service, the migration follows this exact sequence. Both `cluster` and 
 
 Before any migration work begins for a resource, run the existing e2e test for the **TF-backed resource** using its current example manifest.
 
+#### E2E Process (validated — S3 Bucket passed end-to-end)
+
+The executor runs E2E tests via the Makefile. The full command:
+
+```bash
+# Set AWS credentials for uptest
+export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
+
+# Set the example manifest to test
+export UPTEST_EXAMPLE_LIST="examples/<service>/cluster/<version>/<resource>.yaml"
+
+# Run the full pipeline: build → Kind cluster → Crossplane → provider deploy → uptest
+make e2e SUBPACKAGES="config <service>"
+```
+
+This single command does everything:
+1. **Build**: Compiles the config + service provider binaries, builds Docker images
+2. **controlplane.down/up**: Creates a Kind cluster, installs Crossplane via Helm
+3. **local-deploy**: Loads provider images into Kind, deploys as Crossplane packages
+4. **uptest**: Runs chainsaw tests — applies example YAML, waits for Ready, deletes, waits for Gone
+
+The pipeline takes ~5-10 minutes per service (build is cached after first run).
+
+#### Prerequisites
+
+- Docker with buildx
+- AWS credentials as environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+- Kernel with full iptables support (nat, filter, raw, mangle tables + REJECT, MARK extensions)
+
+#### Baseline gate criteria
+
 ```
 For each resource in the service:
   1. Run e2e test: examples/<service>/cluster/<version>/<resource>.yaml
