@@ -916,11 +916,80 @@ depends_on: ["native-<SERVICE>-tf-regression"]
 ## Agent Verification: <SERVICE>
 
 Deploy TF and RAW resources side-by-side and verify behavioral parity. This is the final
-gate before cutover. Use the nohup+poll pattern — this may run 20–60+ minutes.
+gate before the service is considered migration-ready. Use the nohup+poll pattern — this
+may run 20–60+ minutes.
 
 ### Spec References
 `.agents/specs/terraform-removal-migration.md` — Sections "Step 5: Agent Verification"
 and "Agent Verification Detail" (parity report format, verification tiering)
+
+### Prerequisites
+- AWS CLI must be available. If not installed, install it first:
+  ```bash
+  cd /tmp && curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip -qo awscliv2.zip && sudo ./aws/install --update
+  aws --version   # must succeed
+  aws sts get-caller-identity  # must return the test account
+  ```
+
+### Mutable Fields to Test
+
+The following fields MUST be patched on both TF and RAW resources during verification.
+These are all non-computed, user-settable fields from the Schema Field Classification
+(see the implement ticket for the full table from `config/schema.json`).
+
+<for each resource, list ALL mutable fields from the schema classification:>
+**<resource_go>**:
+| Field | Schema | Patch Test |
+|-------|--------|------------|
+<for each `required` field:>
+| `<field>` | required | Patch to new value, verify AWS state matches on both TF and RAW |
+<for each `optional` (non-computed) field:>
+| `<field>` | optional | Set value, verify AWS state matches; then remove, verify AWS defaults restored |
+<for each block with min=0:>
+| `<block_name>` | block min=0 | Set explicit values, verify; then remove, verify AWS defaults |
+<for tags:>
+| `tags` | optional | Add tag, verify; update tag value, verify; remove tag, verify |
+
+Do NOT skip fields. Every mutable field must be tested for parity.
+
+### Verification Steps (for each resource)
+
+For each resource `<resource_go>`:
+
+**Phase 1: Create + AWS-side verification**
+1. Apply TF example manifest → wait for Ready (timeout 10m)
+2. Apply RAW example manifest → wait for Ready (timeout 10m)
+3. **AWS CLI: describe both resources and compare state** (MANDATORY)
+   ```bash
+   # Example for SFN:
+   aws stepfunctions describe-state-machine --state-machine-arn <TF_ARN> --region <REGION> > /tmp/tf-state.json
+   aws stepfunctions describe-state-machine --state-machine-arn <RAW_ARN> --region <REGION> > /tmp/raw-state.json
+   # Compare relevant fields (exclude timestamps, ARNs, names):
+   diff <(jq '{definition,roleArn,type,loggingConfiguration,tracingConfiguration,encryptionConfiguration}' /tmp/tf-state.json) \
+        <(jq '{definition,roleArn,type,loggingConfiguration,tracingConfiguration,encryptionConfiguration}' /tmp/raw-state.json)
+   ```
+   Adapt the AWS CLI command and jq filter for the specific service/resource.
+
+**Phase 2: Update each mutable field**
+4. For EACH mutable field in the table above:
+   a. Patch the field on the TF resource → wait for Synced=True
+   b. Patch the same field on the RAW resource → wait for Synced=True
+   c. **AWS CLI: describe both and compare** — the field must have the same value
+   d. Record result: ✓ or ✗ with details
+
+**Phase 3: Tags lifecycle**
+5. Add a new tag to both → verify via AWS CLI
+6. Update the tag value on both → verify via AWS CLI
+7. Remove the tag from both → verify via AWS CLI
+
+**Phase 4: Delete + cleanup verification**
+8. Delete both resources → wait for Gone (timeout 10m)
+9. **AWS CLI: confirm both resources are actually deleted** (MANDATORY)
+   ```bash
+   aws stepfunctions describe-state-machine --state-machine-arn <TF_ARN> --region <REGION> 2>&1 | grep -i "does not exist"
+   aws stepfunctions describe-state-machine --state-machine-arn <RAW_ARN> --region <REGION> 2>&1 | grep -i "does not exist"
+   ```
 
 ### nohup+Poll Pattern (REQUIRED — long-running verification)
 ```bash
@@ -931,6 +1000,10 @@ LOG=/tmp/verify-<SERVICE>.log
 
 echo "=== Agent Verification: <SERVICE> ===" | tee -a $LOG
 echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a $LOG
+
+# Verify AWS CLI is available
+aws --version || { echo "FAIL: AWS CLI not installed" | tee -a $LOG; exit 1; }
+aws sts get-caller-identity || { echo "FAIL: AWS credentials not working" | tee -a $LOG; exit 1; }
 
 # ... verification steps for each resource ...
 
@@ -952,43 +1025,48 @@ echo "=== Verification finished ==="
 cat /tmp/verify-<SERVICE>.log
 ```
 
-### Verification Steps (for each resource)
-For each resource `<resource_go>`:
-1. Apply TF example manifest → wait for Ready (timeout 10m)
-   `kubectl apply -f examples/<SERVICE>/cluster/<version>/<resource_file>.yaml`
-2. Apply RAW example manifest → wait for Ready (timeout 10m)
-   `kubectl apply -f examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml`
-3. Describe both resources in AWS via CLI → confirm they exist
-4. Patch a mutable field on each (tags at minimum) → wait for Synced
-5. Compare AWS state between TF and RAW instances → assert equal
-6. Delete both → wait for Gone (timeout 10m)
-
 ### Parity Report Format (attach to ticket before marking Done)
 ```
 === Agent Verification Report: <SERVICE> ===
 Service: <SERVICE>
 Resources: <N>
 Date: <ISO timestamp>
+AWS CLI: <version>
+Account: <account ID from sts get-caller-identity>
 
 <For each resource:>
 Resource: <resource_go>
   Status: PASS/FAIL
   Lifecycle: create ✓/✗ | observe ✓/✗ | update ✓/✗ | delete ✓/✗
-  Mutable fields tested: N/M
-    ✓/✗ tags: TF={...} RAW={...}
-    (additional fields if applicable)
 
-Overall: N/N PASS → READY FOR CUTOVER
+  AWS-side create comparison:
+    <diff output or "IDENTICAL">
+
+  Mutable fields tested: N/M
+    ✓/✗ definition: TF AWS={...} RAW AWS={...}
+    ✓/✗ role_arn: TF AWS={...} RAW AWS={...}
+    ✓/✗ <field>: TF AWS={...} RAW AWS={...}
+    ✓/✗ tags (add/update/remove): TF AWS={...} RAW AWS={...}
+
+  AWS-side delete confirmation:
+    TF: <not found / error>
+    RAW: <not found / error>
+
+Overall: N/N PASS → MIGRATION READY
   (or: N/M PASS — <list failures> — NOT READY)
 ```
 ```
 
 **Acceptance criteria** (as array):
 ```
-["Parity report generated and attached to ticket",
+["AWS CLI installed and working (aws sts get-caller-identity succeeds)",
+ "Parity report generated and attached to ticket",
  "ALL resources in <SERVICE> show PASS in parity report",
  "Lifecycle verified for each resource: create ✓ observe ✓ update ✓ delete ✓",
- "Report concludes: READY FOR CUTOVER",
+ "ALL mutable fields patched and compared via AWS CLI (not just tags)",
+ "AWS-side state compared after create (describe both resources via CLI)",
+ "AWS-side deletion confirmed via CLI (both resources gone from AWS)",
+ "Report concludes: MIGRATION READY",
  "No resource left in error state in the test cluster after verification"]
 ```
 
