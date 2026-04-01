@@ -102,6 +102,12 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StateMachineCR) (manage
 		return managed.ExternalObservation{}, err
 	}
 
+	// Set the "Test=True" condition when the resource is annotated as a test
+	// resource (upjet.upbound.io/test=true) and is fully up-to-date.
+	// This allows uptest's --default-conditions="Test" assertion to pass for
+	// native controllers the same way it does for upjet-based controllers.
+	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
+
 	return managed.ExternalObservation{
 		ResourceExists:   true,
 		ResourceUpToDate: upToDate,
