@@ -476,9 +476,20 @@ Both cluster AND namespaced scopes. No CRUD implementation — stubs must compil
 2. All user-writable fields → Parameters struct
 3. Read-only AWS output fields (IDs, ARNs, timestamps) → Observation struct
 4. `spec.forProvider.region` → ALWAYS in Parameters — REQUIRED for credential resolution
-5. Copy `+crossplane:generate:reference` annotations from TF types verbatim, EXCEPT:
+5. Copy `+crossplane:generate:reference` annotations from TF types, with these changes:
    - Replace `resource.TerraformID()` extractor → `resource.ExtractResourceID()`
-   - Reason: TerraformID() requires resource.Terraformed which RAW types do not implement
+     Reason: TerraformID() requires resource.Terraformed which RAW types do not implement
+   - Replace `config/cluster/common.TerraformID()` extractor → `internal/native.ExtractResourceID()`
+     Same reason, different import path used in some services
+   - **Intra-service references: point to the RAW type, not the TF type.**
+     If a resource references another resource in the SAME service (e.g., QueuePolicy → Queue),
+     change `type=github.com/.../sqs/v1beta1.Queue` → `type=QueueRAW` (short name, same package).
+     Reason: during e2e, the example manifest creates RAW dependency resources (e.g., QueueRAW),
+     and the resolver must find the correct type. Pointing to the TF `Queue` type will fail with
+     "no matches" because only `QueueRAW` exists in the test.
+   - **Cross-service references: keep pointing to the TF type.**
+     References to other services (e.g., Role in IAM) should keep the original TF type path
+     because those services haven't been migrated yet and the TF types are what's deployed.
 6. Use `json:"..."` tags ONLY. NO `tf:"..."` tags anywhere in RAW types.
 7. Kind must be `<resource_go>RAW` (json:"kind" value in the CRD will be set by Kubernetes)
 
