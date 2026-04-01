@@ -24,10 +24,16 @@ package namespaced
 
 import (
 	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
+	nativesqs "github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native"
 )
 
 func init() {
 	// Register native sfn types (StateMachineRAW and StateMachineRAWList)
 	// so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativesfn.SchemeBuilder.AddToScheme)
+
+	// Register native sqs types (QueueRAW, QueuePolicyRAW, QueueRedrivePolicyRAW,
+	// QueueRedriveAllowPolicyRAW and their list types) so that the controller
+	// manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativesqs.SchemeBuilder.AddToScheme)
 }
