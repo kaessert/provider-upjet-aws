@@ -401,6 +401,26 @@ make e2e SUBPACKAGES="config <SERVICE>"
 When this ticket fails, record the exact error output in the ticket (update description)
 and mark the ticket Failed.
 
+### AWS Resource Leak Cleanup (MANDATORY after failure)
+When an e2e test fails, AWS resources created during the test may be left behind.
+`make controlplane.down` only tears down the kind cluster — it does NOT clean up AWS resources.
+After marking the ticket Failed, check for and delete leaked resources:
+```bash
+# 1. Parse the example manifest for resource names and regions
+grep -E 'name:|region:' <example_manifest_path>
+
+# 2. Use AWS CLI to check for leaked resources (adapt per service)
+# Example for SQS:
+aws sqs list-queues --region <REGION> --queue-name-prefix <name>
+# Example for SFN:
+aws stepfunctions list-state-machines --region <REGION> | grep <name>
+
+# 3. Delete any found resources
+# aws sqs delete-queue --queue-url <url> --region <REGION>
+# aws stepfunctions delete-state-machine --state-machine-arn <arn> --region <REGION>
+```
+Record any cleaned-up resources in the ticket description.
+
 ### Result Capture
 Paste the final `uptest` output here (last 50 lines) before marking Done.
 ```
@@ -411,7 +431,8 @@ Paste the final `uptest` output here (last 50 lines) before marking Done.
  "TF resource <resource_go> deletes cleanly with no errors",
  "No AWS permission errors in output",
  "No AWS quota or limit errors in output",
- "E2E output captured in ticket"]
+ "E2E output captured in ticket",
+ "No leaked AWS resources after test (cleaned up if failed)"]
 ```
 
 ---
@@ -825,6 +846,16 @@ make e2e SUBPACKAGES="config <SERVICE>"
 - Controller error → Mark FAILED
 No workarounds. Record exact error and mark Failed.
 
+### AWS Resource Leak Cleanup (MANDATORY after failure)
+When an e2e test fails, AWS resources created during the test may be left behind.
+`make controlplane.down` only tears down the kind cluster — it does NOT clean up AWS resources.
+After marking the ticket Failed, check for and delete leaked resources:
+```bash
+# Parse the example manifest for resource names and regions, then use AWS CLI
+# to list resources matching those names. Delete any that were left behind.
+# Record cleaned-up resources in the ticket description.
+```
+
 ### What to Verify
 1. `<resource_go>RAW` resource transitions to Ready condition
 2. No TF-related errors in controller logs (must be pure native SDK path)
@@ -857,7 +888,8 @@ Paste the final uptest output (last 50 lines) before marking Done.
  "No AWS permission errors",
  "Full compilation check passes before e2e (go build + go test on all service packages)",
  "No untracked files in service directories (git ls-files --others)",
- "E2E output captured in ticket"]
+ "E2E output captured in ticket",
+ "No leaked AWS resources after test (cleaned up if failed)"]
 ```
 
 ---
@@ -912,6 +944,9 @@ make e2e SUBPACKAGES="config <SERVICE>"
 
 ### Failure Rules
 Same hard gate as baseline: any failure → Mark FAILED. No workarounds. Record exact error.
+
+### AWS Resource Leak Cleanup (MANDATORY after failure)
+Same as baseline — check for and delete any leaked AWS resources after a failed test.
 
 Note: Run all resources even if one fails — collect all results before marking the ticket.
 
