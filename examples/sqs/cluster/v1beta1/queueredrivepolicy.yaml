@@ -36,11 +36,6 @@ metadata:
 spec:
   forProvider:
     name: examplequeue-ddl
-    redriveAllowPolicy: |-
-      ${jsonencode({
-          redrivePermission = "byQueue",
-          sourceQueueArns   = ["arn:aws:sqs:us-east-1:153891904029:examplequeue"]
-        })}
     region: us-east-1
 
 ---
