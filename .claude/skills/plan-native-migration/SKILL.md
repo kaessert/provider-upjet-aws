@@ -568,6 +568,25 @@ examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml
 
 <repeat the above block for each resource in the service>
 
+### CRD YAML Generation (MANDATORY)
+`make generate.native` does NOT generate CRD YAMLs — it only generates deepcopy and
+methodsets. The scaffold MUST generate CRD manifests for all RAW types:
+```bash
+# Generate CRD YAMLs for native types into package/crds/
+go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen \
+  crd:allowDangerousTypes=true,crdVersions=v1 \
+  paths=./apis/cluster/<SERVICE>/<version>/native/... \
+  paths=./apis/namespaced/<SERVICE>/<version>/native/... \
+  output:artifacts:config=./package/crds
+```
+Verify CRD files were created:
+```bash
+ls package/crds/<SERVICE>.aws.upbound.io_*raws.yaml
+ls package/crds/<SERVICE>.aws.m.upbound.io_*raws.yaml
+```
+Commit these CRD YAML files — without them the e2e test will fail with
+`no matches for kind "<Resource>RAW" in version "<SERVICE>.aws.upbound.io/v1beta1"`.
+
 ### Acceptance Criteria (All Must Pass Before Any Implement Ticket)
 ```
 
@@ -580,6 +599,7 @@ examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml
  "go vet ./internal/controller/<SERVICE>/... passes",
  "All RAW types implement the <Resource>CR interface (verified by compiler)",
  "No upjet imports in any new file (grep -r 'crossplane/upjet' apis/cluster/<SERVICE>/*/native/ internal/controller/<SERVICE>/ — must return empty)",
+ "CRD YAML files generated and committed in package/crds/ for all RAW types (both scopes)",
  "Example RAW yaml manifests created for each resource"]
 ```
 
@@ -754,6 +774,19 @@ Read `vendor/github.com/upbound/terraform-provider-aws/internal/service/<SERVICE
 3. How TF handles eventual consistency (retry loops, waiter functions)
 4. Field normalization or transformation before API calls
 5. What fields TF computes vs what it passes through from config
+
+### Test Condition for Uptest (CRITICAL)
+Uptest runs with `--default-conditions="Test"` which requires a `Test=True` condition.
+TF controllers set this via upjet; native controllers MUST call:
+```go
+nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
+```
+in Observe() after computing `upToDate`. This sets the `Test=True` condition when the
+`upjet.upbound.io/test=true` annotation is present (which uptest adds automatically).
+
+**Do NOT use `uptest.upbound.io/conditions: "Ready"` annotation on example manifests.**
+That is a workaround that bypasses the Test condition entirely. The correct solution is
+calling `SetTestConditionIfAnnotated` in the controller.
 
 ### Implementation Checklist (TDD Order)
 1. Write unit tests in `internal/controller/<SERVICE>/<resource_file>/crud_test.go`
