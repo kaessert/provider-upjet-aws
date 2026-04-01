@@ -171,6 +171,7 @@ After each monitoring iteration, evaluate these conditions:
 | Stuck READY=False | READY=False for >3min | AWS resource creation slow or failed |
 | Reference not resolved | Ref field populated but target field empty | Reference resolver not working |
 | No external-name | SYNCED=True but no external-name annotation | Create succeeded but ID not captured |
+| Missing `Test` condition | All resources SYNCED+READY but chainsaw still on `00-apply` for >5min | Native controllers don't set the uptest `Test` condition (`type: Test, status: True`). Upjet resources get it from the `upjet.upbound.io/test` annotation handler; native resources only produce `Synced` and `Ready`. Check with `kubectl get <resource> -o jsonpath='{.status.conditions}'`. Chainsaw will timeout waiting for a condition that never appears. |
 
 ---
 

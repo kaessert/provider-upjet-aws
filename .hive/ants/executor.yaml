@@ -152,6 +152,7 @@ directive_graph:
       | Pod CrashLoopBackOff | Binary crashing | Read logs for panic/error |
       | Reference field empty but ref populated | Resolver not working | Check zz_generated.resolvers.go |
       | SYNCED=True, READY=True | Resource healthy | Progress is being made ✅ |
+      | SYNCED=True, READY=True but chainsaw stuck on 00-apply for >5min | Missing `Test` condition | Native controllers don't set the uptest `Test` condition. Check `kubectl get <resource> -o jsonpath='{.status.conditions}'` — if only Synced+Ready exist but no `type: Test`, chainsaw will wait forever. Upjet resources get `Test` from the `upjet.upbound.io/test` annotation handler; native resources don't have this. |
       | All resources Ready + delete phase | Almost done | Keep monitoring cleanup |
 
       #### State tracking:
