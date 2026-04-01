@@ -76,8 +76,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StateMachineCR) (manage
 	arn := getARN(cr)
 	if arn == "" {
 		// Cannot describe without an ARN (we need region + account to reconstruct).
-		// Return ResourceExists: false to trigger Create; CreateStateMachine is
-		// idempotent when called with identical parameters.
+		// Return ResourceExists: false to trigger Create. Note: unlike some AWS
+		// services, CreateStateMachine is NOT idempotent — it returns
+		// StateMachineAlreadyExists if called with the same name again.
 		return managed.ExternalObservation{ResourceExists: false}, nil
 	}
 
@@ -93,8 +94,14 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StateMachineCR) (manage
 
 	cr.SetAtProvider(mapDescribeToObservation(resp))
 
+	// Late-initialize spec fields that AWS defaults (e.g. type → STANDARD).
+	lateInited := lateInitialize(cr, resp)
+
 	if resp.Status == sfntypes.StateMachineStatusActive {
 		cr.SetConditions(xpv1.Available())
+	} else {
+		// DELETING or any other non-Active state means the resource is not usable.
+		cr.SetConditions(xpv1.Unavailable())
 	}
 
 	upToDate, err := e.isUpToDate(ctx, cr, resp)
@@ -109,8 +116,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StateMachineCR) (manage
 	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
 
 	return managed.ExternalObservation{
-		ResourceExists:   true,
-		ResourceUpToDate: upToDate,
+		ResourceExists:          true,
+		ResourceUpToDate:        upToDate,
+		ResourceLateInitialized: lateInited,
 	}, nil
 }
 
@@ -554,6 +562,30 @@ func mapEncryptionConfigFromAWS(cfg *sfntypes.EncryptionConfiguration) *v1beta2n
 	return out
 }
 
+// ── late initialization ────────────────────────────────────────────────────────
+
+// lateInitialize copies AWS-defaulted field values into the spec when those
+// fields were not explicitly set by the user.  It returns true if any field was
+// populated.  This keeps the spec in sync with AWS defaults so subsequent
+// isUpToDate comparisons do not produce false positives.
+//
+// Fields late-initialized:
+//   - spec.forProvider.type  → AWS defaults to STANDARD when unset.
+func lateInitialize(cr StateMachineCR, resp *awssfn.DescribeStateMachineOutput) bool {
+	spec := cr.GetForProvider()
+	changed := false
+
+	// AWS always sets the type; if the user did not specify it, fill it in.
+	if resp.Type != "" {
+		typeStr := string(resp.Type)
+		if nativehelper.LateInitializeStringPtr(&spec.Type, &typeStr) {
+			changed = true
+		}
+	}
+
+	return changed
+}
+
 // ── up-to-date comparison helpers ─────────────────────────────────────────────
 
 func loggingConfigUpToDate(spec *v1beta2native.LoggingConfigurationRAWParameters, observed *sfntypes.LoggingConfiguration) bool {
@@ -610,5 +642,18 @@ func encryptionConfigUpToDate(spec *v1beta2native.EncryptionConfigurationRAWPara
 	if spec.Type != nil && *spec.Type != string(observed.Type) {
 		return false
 	}
-	return aws.ToString(spec.KMSKeyID) == aws.ToString(observed.KmsKeyId)
+	if aws.ToString(spec.KMSKeyID) != aws.ToString(observed.KmsKeyId) {
+		return false
+	}
+	// Compare KMSDataKeyReusePeriodSeconds (int32 from AWS vs float64 in spec).
+	if spec.KMSDataKeyReusePeriodSeconds != nil {
+		var obsVal float64
+		if observed.KmsDataKeyReusePeriodSeconds != nil {
+			obsVal = float64(*observed.KmsDataKeyReusePeriodSeconds)
+		}
+		if *spec.KMSDataKeyReusePeriodSeconds != obsVal {
+			return false
+		}
+	}
+	return true
 }

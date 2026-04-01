@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	sfntypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
+	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusternative "github.com/upbound/provider-aws/v2/apis/cluster/sfn/v1beta2/native"
@@ -103,6 +105,9 @@ const (
 	testName       = "my-state-machine"
 	testDefinition = `{"Comment":"Test","StartAt":"Hello","States":{"Hello":{"Type":"Pass","End":true}}}`
 	testRoleARN    = "arn:aws:iam::123456789012:role/my-role"
+
+	// testSMTypeStandard is the default state machine type in AWS.
+	testSMTypeStandard = "STANDARD"
 )
 
 // ── Observe tests ──────────────────────────────────────────────────────────────
@@ -195,7 +200,7 @@ func TestObserve_UpToDate_ReturnsUpToDate(t *testing.T) {
 	}
 	ec := &statemachine.ExternalClient{Client: mock}
 
-	smType := "STANDARD"
+	smType := testSMTypeStandard
 	cr := testCR(testName, clusternative.StateMachineRAWParameters{
 		Definition: aws.String(testDefinition),
 		RoleArn:    aws.String(testRoleARN),
@@ -737,5 +742,282 @@ func TestUpdate_TagsRemoved_CallsUntagResource(t *testing.T) {
 	}
 	if !untagCalled {
 		t.Errorf("Update() did not call UntagResource when tags need removing")
+	}
+}
+
+// ── Late initialization tests ─────────────────────────────────────────────────
+
+// TestObserve_LateInit_TypeDefaultedByAWS verifies that when spec.type is nil
+// and AWS returns STANDARD (the default), Observe performs late initialization:
+// it sets spec.forProvider.type = "STANDARD" and returns ResourceLateInitialized=true.
+func TestObserve_LateInit_TypeDefaultedByAWS(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard, // AWS defaults to STANDARD
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	// spec.Type is nil — not yet set by user, AWS will default it
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		// Type is intentionally nil
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() late init: unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Errorf("Observe() ResourceExists = false, want true")
+	}
+	if !obs.ResourceLateInitialized {
+		t.Errorf("Observe() ResourceLateInitialized = false, want true when type was nil and AWS returned STANDARD")
+	}
+	if cr.Spec.ForProvider.Type == nil {
+		t.Errorf("Observe() late init: spec.forProvider.type is still nil, want %q", testSMTypeStandard)
+	} else if *cr.Spec.ForProvider.Type != testSMTypeStandard {
+		t.Errorf("Observe() late init: spec.forProvider.type = %q, want %q", *cr.Spec.ForProvider.Type, testSMTypeStandard)
+	}
+}
+
+// TestObserve_LateInit_TypeAlreadySet verifies that when spec.type is already set,
+// Observe does NOT late-initialize it (ResourceLateInitialized=false).
+func TestObserve_LateInit_TypeAlreadySet(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	specType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &specType, // already set
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() late init already set: unexpected error: %v", err)
+	}
+	if obs.ResourceLateInitialized {
+		t.Errorf("Observe() ResourceLateInitialized = true, want false when type is already set")
+	}
+}
+
+// ── Condition tests ────────────────────────────────────────────────────────────
+
+// TestObserve_DeletingState_SetsUnavailable verifies that when a state machine
+// is in the DELETING state, Observe sets the Unavailable condition (not Available).
+func TestObserve_DeletingState_SetsUnavailable(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusDeleting, // DELETING state
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() DELETING state: unexpected error: %v", err)
+	}
+
+	readyCond := cr.GetCondition(xpv1.TypeReady)
+	if readyCond.Status != corev1.ConditionFalse {
+		t.Errorf("Observe() DELETING state: Ready condition status = %q, want %q (Unavailable)",
+			readyCond.Status, corev1.ConditionFalse)
+	}
+}
+
+// TestObserve_ActiveState_SetsAvailable verifies that when a state machine
+// is ACTIVE, Observe sets the Available condition.
+func TestObserve_ActiveState_SetsAvailable(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() ACTIVE state: unexpected error: %v", err)
+	}
+
+	readyCond := cr.GetCondition(xpv1.TypeReady)
+	if readyCond.Status != corev1.ConditionTrue {
+		t.Errorf("Observe() ACTIVE state: Ready condition status = %q, want %q (Available)",
+			readyCond.Status, corev1.ConditionTrue)
+	}
+}
+
+// ── KMSDataKeyReusePeriodSeconds drift detection tests ─────────────────────────
+
+// TestObserve_EncryptionKMSDataKeyReusePeriodSecondsDrift_ReturnsNotUpToDate verifies
+// that when spec.kmsDataKeyReusePeriodSeconds differs from AWS state, isUpToDate returns false.
+func TestObserve_EncryptionKMSDataKeyReusePeriodSecondsDrift_ReturnsNotUpToDate(t *testing.T) {
+	now := time.Now()
+	specPeriod := float64(900)
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			awsPeriod := int32(300) // AWS has 300 seconds, spec wants 900
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+				EncryptionConfiguration: &sfntypes.EncryptionConfiguration{
+					Type:                         sfntypes.EncryptionTypeCustomerManagedKmsKey,
+					KmsKeyId:                     aws.String("arn:aws:kms:us-east-1:123456789012:key/test-key"),
+					KmsDataKeyReusePeriodSeconds: &awsPeriod,
+				},
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	kmsKeyID := "arn:aws:kms:us-east-1:123456789012:key/test-key"
+	encType := "CUSTOMER_MANAGED_KMS_KEY"
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+		EncryptionConfiguration: &clusternative.EncryptionConfigurationRAWParameters{
+			Type:                         &encType,
+			KMSKeyID:                     &kmsKeyID,
+			KMSDataKeyReusePeriodSeconds: &specPeriod, // 900s in spec
+		},
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() KMSDataKeyReuse drift: unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Errorf("Observe() ResourceExists = false, want true")
+	}
+	if obs.ResourceUpToDate {
+		t.Errorf("Observe() ResourceUpToDate = true, want false (KMSDataKeyReusePeriodSeconds drift: spec=900, AWS=300)")
+	}
+}
+
+// TestObserve_EncryptionKMSDataKeyReusePeriodSecondsMatch_ReturnsUpToDate verifies
+// that when spec.kmsDataKeyReusePeriodSeconds matches AWS state, isUpToDate returns true.
+func TestObserve_EncryptionKMSDataKeyReusePeriodSecondsMatch_ReturnsUpToDate(t *testing.T) {
+	now := time.Now()
+	specPeriod := float64(300)
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(ctx context.Context, params *awssfn.DescribeStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			awsPeriod := int32(300) // Both spec and AWS have 300
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+				EncryptionConfiguration: &sfntypes.EncryptionConfiguration{
+					Type:                         sfntypes.EncryptionTypeCustomerManagedKmsKey,
+					KmsKeyId:                     aws.String("arn:aws:kms:us-east-1:123456789012:key/test-key"),
+					KmsDataKeyReusePeriodSeconds: &awsPeriod,
+				},
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	kmsKeyID := "arn:aws:kms:us-east-1:123456789012:key/test-key"
+	encType := "CUSTOMER_MANAGED_KMS_KEY"
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+		EncryptionConfiguration: &clusternative.EncryptionConfigurationRAWParameters{
+			Type:                         &encType,
+			KMSKeyID:                     &kmsKeyID,
+			KMSDataKeyReusePeriodSeconds: &specPeriod, // same as AWS
+		},
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() KMSDataKeyReuse match: unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Errorf("Observe() ResourceExists = false, want true")
+	}
+	if !obs.ResourceUpToDate {
+		t.Errorf("Observe() ResourceUpToDate = false, want true (KMSDataKeyReusePeriodSeconds match)")
 	}
 }
