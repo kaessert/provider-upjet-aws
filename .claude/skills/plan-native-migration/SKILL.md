@@ -994,117 +994,11 @@ Overall: N/N PASS → READY FOR CUTOVER
 
 ---
 
-## Step 11: Create Cutover Ticket (1 per service)
+## ~~Step 11: Cutover~~ — NOT created per service
 
-**Ticket structure:**
-
-```
-id:         native-<SERVICE>-cutover
-title:      Cutover <SERVICE> from TF to native SDK
-plan:       native-<SERVICE>
-phase:      cutover
-labels:     ["stage:executor"]
-priority:   High
-depends_on: ["native-<SERVICE>-verify"]
-```
-
-**Description:**
-
-```
-## Cutover: <SERVICE>
-
-Move native types from native/ sub-packages to parent, rename RAW → original kind names,
-replace TF controllers with native controllers, remove TF scaffolding. One-way operation.
-
-### Spec Reference
-`.agents/specs/terraform-removal-migration.md` — Section "Cutover Process (per service)"
-and "Pre-Cutover Checklist"
-
-### Resources to Cut Over
-<for each resource:>
-- <resource_go>RAW → <resource_go>  (TF versions served: <list versions>; storage: <version>)
-  Multi-version: <yes — conversion needed | no>
-
-### Cutover Steps (in order)
-
-1. **Pre-flight check**: Confirm all pre-cutover criteria from spec checklist
-   - All resources pass e2e as RAW ✓ (from e2e tickets)
-   - TF regression passes ✓ (from tf-regression ticket)
-   - Agent verification passes ✓ (from verify ticket)
-
-2. **Move native types**: For each resource:
-   ```
-   mv apis/cluster/<SERVICE>/<version>/native/<resource_file>_raw_types.go \
-      apis/cluster/<SERVICE>/<version>/<resource_file>_types.go
-   mv apis/namespaced/<SERVICE>/<version>/native/<resource_file>_raw_types.go \
-      apis/namespaced/<SERVICE>/<version>/<resource_file>_types.go
-   ```
-
-3. **Rename types**: Replace `<resource_go>RAW` → `<resource_go>` in moved files
-   Also update Kind marker: `+kubebuilder:resource:...` (remove RAW from Kind value)
-
-4. **Register all API versions** (multi-version resources):
-   <list per resource: "StateMachine must serve v1beta1 AND v1beta2 (storage: v1beta2)">
-   Native type must register all versions the TF type served — check
-   `apis/cluster/<SERVICE>/v1beta1/zz_generated.conversion_hubs.go` for current registrations.
-
-5. **Write native conversion** (multi-version only):
-   Replace `ujconversion.RoundTrip` (requires resource.Terraformed) with plain JSON round-trip:
-   ```go
-   func (tr *StateMachine) ConvertTo(hub conversion.Hub) error {
-       dst := hub.(*v1beta2.StateMachine)
-       data, err := json.Marshal(tr)
-       if err != nil { return err }
-       return json.Unmarshal(data, dst)
-   }
-   ```
-
-6. **Scheme registration**: Update `apis/cluster/native_register.go` to import the
-   (now moved) native types under their original package path.
-   Update `apis/namespaced/native_register.go` similarly.
-
-7. **Replace TF controllers**: Update `internal/controller/cluster/zz_<SERVICE>_setup.go`
-   (or the native hook) to call native Setup functions instead of TF Setup functions.
-   The NativeSetupHook_<SERVICE> init() calls already do this if wired correctly.
-
-8. **Delete TF scaffolding**:
-   - `rm config/cluster/<SERVICE>/config.go`
-   - `rm config/namespaced/<SERVICE>/config.go`
-   - Remove <SERVICE> from `config/cluster/provider.go` (RegisterConfigurator call)
-   - Remove <SERVICE> from `config/namespaced/provider.go`
-   - `rm apis/cluster/<SERVICE>/<version>/zz_*.go`
-   - `rm apis/namespaced/<SERVICE>/<version>/zz_*.go`
-   - `rm internal/controller/cluster/<SERVICE>/zz_*_setup.go`
-   - `rm internal/controller/namespaced/<SERVICE>/zz_*_setup.go`
-
-9. **Run full e2e** with original kind names (NOT RAW suffix):
-   ```bash
-   export UPTEST_EXAMPLE_LIST="examples/<SERVICE>/cluster/<version>/<resource_file>.yaml"
-   make e2e SUBPACKAGES="config <SERVICE>"
-   ```
-   <repeat for each resource>
-
-10. **Commit**:
-    ```bash
-    git add apis/cluster/<SERVICE>/ apis/namespaced/<SERVICE>/ \
-            internal/controller/<SERVICE>/ internal/controller/cluster/<SERVICE>/ \
-            internal/controller/namespaced/<SERVICE>/ \
-            config/cluster/<SERVICE>/ config/namespaced/<SERVICE>/
-    git commit -m "refactor: migrate <SERVICE> from terraform to native SDK"
-    ```
-
-### Post-Cutover Verification Checklist
-```
-
-**Acceptance criteria** (as array):
-```
-["All e2e tests pass with original kind names (no RAW suffix)",
- "No upjet imports in <SERVICE> native code: grep -r 'crossplane/upjet' internal/controller/<SERVICE>/ returns empty",
- "make generate completes without errors (native types in parent package not clobbered)",
- "Cross-service references still resolve (other services can reference <SERVICE> types)",
- "Tags not spuriously modified (default_tags respected by native controller)",
- "Commit tagged: refactor: migrate <SERVICE> from terraform to native SDK"]
-```
+Cutover (renaming RAW → original, removing TF scaffolding) is a **global operation** done once
+after ALL services have been migrated to native controllers. It is NOT part of the per-service
+migration plan. Cutover tickets will be created separately when the full migration is complete.
 
 ---
 
@@ -1138,15 +1032,16 @@ Executor ant will pick up stage:executor tickets automatically.
   Phase e2e:        <N> tickets  (native-<SERVICE>-*-e2e)
   Phase regression: 1 ticket     (native-<SERVICE>-tf-regression)
   Phase verify:     1 ticket     (native-<SERVICE>-verify)
-  Phase cutover:    1 ticket     (native-<SERVICE>-cutover)
   ─────────────────────────────────────────────────────────
-  TOTAL:            <4N+4> tickets
+  TOTAL:            <4N+3> tickets
 
 ### Dependency Chain
   baseline-<resource> ──┐
                          ├──→ <resource> (implement) ──→ <resource>-e2e ──┐
-  scaffold ─────────────┘                                                   ├──→ tf-regression ──→ verify ──→ cutover
+  scaffold ─────────────┘                                                   ├──→ tf-regression ──→ verify
   (repeat for each resource) ────────────────────────────────────────────────┘
+
+Note: Cutover is a global operation done after ALL services are migrated. Not created here.
 
 ### ⚠️  Warnings
 <Only print sections that apply:>
