@@ -748,8 +748,7 @@ Read `vendor/github.com/upbound/terraform-provider-aws/internal/service/<SERVICE
 10. Verify late initialization for AWS-defaulted fields (e.g., type, logging level)
 11. Verify Unavailable() condition for non-ACTIVE states
 12. Verify ALL mutable fields compared in isUpToDate (cross-check with schema.json — no gaps)
-13. Verify build tags present: `head -1 internal/controller/<SERVICE>/<resource_file>/crud.go`
-14. Verify working tree is clean: `git status --short -- 'apis/*/<SERVICE>/' 'internal/controller/*/<SERVICE>/'`
+13. Verify working tree is clean: `git status --short -- 'apis/*/<SERVICE>/' 'internal/controller/*/<SERVICE>/'`
 ```
 
 **Acceptance criteria** (as array):
@@ -770,7 +769,6 @@ Read `vendor/github.com/upbound/terraform-provider-aws/internal/service/<SERVICE
  "Unavailable() condition set in Observe for non-ACTIVE states (DELETING, PENDING, etc.)",
  "ALL mutable fields in every sub-struct compared in isUpToDate — no silent drift gaps (e.g., check every field in encryption, logging, tracing config blocks)",
  "No misleading idempotency comments (verify AWS Create API behavior before commenting)",
- "Build tag //go:build <SERVICE> || all present on all controller files",
  "Async operations tracked via CR annotations (if UseAsync=true for this resource)"]
 ```
 

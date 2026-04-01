@@ -1089,8 +1089,6 @@ func Setup(mgr ctrl.Manager, o xpcontroller.Options) error {
 ### 15.1 Types: `apis/cluster/s3/v1beta1/native/bucket_raw_types.go`
 
 ```go
-//go:build s3 || all
-
 // SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -1174,8 +1172,6 @@ type BucketRAWList struct {
 ### 15.2 Controller: `internal/controller/cluster/s3/bucketraw/controller.go`
 
 ```go
-//go:build s3 || all
-
 // SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
 //
 // SPDX-License-Identifier: Apache-2.0
@@ -1428,6 +1424,7 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Misleading idempotency comments on Create | Most AWS `Create*` APIs are NOT idempotent — they return `*AlreadyExists` errors. Don't write comments claiming idempotency unless you've verified it |
 | No `*AlreadyExists` error handling in Create | If external name was set (e.g., via import) but Create is called, AWS returns AlreadyExists. Handle gracefully — either catch in Create or ensure Observe finds it first |
 | Hand-written types in parent `v1beta2` package during parallel phase | RAW types MUST live in the `native/` subpackage ONLY. Placing types in the parent package collides with `zz_*` generated types and breaks compilation |
+| Adding `//go:build` tags to native controller files | Do NOT add build tags. `make build` uses `GO_TAGS=""` (no tags), so tagged files are excluded and `native_imports.go` fails to import them. The `buildtagger` tool only processes `zz_controller.go` files during lint — hand-written `controller.go` files must remain untagged |
 
 ---
 
@@ -1444,7 +1441,6 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 - [ ] MoveToStatus fields are in `Observation`, not `Parameters`
 - [ ] External name strategy matches the external-name-catalog.json entry
 - [ ] `TerraformID()` extractor NOT used anywhere in native types
-- [ ] Build tag matches service name (e.g., `//go:build s3 || all`)
 - [ ] Shared CRUD in `internal/controller/<service>/<resource>/crud.go` compiles
 - [ ] Both cluster and namespaced wrappers compile and delegate to shared CRUD
 - [ ] Interface methods (`GetForProvider`, `GetAtProvider`, `SetAtProvider`) implemented on both scope types
