@@ -52,10 +52,162 @@ directive_graph:
       ## Step 4: Execute
 
       **For E2E tickets** (labels contain phase:baseline, phase:e2e, or phase:regression):
-      1. Set up AWS credentials from environment variables
-      2. Run the `make e2e` command specified in the ticket description
-      3. If PASS → go to Step 6 (no commit needed for E2E tickets)
-      4. If FAIL → mark ticket Failed with exact error output, then STOP
+      Follow the Background + Monitor pattern below. Do NOT run `make e2e` synchronously.
+
+      ### E2E Phase A: Launch in background
+
+      ```bash
+      cd /home/hive/workspace/main
+
+      export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
+      aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+      aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
+      export UPTEST_EXAMPLE_LIST="<from ticket description>"
+
+      nohup bash -c 'cd /home/hive/workspace/main && \
+        export UPTEST_CLOUD_CREDENTIALS="'"$UPTEST_CLOUD_CREDENTIALS"'" && \
+        export UPTEST_EXAMPLE_LIST="'"$UPTEST_EXAMPLE_LIST"'" && \
+        make e2e SUBPACKAGES="<from ticket>" 2>&1' \
+        > /tmp/e2e.log 2>&1 &
+      echo $! > /tmp/e2e.pid
+      echo "E2E started with PID $(cat /tmp/e2e.pid)"
+      ```
+
+      ### E2E Phase B: Wait for providers to deploy
+
+      Poll until the provider pods are running or the process exits:
+      ```bash
+      # Check if e2e process is alive
+      kill -0 $(cat /tmp/e2e.pid) 2>/dev/null && echo "RUNNING" || echo "EXITED: $(wait $(cat /tmp/e2e.pid) 2>/dev/null; echo $?)"
+
+      # Check provider deployment progress
+      kubectl get providers 2>/dev/null
+      kubectl get pods -n upbound-system 2>/dev/null
+      tail -5 /tmp/e2e.log
+      ```
+      Repeat every 15s until providers show Healthy, then move to Phase C.
+
+      ### E2E Phase C: Stale binary detection (CRITICAL — do this first)
+
+      Once providers are deployed, IMMEDIATELY check for stale pods:
+      ```bash
+      SERVICE="<service from ticket>"
+
+      # Pod start time
+      POD_START=$(kubectl get pods -n upbound-system \
+        -l pkg.crossplane.io/revision=provider-aws-${SERVICE}-000000000000 \
+        -o jsonpath='{.items[0].status.startTime}')
+
+      # Latest binary build time
+      ls -la _output/bin/linux_amd64/${SERVICE}
+
+      # Latest relevant commit
+      git log -1 --format='%ai %s'
+
+      echo "Pod started: $POD_START"
+      echo "Latest commit: $(git log -1 --format='%ai')"
+      ```
+
+      **If pod started BEFORE the latest relevant commit AND restart count is 0:**
+      The pod is running stale code. The controller being tested may not exist in the
+      running binary. Fix by restarting the deployment:
+      ```bash
+      kubectl rollout restart deployment -n upbound-system provider-aws-${SERVICE}-000000000000
+      kubectl -n upbound-system wait --for=condition=Available deployment \
+        provider-aws-${SERVICE}-000000000000 --timeout=3m
+      ```
+      Then wait for the new pod to become ready before continuing.
+
+      ### E2E Phase D: Active monitoring loop
+
+      Poll every 30s while the e2e process runs. On each iteration:
+
+      ```bash
+      # 1. Process health
+      kill -0 $(cat /tmp/e2e.pid) 2>/dev/null && echo "E2E: RUNNING" || echo "E2E: FINISHED"
+
+      # 2. All managed resources
+      kubectl get managed -A
+
+      # 3. Controller logs (look for errors)
+      kubectl logs -n upbound-system \
+        -l pkg.crossplane.io/revision=provider-aws-${SERVICE}-000000000000 \
+        --tail=20 2>&1 | grep -iE 'error|warn|cannot|denied|exception|reconcil|requeue' || echo "(no errors)"
+
+      # 4. Describe any non-Ready resources
+      # For each resource that lacks READY=True:
+      kubectl describe <kind>.<group>/<name> 2>&1 | tail -20
+
+      # 5. E2E log tail
+      tail -10 /tmp/e2e.log
+      ```
+
+      #### What to look for on each iteration:
+
+      | Signal | Meaning | Action |
+      |--------|---------|--------|
+      | Resource has empty .status after 60s | Not being reconciled | Check stale binary, CRD registration |
+      | SYNCED=False with error | Controller hit an error | Read describe output for details |
+      | AccessDenied in logs | AWS permissions issue | Record error, will be test failure |
+      | Pod CrashLoopBackOff | Binary crashing | Read logs for panic/error |
+      | Reference field empty but ref populated | Resolver not working | Check zz_generated.resolvers.go |
+      | SYNCED=True, READY=True | Resource healthy | Progress is being made ✅ |
+      | All resources Ready + delete phase | Almost done | Keep monitoring cleanup |
+
+      #### State tracking:
+
+      Every 2 iterations, note the current state:
+      ```
+      E2E Monitor — iteration N, T+Xm
+      Phase: [deploy|apply|assert|delete]
+      Resources: [list with status]
+      Issues: [any detected]
+      ```
+
+      ### E2E Phase E: Collect results
+
+      When the e2e process exits:
+      ```bash
+      wait $(cat /tmp/e2e.pid) 2>/dev/null
+      E2E_EXIT=$?
+      echo "E2E exit code: $E2E_EXIT"
+      tail -50 /tmp/e2e.log
+      ```
+
+      **If exit 0 (PASS):**
+      Go to Step 6. Include in the result summary:
+      - Resources that reached Ready
+      - External names assigned
+      - Timeline (how long each phase took)
+      - Last 30 lines of e2e output
+
+      **If exit non-zero (FAIL):**
+      Before marking Failed, perform root cause analysis:
+      1. Capture controller logs: `kubectl logs -n upbound-system -l pkg.crossplane.io/revision=provider-aws-${SERVICE}-000000000000 --tail=50`
+      2. Describe failed resources: `kubectl describe <resource>`
+      3. Check events: `kubectl get events -A --sort-by='.lastTimestamp' | tail -20`
+      4. Classify the failure:
+         - **Stale Binary**: Pod running old code (should have been caught in Phase C)
+         - **No Reconciliation**: Controller not watching the resource
+         - **AWS Error**: Permission, quota, validation errors
+         - **Controller Bug**: Panic, nil pointer, logic error
+         - **Infrastructure**: Kind cluster issues, API server unhealthy
+         - **Timeout**: Resources progressing but too slow for chainsaw timeout
+
+      Mark ticket Failed with:
+      ```bash
+      pheromone update "$TICKET_ID" --status Failed \
+        --result-summary "FAIL [$CATEGORY]: $ONE_LINE_SUMMARY
+
+      Root cause: $DETAILED_EXPLANATION
+
+      Evidence:
+      $CONTROLLER_LOGS
+      $RESOURCE_DESCRIBE
+
+      Suggested fix: $WHAT_NEEDS_TO_CHANGE"
+      ```
+      Output `[DIRECTIVE_STATUS: COMPLETE]` and STOP.
 
       **For all other tickets** (TDD workflow):
       1. Write a failing test that captures the acceptance criteria
@@ -145,10 +297,23 @@ directive_graph:
 
       <e2e_tickets>
       For tickets with phase:baseline, phase:e2e, or phase:regression:
-      1. Set up AWS credentials: export UPTEST_CLOUD_CREDENTIALS (see ticket description)
-      2. Run `make e2e` with the specified SUBPACKAGES and UPTEST_EXAMPLE_LIST
-      3. If the test passes → mark Done with test output summary
-      4. If the test fails for ANY reason → mark Failed with the exact error. Do NOT retry or work around.
+
+      IMPORTANT: Do NOT run `make e2e` synchronously and wait. Use the Background + Monitor
+      pattern described in Step 4. This lets you detect failures early (stale pods, missing
+      reconciliation, AWS errors) instead of waiting 20 minutes for a chainsaw timeout.
+
+      Key phases:
+      A. Launch `make e2e` in background (nohup, redirect to /tmp/e2e.log)
+      B. Wait for providers to deploy and become Healthy
+      C. STALE BINARY CHECK — compare pod start time vs latest commit. If stale, restart deployment.
+      D. Active monitoring loop — poll managed resources, controller logs, events every 30s
+      E. Collect results — root cause analysis on failure, evidence capture on success
+
+      Hard failure rules still apply:
+      - Permission denied → mark Failed (after capturing root cause)
+      - Quota/limit exceeded → mark Failed
+      - Any AWS or controller error → mark Failed
+      But now you capture structured diagnostics BEFORE marking Failed, not just raw output.
       </e2e_tickets>
 
       <status_signals>
