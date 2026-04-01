@@ -161,6 +161,7 @@ directive_graph:
     type: node
   params: {}
 enabled: true
+model: sonnet
 file_watch_patterns: []
 params: {}
 pheromone_watch:
