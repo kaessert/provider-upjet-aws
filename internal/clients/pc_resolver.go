@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 
+	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/errors"
+	"github.com/crossplane/crossplane-runtime/v2/pkg/meta"
 	xpresource "github.com/crossplane/crossplane-runtime/v2/pkg/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -18,6 +21,7 @@ const (
 	errNoProviderConfig  = "no providerConfigRef provided"
 	errGetProviderConfig = "cannot get referenced ProviderConfig"
 	errTrackUsage        = "cannot track ProviderConfig usage"
+	errApplyClusterPCU   = "cannot apply cluster-scoped ProviderConfigUsage"
 )
 
 func legacyToModernProviderConfigSpec(pc *clusterv1beta1.ProviderConfig) (*namespacedv1beta1.ClusterProviderConfig, error) {
@@ -137,9 +141,64 @@ func resolveProviderConfigModern(ctx context.Context, crClient client.Client, mg
 	default:
 		return nil, errors.New("unknown")
 	}
-	t := xpresource.NewProviderConfigUsageTracker(crClient, &namespacedv1beta1.ProviderConfigUsage{})
-	if err := t.Track(ctx, mg); err != nil {
-		return nil, errors.Wrap(err, errTrackUsage)
+	// Use a cluster-scoped PCU for cluster-scoped resources (namespace == "") so
+	// we avoid the "empty namespace may not be set during creation" error that
+	// occurs when the standard namespaced ProviderConfigUsage tracker calls
+	// pcu.SetNamespace(mg.GetNamespace()) and gets "".
+	if mg.GetNamespace() == "" {
+		if err := trackClusterScopedModernPCU(ctx, crClient, mg); err != nil {
+			return nil, errors.Wrap(err, errTrackUsage)
+		}
+	} else {
+		t := xpresource.NewProviderConfigUsageTracker(crClient, &namespacedv1beta1.ProviderConfigUsage{})
+		if err := t.Track(ctx, mg); err != nil {
+			return nil, errors.Wrap(err, errTrackUsage)
+		}
 	}
 	return effectivePC, nil
+}
+
+// trackClusterScopedModernPCU creates or updates a cluster-scoped
+// ProviderConfigUsage for a cluster-scoped ModernManaged resource.
+//
+// The standard xpresource.ProviderConfigUsageTracker sets the namespace of the PCU
+// to mg.GetNamespace(), which is "" for cluster-scoped resources.  Using the namespaced
+// PCU type (namespacedv1beta1.ProviderConfigUsage) with an empty namespace causes the
+// Kubernetes API server to reject the create with "an empty namespace may not be set
+// during creation".  This function bypasses that by using the cluster-scoped
+// clusterv1beta1.ProviderConfigUsage type instead.
+func trackClusterScopedModernPCU(ctx context.Context, c client.Client, mg xpresource.ModernManaged) error {
+	ref := mg.GetProviderConfigReference()
+	if ref == nil {
+		return errors.New(errNoProviderConfig)
+	}
+
+	pcu := &clusterv1beta1.ProviderConfigUsage{}
+	gvk := mg.GetObjectKind().GroupVersionKind()
+
+	pcu.SetName(string(mg.GetUID()))
+	// No namespace: cluster-scoped PCU does not require one.
+	pcu.SetLabels(map[string]string{xpv1.LabelKeyProviderName: ref.Name})
+	pcu.SetOwnerReferences([]metav1.OwnerReference{
+		meta.AsController(meta.TypedReferenceTo(mg, gvk)),
+	})
+	pcu.SetProviderConfigReference(xpv1.Reference{Name: ref.Name})
+	pcu.SetResourceReference(xpv1.TypedReference{
+		APIVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
+		Name:       mg.GetName(),
+	})
+
+	applicator := xpresource.NewAPIUpdatingApplicator(c)
+	err := applicator.Apply(ctx, pcu,
+		xpresource.MustBeControllableBy(mg.GetUID()),
+		xpresource.AllowUpdateIf(func(current, _ runtime.Object) bool {
+			cur, ok := current.(*clusterv1beta1.ProviderConfigUsage)
+			if !ok {
+				return true
+			}
+			return cur.GetProviderConfigReference().Name != ref.Name
+		}),
+	)
+	return errors.Wrap(xpresource.Ignore(xpresource.IsNotAllowed, err), errApplyClusterPCU)
 }
