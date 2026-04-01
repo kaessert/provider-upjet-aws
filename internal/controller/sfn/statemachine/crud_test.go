@@ -329,15 +329,50 @@ func TestCreate_Success_SetsExternalNameAndARN(t *testing.T) {
 	}
 	_ = result
 
-	// External name should be the state machine name
+	// External name should now be the FULL ARN (not just the short name).
+	// This is required so that getARN() can reconstruct the ARN from the external
+	// name annotation on subsequent Observe calls, even if status.atProvider.arn
+	// was reset by the reconciler's annotation update step.
 	externalName := cr.Annotations["crossplane.io/external-name"]
-	if externalName != testName {
-		t.Errorf("Create() external name = %q, want %q", externalName, testName)
+	if externalName != testARN {
+		t.Errorf("Create() external name = %q, want full ARN %q", externalName, testARN)
 	}
 
-	// ARN should be stored in status
+	// ARN should also be stored in status (best-effort; may be reset by reconciler).
 	if cr.Status.AtProvider.Arn == nil || *cr.Status.AtProvider.Arn != testARN {
 		t.Errorf("Create() status.atProvider.arn = %v, want %q", cr.Status.AtProvider.Arn, testARN)
+	}
+}
+
+// TestCreate_ARNExternalName_BuildsCorrectName verifies that when a previous
+// Create already set the external name to the full ARN, subsequent Create
+// calls (due to the idempotent-create loop) still send just the short name
+// to the AWS API (not the full ARN as the state machine name).
+func TestCreate_ARNExternalName_BuildsCorrectName(t *testing.T) {
+	var capturedName string
+	mock := &mockSFNClient{
+		createStateMachineFn: func(ctx context.Context, params *awssfn.CreateStateMachineInput, optFns ...func(*awssfn.Options)) (*awssfn.CreateStateMachineOutput, error) {
+			capturedName = aws.ToString(params.Name)
+			return &awssfn.CreateStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	// Simulate a second Create call: external-name is already set to the full ARN.
+	cr := testCR(testARN, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+	}, clusternative.StateMachineRAWObservation{})
+
+	if _, err := ec.Create(context.Background(), cr); err != nil {
+		t.Fatalf("Create() unexpected error: %v", err)
+	}
+
+	// The AWS API should receive the short name, not the full ARN.
+	if capturedName != testName {
+		t.Errorf("Create() API Name = %q, want short name %q", capturedName, testName)
 	}
 }
 

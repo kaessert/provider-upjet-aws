@@ -117,9 +117,15 @@ func (e *ExternalClient) Create(ctx context.Context, cr StateMachineCR) (managed
 		return managed.ExternalCreation{}, nativehelper.Wrap(err, errCreate)
 	}
 
-	// Extract the state machine name from the returned ARN and set as external name.
-	if createdName := nameFromARN(aws.ToString(resp.StateMachineArn)); createdName != "" {
-		nativehelper.SetExternalName(cr, createdName)
+	// Store the full ARN as the external name.  Using the ARN (not just the short
+	// name) is critical for Observe to work reliably: the reconciler resets
+	// status.atProvider between Create and the next Observe (because the
+	// annotation update step returns the pre-status object from the API server),
+	// so we cannot rely on status.atProvider.arn being present.  The external
+	// name annotation IS persisted through annotation updates and is checked by
+	// getARN(), which falls back to it when status.atProvider.arn is empty.
+	if arn := aws.ToString(resp.StateMachineArn); arn != "" {
+		nativehelper.SetExternalName(cr, arn)
 	}
 
 	// Store the full ARN in status so Observe/Update/Delete can use it directly.
@@ -187,10 +193,7 @@ func (e *ExternalClient) Delete(ctx context.Context, cr StateMachineCR) (managed
 func buildCreateInput(cr StateMachineCR) *awssfn.CreateStateMachineInput {
 	spec := cr.GetForProvider()
 
-	name := nativehelper.GetExternalName(cr)
-	if name == "" {
-		name = cr.GetName()
-	}
+	name := stateMachineNameFromCR(cr)
 
 	input := &awssfn.CreateStateMachineInput{
 		Name:       aws.String(name),
@@ -259,6 +262,25 @@ func getARN(cr StateMachineCR) string {
 		return extName
 	}
 	return ""
+}
+
+// stateMachineNameFromCR returns the short AWS state machine name to use in API
+// calls.  The external name annotation may hold either the short name or the full
+// ARN (set by Create after a successful creation); this helper normalises both
+// forms to the short name.
+func stateMachineNameFromCR(cr StateMachineCR) string {
+	name := nativehelper.GetExternalName(cr)
+	if name == "" {
+		return cr.GetName()
+	}
+	// External name was previously stored as the full ARN by Create; extract
+	// just the state machine name component.
+	if strings.HasPrefix(name, "arn:") {
+		if extracted := nameFromARN(name); extracted != "" {
+			return extracted
+		}
+	}
+	return name
 }
 
 // nameFromARN extracts the state machine name from a full ARN.
