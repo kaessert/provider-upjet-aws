@@ -1422,6 +1422,12 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Using `upjet/v2/pkg/resource.SetUpToDateCondition` | Use `native.SetTestConditionIfAnnotated(cr, upToDate)` instead — same behavior, no upjet import |
 | Treating nil spec + non-nil AWS response as "not up to date" | For optional blocks (`min=0` in schema.json), `if spec == nil { return true }` — AWS always returns defaults |
 | Calling `SetExternalName` in Observe | Only call in Create (after successful provider response) |
+| Missing late initialization in Observe | Call `native.LateInitialize*Ptr()` for AWS-defaulted fields (e.g., `type`, logging level) and return `ResourceLateInitialized: true` |
+| Not setting `Unavailable()` for non-ACTIVE states | In Observe, always have an `else` branch: `cr.SetConditions(xpv1.Unavailable())` for DELETING, PENDING, etc. |
+| Incomplete drift detection in `isUpToDate` | Compare ALL mutable fields in each sub-struct. Missing a field (e.g., `KMSDataKeyReusePeriodSeconds` in encryption config) causes silent drift — changes to that field are ignored forever |
+| Misleading idempotency comments on Create | Most AWS `Create*` APIs are NOT idempotent — they return `*AlreadyExists` errors. Don't write comments claiming idempotency unless you've verified it |
+| No `*AlreadyExists` error handling in Create | If external name was set (e.g., via import) but Create is called, AWS returns AlreadyExists. Handle gracefully — either catch in Create or ensure Observe finds it first |
+| Hand-written types in parent `v1beta2` package during parallel phase | RAW types MUST live in the `native/` subpackage ONLY. Placing types in the parent package collides with `zz_*` generated types and breaks compilation |
 
 ---
 
@@ -1442,6 +1448,12 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 - [ ] Shared CRUD in `internal/controller/<service>/<resource>/crud.go` compiles
 - [ ] Both cluster and namespaced wrappers compile and delegate to shared CRUD
 - [ ] Interface methods (`GetForProvider`, `GetAtProvider`, `SetAtProvider`) implemented on both scope types
+- [ ] Late initialization implemented for AWS-defaulted fields (returns `ResourceLateInitialized: true`)
+- [ ] `Unavailable()` condition set for non-ACTIVE resource states (DELETING, PENDING, etc.)
+- [ ] ALL mutable fields in EVERY sub-struct are compared in `isUpToDate` (no silent drift gaps)
+- [ ] No misleading idempotency comments on Create (verify AWS API behavior before commenting)
+- [ ] No hand-written types in parent `v1beta2/` package (RAW types in `native/` subpackage only)
+- [ ] Working tree is clean after implementation (`git status` shows no untracked SFN files outside `native/`)
 
 ---
 

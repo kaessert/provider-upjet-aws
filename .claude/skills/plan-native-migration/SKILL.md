@@ -740,6 +740,11 @@ Read `vendor/github.com/upbound/terraform-provider-aws/internal/service/<SERVICE
 7. Wire thin wrappers in both scope controller.go files
 8. Run full test suite: `go test ./internal/controller/<SERVICE>/...`
 9. Verify no upjet imports: `grep -r "crossplane/upjet" internal/controller/<SERVICE>/`
+10. Verify late initialization for AWS-defaulted fields (e.g., type, logging level)
+11. Verify Unavailable() condition for non-ACTIVE states
+12. Verify ALL mutable fields compared in isUpToDate (cross-check with schema.json — no gaps)
+13. Verify build tags present: `head -1 internal/controller/<SERVICE>/<resource_file>/crud.go`
+14. Verify working tree is clean: `git status --short -- 'apis/*/<SERVICE>/' 'internal/controller/*/<SERVICE>/'`
 ```
 
 **Acceptance criteria** (as array):
@@ -756,6 +761,11 @@ Read `vendor/github.com/upbound/terraform-provider-aws/internal/service/<SERVICE
  "Delete is idempotent (returns nil when resource is already gone)",
  "All MoveToStatus fields populated in status.atProvider from Observe",
  "Connection details published in ExternalCreation (if applicable for this resource)",
+ "Late initialization implemented for all AWS-defaulted fields (e.g., type, logging defaults) — Observe returns ResourceLateInitialized: true",
+ "Unavailable() condition set in Observe for non-ACTIVE states (DELETING, PENDING, etc.)",
+ "ALL mutable fields in every sub-struct compared in isUpToDate — no silent drift gaps (e.g., check every field in encryption, logging, tracing config blocks)",
+ "No misleading idempotency comments (verify AWS Create API behavior before commenting)",
+ "Build tag //go:build <SERVICE> || all present on all controller files",
  "Async operations tracked via CR annotations (if UseAsync=true for this resource)"]
 ```
 
@@ -814,6 +824,19 @@ No workarounds. Record exact error and mark Failed.
 2. No TF-related errors in controller logs (must be pure native SDK path)
 3. `<resource_go>RAW` deletes cleanly (DeletedSuccessfully condition)
 4. External name is set correctly on the CR after creation
+5. Full compilation check passes BEFORE running e2e:
+   ```bash
+   go build ./apis/cluster/<SERVICE>/... && go build ./apis/namespaced/<SERVICE>/... && \
+   go build ./internal/controller/<SERVICE>/... && \
+   go build ./internal/controller/cluster/<SERVICE>/... && \
+   go build ./internal/controller/namespaced/<SERVICE>/... && \
+   go test ./internal/controller/<SERVICE>/...
+   ```
+6. Working tree is clean — no untracked files in service directories:
+   ```bash
+   test -z "$(git ls-files --others --exclude-standard -- 'apis/*/<SERVICE>/' 'internal/controller/*/<SERVICE>/')" || \
+     echo "FAIL: untracked files found"
+   ```
 
 ### Result Capture
 Paste the final uptest output (last 50 lines) before marking Done.
@@ -826,6 +849,8 @@ Paste the final uptest output (last 50 lines) before marking Done.
  "Controller logs show no upjet or terraform errors",
  "External name correctly populated on the CR after creation",
  "No AWS permission errors",
+ "Full compilation check passes before e2e (go build + go test on all service packages)",
+ "No untracked files in service directories (git ls-files --others)",
  "E2E output captured in ticket"]
 ```
 
