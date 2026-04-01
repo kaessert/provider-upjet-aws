@@ -498,6 +498,69 @@ func (e *external) Observe(ctx context.Context, cr *MyResourceRAW) (managed.Exte
 - On `NotFound` → return `ResourceExists: false`, **no error**
 - On any other AWS error → return the error (reconciler retries)
 
+#### Schema-Driven `isUpToDate` Comparisons
+
+The `isUpToDate` function must handle each field according to its Terraform schema flags
+in `config/schema.json`. Getting this wrong causes **infinite update loops** — the controller
+calls Update on every reconcile, `ResourceUpToDate` is never true, and the uptest `Test`
+condition is never set.
+
+**How to look up schema flags:**
+```bash
+python3 -c "
+import json
+with open('config/schema.json') as f:
+    schema = json.load(f)
+ps = schema.get('provider_schemas', {})
+for pk, pv in ps.items():
+    rs = pv.get('resource_schemas', {})
+    if '<TF_NAME>' in rs:
+        sm = rs['<TF_NAME>']
+        block = sm.get('block', {})
+        for n, a in sorted(block.get('attributes', {}).items()):
+            flags = [f for f in ['computed','optional','required'] if a.get(f)]
+            print(f'attr  {n}: {\" \".join(flags)}')
+        for n, bt in sorted(block.get('block_types', {}).items()):
+            print(f'block {n}: min={bt.get(\"min_items\",0)} max={bt.get(\"max_items\",0)}')
+"
+```
+
+**Comparison rules by field type:**
+
+```go
+// REQUIRED fields (e.g., definition, role_arn) — always compare:
+if aws.ToString(spec.Definition) != aws.ToString(resp.Definition) {
+    return false
+}
+
+// OPTIONAL fields (e.g., type, publish) — nil-guard:
+if spec.Type != nil && *spec.Type != string(resp.Type) {
+    return false
+}
+
+// COMPUTED-only fields (e.g., arn, status, creation_date) — NEVER compare.
+// These go in Observation only.
+
+// OPTIONAL BLOCKS with min=0 (e.g., logging_configuration, encryption_configuration):
+// If spec is nil, accept whatever AWS returns. AWS ALWAYS returns defaults for these
+// (e.g., logging Level=OFF, encryption Type=AWS_OWNED_KEY).
+func loggingConfigUpToDate(spec *LoggingConfigParams, observed *types.LoggingConfig) bool {
+    if spec == nil {
+        return true  // user didn't set it — accept AWS defaults
+    }
+    if observed == nil {
+        return false
+    }
+    // compare individual fields with nil guards...
+}
+```
+
+**Why this matters**: In the Terraform flow, the TF provider schema marks fields as `Computed`
+and TF's plan engine automatically ignores them in diffs. Native controllers don't have this
+machinery — they must replicate it manually in `isUpToDate`. The implement ticket includes a
+"Schema Field Classification" table extracted from `config/schema.json` that tells you exactly
+how to handle each field.
+
 ### 5.2 Create
 
 ```go
@@ -1356,7 +1419,8 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Removing default_tags from AWS resource | Use `native.DiffTagsWithDefaults()` |
 | Placing MoveToStatus fields in spec | Check `move-to-status-catalog.json`; put in `Observation` struct |
 | Initializing async polling before describe | Check `native.IsAsyncInProgress(cr)` first in Observe |
-| Using `upjet/v2/pkg/resource.SetUpToDateCondition` | Avoid upjet imports; use crossplane-runtime conditions |
+| Using `upjet/v2/pkg/resource.SetUpToDateCondition` | Use `native.SetTestConditionIfAnnotated(cr, upToDate)` instead — same behavior, no upjet import |
+| Treating nil spec + non-nil AWS response as "not up to date" | For optional blocks (`min=0` in schema.json), `if spec == nil { return true }` — AWS always returns defaults |
 | Calling `SetExternalName` in Observe | Only call in Create (after successful provider response) |
 
 ---
