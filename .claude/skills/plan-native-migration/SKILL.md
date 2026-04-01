@@ -376,6 +376,11 @@ for complete rules and failure handling.
 
 ### E2E Command
 ```bash
+# Tear down any stale kind cluster from previous runs to ensure a clean slate.
+# The `family-e2e` target reuses existing clusters, which can leave stale pods
+# running old binaries. Always start fresh.
+make controlplane.down 2>/dev/null || true
+
 export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
@@ -804,6 +809,9 @@ examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml
 
 ### E2E Command
 ```bash
+# Tear down any stale kind cluster from previous runs to ensure a clean slate.
+make controlplane.down 2>/dev/null || true
+
 export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
@@ -897,6 +905,9 @@ happen during the parallel phase. This gate must pass before verification and cu
 Example: <example_manifest_path>
 
 ```bash
+# Tear down any stale kind cluster from previous runs to ensure a clean slate.
+make controlplane.down 2>/dev/null || true
+
 export UPTEST_EXAMPLE_LIST="<example_manifest_path>"
 make e2e SUBPACKAGES="config <SERVICE>"
 ```
