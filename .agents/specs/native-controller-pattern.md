@@ -1425,6 +1425,7 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | No `*AlreadyExists` error handling in Create | If external name was set (e.g., via import) but Create is called, AWS returns AlreadyExists. Handle gracefully — either catch in Create or ensure Observe finds it first |
 | Hand-written types in parent `v1beta2` package during parallel phase | RAW types MUST live in the `native/` subpackage ONLY. Placing types in the parent package collides with `zz_*` generated types and breaks compilation |
 | Adding `//go:build` tags to native controller files | Do NOT add build tags. `make build` uses `GO_TAGS=""` (no tags), so tagged files are excluded and `native_imports.go` fails to import them. The `buildtagger` tool only processes `zz_controller.go` files during lint — hand-written `controller.go` files must remain untagged |
+| Adding fields to RAW types that don't exist in the TF type | RAW types MUST have the same CRD schema as TF types. Adding "convenience" fields (e.g., structured alternatives to a raw JSON string field) breaks YAML compatibility — existing manifests won't work identically with both kinds. The same constraint applies to example manifests: RAW examples must be exact copies of TF examples with only `kind` and account ID changed |
 
 ---
 

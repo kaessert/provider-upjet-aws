@@ -471,6 +471,17 @@ Both cluster AND namespaced scopes. No CRUD implementation — stubs must compil
 ### Resources in This Service (<N> total)
 <for each resource, one line: "- <TF_NAME> → Kind: <resource_go>RAW  storage: <version>  multi-version: yes/no">
 
+### YAML Compatibility (CRITICAL)
+RAW types MUST produce the **same CRD schema** as TF types. Do NOT:
+- Add fields that don't exist in the TF type (breaks YAML compatibility)
+- Remove fields that exist in the TF type
+- Change field types or JSON tag names
+- Restructure nested objects
+
+The goal is that existing YAML manifests work with both kinds by only changing `kind:`.
+Adding "convenience" fields (e.g., structured alternatives to a raw JSON field) violates
+this constraint and causes divergence between TF and RAW behavior.
+
 ### Critical Field Placement Rules
 1. Fields listed in MoveToStatus → Observation struct ONLY (do NOT put in Parameters)
 2. All user-writable fields → Parameters struct
@@ -567,13 +578,20 @@ internal/controller/namespaced/<SERVICE>/<resource_file>raw/controller.go
 ```
 examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml
 ```
-  - Copy of the TF example manifest; change `kind: <resource_go>` → `kind: <resource_go>RAW`
-  - Change `apiVersion` group to the native sub-package group if different
+  - **EXACT copy** of the TF example manifest with ONLY these changes:
+    - `kind: <resource_go>` → `kind: <resource_go>RAW`
+    - Dependency resources in the same service: change their `kind` to RAW too
+    - Account ID in hardcoded ARNs: replace with test account `609897127049`
+  - Do NOT add fields, remove fields, restructure the YAML, or change field values.
+    The RAW example must be identical to the TF example in structure and content.
+    This is the gold standard for parity testing — any divergence masks real bugs.
+  - Do NOT add `uptest.upbound.io/conditions` annotations. Native controllers must
+    call `SetTestConditionIfAnnotated()` to set the Test condition (see implement ticket).
 
 ```
 examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml
 ```
-  - Namespaced scope variant
+  - Namespaced scope variant, same rules as above
 
 ---
 
