@@ -9,6 +9,7 @@
 package cluster
 
 import (
+	nativesfn "github.com/upbound/provider-aws/v2/apis/cluster/sfn/v1beta2/native"
 	natives3 "github.com/upbound/provider-aws/v2/apis/cluster/s3/v1beta1/native"
 )
 
@@ -16,4 +17,8 @@ func init() {
 	// Register native S3 types (BucketPolicyRAW and BucketPolicyRAWList)
 	// so that cross-resource reference resolvers can look them up by GVK.
 	AddToSchemes = append(AddToSchemes, natives3.SchemeBuilder.AddToScheme)
+
+	// Register native sfn types (StateMachineRAW and StateMachineRAWList)
+	// so that the controller manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativesfn.SchemeBuilder.AddToScheme)
 }

@@ -21,3 +21,13 @@
 // are appended to AddToSchemes first; the generated TF entries are appended on
 // top during the same init() pass. Both end up in the same SchemeBuilder slice.
 package namespaced
+
+import (
+	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
+)
+
+func init() {
+	// Register native sfn types (StateMachineRAW and StateMachineRAWList)
+	// so that the controller manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativesfn.SchemeBuilder.AddToScheme)
+}
