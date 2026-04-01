@@ -17,7 +17,7 @@ spec:
     redriveAllowPolicy: |-
       ${jsonencode({
           redrivePermission = "byQueue",
-          sourceQueueArns   = ["arn:aws:sqs:us-east-1:153891904029:srcqueue"]
+          sourceQueueArns   = ["arn:aws:sqs:us-east-1:609897127049:srcqueue"]
         })}
     region: us-east-1
     queueUrlSelector:
@@ -52,7 +52,7 @@ spec:
     name: srcqueue
     redrivePolicy: |-
       ${jsonencode({
-          deadLetterTargetArn = "arn:aws:sqs:us-east-1:153891904029:examplequeue"
+          deadLetterTargetArn = "arn:aws:sqs:us-east-1:609897127049:examplequeue"
           maxReceiveCount     = 4
         })}
     region: us-east-1
