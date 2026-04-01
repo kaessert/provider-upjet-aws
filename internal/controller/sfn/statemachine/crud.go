@@ -557,10 +557,11 @@ func mapEncryptionConfigFromAWS(cfg *sfntypes.EncryptionConfiguration) *v1beta2n
 // ── up-to-date comparison helpers ─────────────────────────────────────────────
 
 func loggingConfigUpToDate(spec *v1beta2native.LoggingConfigurationRAWParameters, observed *sfntypes.LoggingConfiguration) bool {
-	if spec == nil && observed == nil {
+	if spec == nil {
+		// User did not specify a logging configuration; accept whatever AWS has.
 		return true
 	}
-	if spec == nil || observed == nil {
+	if observed == nil {
 		return false
 	}
 	if spec.Level != nil && *spec.Level != string(observed.Level) {
@@ -599,10 +600,11 @@ func tracingConfigUpToDate(spec *v1beta2native.TracingConfigurationRAWParameters
 }
 
 func encryptionConfigUpToDate(spec *v1beta2native.EncryptionConfigurationRAWParameters, observed *sfntypes.EncryptionConfiguration) bool {
-	if spec == nil && observed == nil {
+	if spec == nil {
+		// User did not specify an encryption configuration; accept whatever AWS has.
 		return true
 	}
-	if spec == nil || observed == nil {
+	if observed == nil {
 		return false
 	}
 	if spec.Type != nil && *spec.Type != string(observed.Type) {
