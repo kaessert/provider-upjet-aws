@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//go:build sfn || all
-
 // Package statemachineraw contains the namespaced-scope native controller for
 // StateMachineRAW resources. It is a thin wrapper that delegates all CRUD
 // logic to the shared ExternalClient in internal/controller/sfn/statemachine.
