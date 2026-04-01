@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
+	xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 )
 
 // EncryptionConfigurationRAWParameters defines the encryption configuration for a StateMachine.
@@ -29,11 +30,11 @@ type EncryptionConfigurationRAWParameters struct {
 
 	// Reference to a Key in kms to populate kmsKeyId.
 	// +kubebuilder:validation:Optional
-	KMSKeyIDRef *xpv1.Reference `json:"kmsKeyIdRef,omitempty"`
+	KMSKeyIDRef *xpv1.NamespacedReference `json:"kmsKeyIdRef,omitempty"`
 
 	// Selector for a Key in kms to populate kmsKeyId.
 	// +kubebuilder:validation:Optional
-	KMSKeyIDSelector *xpv1.Selector `json:"kmsKeyIdSelector,omitempty"`
+	KMSKeyIDSelector *xpv1.NamespacedSelector `json:"kmsKeyIdSelector,omitempty"`
 
 	// The encryption option specified for the state machine.
 	// Valid values: AWS_OWNED_KEY, CUSTOMER_MANAGED_KMS_KEY
@@ -55,11 +56,11 @@ type EncryptionConfigurationRAWInitParameters struct {
 
 	// Reference to a Key in kms to populate kmsKeyId.
 	// +kubebuilder:validation:Optional
-	KMSKeyIDRef *xpv1.Reference `json:"kmsKeyIdRef,omitempty"`
+	KMSKeyIDRef *xpv1.NamespacedReference `json:"kmsKeyIdRef,omitempty"`
 
 	// Selector for a Key in kms to populate kmsKeyId.
 	// +kubebuilder:validation:Optional
-	KMSKeyIDSelector *xpv1.Selector `json:"kmsKeyIdSelector,omitempty"`
+	KMSKeyIDSelector *xpv1.NamespacedSelector `json:"kmsKeyIdSelector,omitempty"`
 
 	// The encryption option specified for the state machine.
 	// +kubebuilder:validation:Optional
@@ -171,11 +172,11 @@ type StateMachineRAWParameters struct {
 
 	// Reference to a Role in iam to populate roleArn.
 	// +kubebuilder:validation:Optional
-	RoleArnRef *xpv1.Reference `json:"roleArnRef,omitempty"`
+	RoleArnRef *xpv1.NamespacedReference `json:"roleArnRef,omitempty"`
 
 	// Selector for a Role in iam to populate roleArn.
 	// +kubebuilder:validation:Optional
-	RoleArnSelector *xpv1.Selector `json:"roleArnSelector,omitempty"`
+	RoleArnSelector *xpv1.NamespacedSelector `json:"roleArnSelector,omitempty"`
 
 	// Key-value map of resource tags.
 	// +kubebuilder:validation:Optional
@@ -218,11 +219,11 @@ type StateMachineRAWInitParameters struct {
 
 	// Reference to a Role in iam to populate roleArn.
 	// +kubebuilder:validation:Optional
-	RoleArnRef *xpv1.Reference `json:"roleArnRef,omitempty"`
+	RoleArnRef *xpv1.NamespacedReference `json:"roleArnRef,omitempty"`
 
 	// Selector for a Role in iam to populate roleArn.
 	// +kubebuilder:validation:Optional
-	RoleArnSelector *xpv1.Selector `json:"roleArnSelector,omitempty"`
+	RoleArnSelector *xpv1.NamespacedSelector `json:"roleArnSelector,omitempty"`
 
 	// Key-value map of resource tags.
 	// +kubebuilder:validation:Optional
@@ -292,7 +293,7 @@ type StateMachineRAWObservation struct {
 
 // StateMachineRAWSpec defines the desired state of StateMachineRAW.
 type StateMachineRAWSpec struct {
-	xpv1.ResourceSpec `json:",inline"`
+	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
 	ForProvider StateMachineRAWParameters `json:"forProvider"`
@@ -306,7 +307,7 @@ type StateMachineRAWSpec struct {
 
 // StateMachineRAWStatus defines the observed state of StateMachineRAW.
 type StateMachineRAWStatus struct {
-	xpv1.ConditionedStatus `json:",inline"`
+	xpv1.ResourceStatus `json:",inline"`
 
 	// AtProvider holds the provider-specific observation fields for the resource.
 	AtProvider StateMachineRAWObservation `json:"atProvider,omitempty"`

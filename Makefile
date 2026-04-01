@@ -239,10 +239,13 @@ generate.native:
 		paths=./apis/cluster/v1beta1/... \
 		paths=./apis/namespaced/v1beta1/... \
 		$(shell find apis -path '*/native' -type d | sed 's|^|paths=./|' | tr '\n' ' ')
-	go run -tags generate github.com/crossplane/crossplane-tools/cmd/angryjet \
-		generate-methodsets \
-		--header-file=hack/boilerplate.go.txt \
-		$(shell find apis -path '*/native' -type d | sed 's|^|./|' | tr '\n' ' ')
+	@# angryjet accepts only one package path at a time; loop over each native package.
+	@for pkg in $(shell find apis -path '*/native' -type d | sed 's|^|./|'); do \
+		go run -tags generate github.com/crossplane/crossplane-tools/cmd/angryjet \
+			generate-methodsets \
+			--header-file=hack/boilerplate.go.txt \
+			$$pkg || exit 1; \
+	done
 	@$(OK) Native code generation complete
 
 .PHONY: generate.native

@@ -12,23 +12,18 @@ func (mg *StateMachineRAW) GetCondition(ct xpv1.ConditionType) xpv1.Condition {
 	return mg.Status.GetCondition(ct)
 }
 
-// GetDeletionPolicy of this StateMachineRAW.
-func (mg *StateMachineRAW) GetDeletionPolicy() xpv1.DeletionPolicy {
-	return mg.Spec.DeletionPolicy
-}
-
 // GetManagementPolicies of this StateMachineRAW.
 func (mg *StateMachineRAW) GetManagementPolicies() xpv1.ManagementPolicies {
 	return mg.Spec.ManagementPolicies
 }
 
 // GetProviderConfigReference of this StateMachineRAW.
-func (mg *StateMachineRAW) GetProviderConfigReference() *xpv1.Reference {
+func (mg *StateMachineRAW) GetProviderConfigReference() *xpv1.ProviderConfigReference {
 	return mg.Spec.ProviderConfigReference
 }
 
 // GetWriteConnectionSecretToReference of this StateMachineRAW.
-func (mg *StateMachineRAW) GetWriteConnectionSecretToReference() *xpv1.SecretReference {
+func (mg *StateMachineRAW) GetWriteConnectionSecretToReference() *xpv1.LocalSecretReference {
 	return mg.Spec.WriteConnectionSecretToReference
 }
 
@@ -37,22 +32,17 @@ func (mg *StateMachineRAW) SetConditions(c ...xpv1.Condition) {
 	mg.Status.SetConditions(c...)
 }
 
-// SetDeletionPolicy of this StateMachineRAW.
-func (mg *StateMachineRAW) SetDeletionPolicy(r xpv1.DeletionPolicy) {
-	mg.Spec.DeletionPolicy = r
-}
-
 // SetManagementPolicies of this StateMachineRAW.
 func (mg *StateMachineRAW) SetManagementPolicies(r xpv1.ManagementPolicies) {
 	mg.Spec.ManagementPolicies = r
 }
 
 // SetProviderConfigReference of this StateMachineRAW.
-func (mg *StateMachineRAW) SetProviderConfigReference(r *xpv1.Reference) {
+func (mg *StateMachineRAW) SetProviderConfigReference(r *xpv1.ProviderConfigReference) {
 	mg.Spec.ProviderConfigReference = r
 }
 
 // SetWriteConnectionSecretToReference of this StateMachineRAW.
-func (mg *StateMachineRAW) SetWriteConnectionSecretToReference(r *xpv1.SecretReference) {
+func (mg *StateMachineRAW) SetWriteConnectionSecretToReference(r *xpv1.LocalSecretReference) {
 	mg.Spec.WriteConnectionSecretToReference = r
 }
