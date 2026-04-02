@@ -607,3 +607,21 @@ func (t *TopicRAW) GetAtProvider() TopicRAWObservation { return t.Status.AtProvi
 
 // SetAtProvider sets the observed state.
 func (t *TopicRAW) SetAtProvider(o TopicRAWObservation) { t.Status.AtProvider = o }
+
+// SetForProviderFifoThroughputScope sets spec.forProvider.fifoThroughputScope.
+// Used by late-initialization so the persisted spec is updated correctly.
+func (t *TopicRAW) SetForProviderFifoThroughputScope(v *string) {
+	t.Spec.ForProvider.FifoThroughputScope = v
+}
+
+// SetForProviderSignatureVersion sets spec.forProvider.signatureVersion.
+// Used by late-initialization so the persisted spec is updated correctly.
+func (t *TopicRAW) SetForProviderSignatureVersion(v *float64) {
+	t.Spec.ForProvider.SignatureVersion = v
+}
+
+// SetForProviderTracingConfig sets spec.forProvider.tracingConfig.
+// Used by late-initialization so the persisted spec is updated correctly.
+func (t *TopicRAW) SetForProviderTracingConfig(v *string) {
+	t.Spec.ForProvider.TracingConfig = v
+}
