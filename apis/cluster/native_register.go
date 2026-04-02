@@ -9,6 +9,8 @@
 package cluster
 
 import (
+	nativekinesis1 "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta1/native"
+	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta2/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/cluster/sfn/v1beta2/native"
 	natives3 "github.com/upbound/provider-aws/v2/apis/cluster/s3/v1beta1/native"
 	nativesns "github.com/upbound/provider-aws/v2/apis/cluster/sns/v1beta1/native"
@@ -16,6 +18,11 @@ import (
 )
 
 func init() {
+	// Register native kinesis types (StreamRAW, StreamConsumerRAW and their list
+	// types) so that the controller manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativekinesis1.SchemeBuilder.AddToScheme)
+	AddToSchemes = append(AddToSchemes, nativekinesis2.SchemeBuilder.AddToScheme)
+
 	// Register native S3 types (BucketPolicyRAW and BucketPolicyRAWList)
 	// so that cross-resource reference resolvers can look them up by GVK.
 	AddToSchemes = append(AddToSchemes, natives3.SchemeBuilder.AddToScheme)
