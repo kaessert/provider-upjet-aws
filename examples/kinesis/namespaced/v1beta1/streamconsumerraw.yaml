@@ -5,21 +5,21 @@
 apiVersion: kinesis.aws.m.upbound.io/v1beta1
 kind: StreamConsumerRAW
 metadata:
-  name: example-ns
+  name: example
   annotations:
     meta.upbound.io/example-id: kinesis/v1beta1/streamconsumerraw
   namespace: upbound-system
 spec:
   forProvider:
     region: us-west-1
-    name: example-consumer-ns
+    name: example-consumer
     streamArnRef:
-      name: example-ns
+      name: example
 ---
-apiVersion: kinesis.aws.m.upbound.io/v1beta1
+apiVersion: kinesis.aws.m.upbound.io/v1beta2
 kind: StreamRAW
 metadata:
-  name: example-ns
+  name: example
   annotations:
     meta.upbound.io/example-id: kinesis/v1beta1/streamconsumerraw
   namespace: upbound-system
