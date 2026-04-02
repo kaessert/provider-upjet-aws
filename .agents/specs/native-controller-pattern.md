@@ -1503,7 +1503,7 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Adding fields to RAW types that don't exist in the TF type | RAW types MUST have the same CRD schema as TF types. Adding "convenience" fields (e.g., structured alternatives to a raw JSON string field) breaks YAML compatibility — existing manifests won't work identically with both kinds. The same constraint applies to example manifests: RAW examples must be exact copies of TF examples with only `kind` changed. Use test account ID `609897127049` for any ARNs in embedded JSON strings |
 | Importing cluster parameter types in namespaced types | Each scope MUST define its own `Parameters` and `InitParameters` structs with scope-appropriate `+crossplane:generate:reference:type` annotations. Importing cluster params prevents `angryjet` from generating correct namespaced resolvers — `Ref`/`Selector` fields silently break |
 | Placing `+kubebuilder:validation:XValidation` on `forProvider` field | XValidation rules for required-field checks ("spec.forProvider.X is a required parameter") must be placed on the **`Spec` field** of the root type, NOT on `ForProvider`. CEL expressions like `has(self.forProvider.policy) || (has(self.initProvider) && has(self.initProvider.policy))` reference both `forProvider` and `initProvider` — these are siblings under `spec`, so the rule must be scoped at the `spec` level |
-| Missing `providerConfigRef.kind` in cluster-scoped example manifests | Cluster-scoped examples (`scope=Cluster`) MUST include `spec.providerConfigRef.kind: ClusterProviderConfig` (or the appropriate kind). Without it, the controller cannot resolve the ProviderConfig. Namespaced examples should include `spec.providerConfigRef.kind: ClusterProviderConfig` when referencing a cluster-scoped ProviderConfig |
+| Missing `providerConfigRef.kind` in namespaced example manifests | **Namespaced** examples must include `spec.providerConfigRef.kind: ClusterProviderConfig` (or the appropriate kind) because `xpv2.ManagedResourceSpec` has a typed `ProviderConfigReference` with a `kind` field. Without it, the controller cannot resolve which type of ProviderConfig to look up. **Cluster-scoped** examples do NOT need `kind` — `xpv1.ResourceSpec` has an untyped `ProviderConfigReference` (name only) that always resolves to the cluster-scoped ProviderConfig |
 | Inconsistent AWS account IDs in example manifests | Example manifests that contain ARNs inside opaque JSON strings (policies, state machine definitions) must use the standard test account ID `609897127049` consistently. Using random or personal account IDs makes examples fail in CI. Use `609897127049` for all hardcoded ARNs |
 | Forgetting CRD manifests in scaffold step | The scaffold ticket must generate CRD YAML manifests via `controller-gen crd` and place them in `package/crds/`. Without CRD manifests, the types compile but cannot be installed in a cluster. See Section 17.1 below |
 | Using `ConditionedStatus` instead of `ResourceStatus` in status types | Both cluster and namespaced status types MUST embed `xpv1.ResourceStatus` (not `xpv1.ConditionedStatus`). `angryjet`'s `Managed()` and `ManagedV2()` matchers do a literal type name check for `ResourceStatus`. Using `ConditionedStatus` causes angryjet to silently skip the entire type — no `zz_generated.resolvers.go` is produced, and no error is reported. `ResourceStatus` embeds `ConditionedStatus` + `ObservedStatus`, so it's a strict superset |
@@ -1533,12 +1533,18 @@ This step is part of the scaffold ticket, not a separate ticket.
 RAW example manifests must follow these rules:
 
 1. **Consistent test account ID** — use `609897127049` for any ARNs embedded in opaque JSON strings (policies, state machine definitions, redrive policies). This is the standard CI test account
-2. **Include `providerConfigRef`** with the correct `kind`:
+2. **Include `providerConfigRef`** with the correct `kind` (namespaced only):
    ```yaml
+   # Namespaced resources — kind is required (xpv2 typed reference)
    spec:
      providerConfigRef:
        name: default
-       kind: ClusterProviderConfig   # Required for cluster-scoped resources
+       kind: ClusterProviderConfig
+   
+   # Cluster-scoped resources — no kind field (xpv1 untyped reference)
+   spec:
+     providerConfigRef:
+       name: default
    ```
 3. **Mirror TF examples** — same fields, same structure, only `kind` changes (e.g., `Queue` → `QueueRAW`)
 4. **Self-contained** — examples that reference other resources should either use `Ref`/`Selector` fields or include the dependent resources in the same example file
@@ -1571,7 +1577,7 @@ RAW example manifests must follow these rules:
 - [ ] Status types embed `xpv1.ResourceStatus` (NOT `ConditionedStatus`) — angryjet silently skips resolver generation otherwise
 - [ ] `make generate.native` produces `zz_generated.resolvers.go` in BOTH `apis/cluster/.../native/` and `apis/namespaced/.../native/`
 - [ ] XValidation rules placed on `Spec` field (not `ForProvider`) — CEL expressions that access both `forProvider` and `initProvider` require spec-level scope
-- [ ] Example manifests include `providerConfigRef.kind` (e.g., `ClusterProviderConfig` for cluster-scoped resources)
+- [ ] **Namespaced** example manifests include `providerConfigRef.kind` (e.g., `ClusterProviderConfig`); **cluster-scoped** examples omit `kind`
 - [ ] Example manifests use test account ID `609897127049` consistently for any embedded ARNs (not random/personal account IDs)
 - [ ] CRD manifests generated and placed in `package/crds/` (run `controller-gen crd` against native type paths)
 
