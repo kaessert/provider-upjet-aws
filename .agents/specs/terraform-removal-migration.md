@@ -409,13 +409,13 @@ Additionally, `package/kustomize/kustomization.yaml` applies `strategy: Webhook`
 
 For each service, the migration follows this exact sequence. Both `cluster` and `namespaced` scopes are handled in parallel within the same service.
 
-### Step 0: Baseline E2E (1 ticket per resource — HARD GATE)
+### Step 0: Baseline E2E (1 ticket per service — HARD GATE)
 
-Before any migration work begins for a resource, run the existing e2e test for the **TF-backed resource** using its current example manifest.
+Before any migration work begins for a service, run the existing e2e tests for **all TF-backed resources** in the service using a single uptest invocation with all example manifests.
 
 #### E2E Process (validated — S3 Bucket passed end-to-end)
 
-The executor runs E2E tests via the Makefile. The full command:
+The executor runs E2E tests via the Makefile. All examples for the service are combined in one `UPTEST_EXAMPLE_LIST`:
 
 ```bash
 # Set AWS credentials for uptest
@@ -423,8 +423,8 @@ export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
 
-# Set the example manifest to test
-export UPTEST_EXAMPLE_LIST="examples/<service>/cluster/<version>/<resource>.yaml"
+# Set ALL example manifests for the service (comma-separated)
+export UPTEST_EXAMPLE_LIST="examples/<service>/cluster/<version>/<resource1>.yaml,examples/<service>/cluster/<version>/<resource2>.yaml,..."
 
 # Run the full pipeline: build → Kind cluster → Crossplane → provider deploy → uptest
 make e2e SUBPACKAGES="config <service>"
@@ -447,10 +447,10 @@ The pipeline takes ~5-10 minutes per service (build is cached after first run).
 #### Baseline gate criteria
 
 ```
-For each resource in the service:
-  1. Run e2e test: examples/<service>/cluster/<version>/<resource>.yaml
-  2. The TF resource must reach Ready condition
-  3. The TF resource must delete cleanly
+For the service (all resources in one run):
+  1. Run e2e test with all TF examples in UPTEST_EXAMPLE_LIST
+  2. Every TF resource must reach Ready condition
+  3. Every TF resource must delete cleanly
   4. No AWS permission errors
   5. No AWS quota/limit errors
 ```
@@ -467,7 +467,7 @@ For each resource in the service:
 
 **Rationale**: If we cannot verify the existing TF resource works end-to-end, we have no valid baseline to compare the native implementation against. Migrating a broken resource produces a broken native resource. The failure is recorded in the ticket with the exact error, enabling triage as a separate concern.
 
-**Failure propagation**: When a baseline ticket fails, ALL downstream tickets for that resource (scaffold, implement, e2e-RAW, verify, cutover) are blocked. The service can still proceed with its other resources — a single failed baseline does not block the entire service, but the cutover ticket cannot complete until ALL resources in the service pass.
+**Failure propagation**: When the baseline ticket fails, ALL downstream tickets for the service (scaffold, implement, e2e-RAW, verify, cutover) are blocked. Record which specific resources failed in the ticket description — if only some resources fail, the service can still proceed with the passing resources by noting the failures and adjusting the implement/e2e tickets accordingly.
 
 ### Step 1: Scaffold (1 ticket per service — covers BOTH scopes)
 
@@ -655,24 +655,24 @@ Priority:
 ### Ticket Naming Convention
 
 ```
-native-<service>-baseline-<resource>  — Baseline e2e (TF) — HARD GATE
-native-<service>-scaffold             — Scaffold (both scopes)
-native-<service>-<resource>           — Implement shared CRUD + both wrappers
-native-<service>-<resource>-e2e       — E2E test RAW
-native-<service>-tf-regression        — TF regression test (new)
-native-<service>-verify               — Agent verification
-native-<service>-cutover              — Cutover
+native-<service>-baseline                 — Baseline e2e (all TF resources) — HARD GATE
+native-<service>-scaffold                 — Scaffold (both scopes)
+native-<service>-<resource>               — Implement shared CRUD + both wrappers
+native-<service>-<resource>-e2e           — E2E test RAW (both scopes)
+native-<service>-tf-regression            — TF regression test
+native-<service>-verify                   — Agent verification
+native-<service>-cutover                  — Cutover
 ```
 
-### Dependency Chain Per Resource
+### Dependency Chain Per Service
 
 ```
-baseline (TF e2e) ──┐
-                     ├──→ implement (shared CRUD + both wrappers) ──→ e2e-RAW ──→ tf-regression ──→ verify ──→ cutover
-scaffold ────────────┘
+baseline (all TF e2e) ──┐
+                         ├──→ implement (per resource) ──→ e2e-RAW (per resource) ──→ tf-regression ──→ verify ──→ cutover
+scaffold ────────────────┘
 ```
 
-If baseline **fails**, the entire downstream chain for that resource is blocked. Other resources in the same service proceed independently.
+Baseline and scaffold run in parallel (no dependencies). Each implement ticket depends on both. If baseline **fails**, all downstream tickets are blocked.
 
 ---
 

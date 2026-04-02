@@ -335,9 +335,10 @@ Record the classified fields as a table in the implement ticket description unde
 
 ---
 
-## Step 5: Create Baseline Tickets (1 per resource)
+## Step 5: Create Baseline Ticket (1 per service — all resources in one run)
 
-For each resource, create a baseline E2E ticket. This is an absolute hard gate.
+Create a single baseline E2E ticket that tests ALL TF resources for the service in one
+uptest invocation. This is an absolute hard gate.
 
 Use `CreateTicket` with the following parameters. Substitute actual values — no placeholders
 in the final ticket.
@@ -345,8 +346,8 @@ in the final ticket.
 **Ticket structure:**
 
 ```
-id:      native-<SERVICE>-baseline-<resource_slug>
-title:   Baseline E2E: <SERVICE>/<resource_slug> TF controller passes
+id:      native-<SERVICE>-baseline
+title:   Baseline E2E: <SERVICE> — all TF controllers pass
 plan:    native-<SERVICE>
 phase:   baseline
 labels:  ["stage:executor"]
@@ -356,36 +357,30 @@ priority: High
 **Description** (fill in all `<...>` with real values):
 
 ```
-## Baseline E2E: <TF_NAME> → TF controller
+## Baseline E2E: <SERVICE> — all TF controllers
 
-Run the existing Terraform-backed e2e test to establish a verified baseline BEFORE any
-migration work on this resource. This is a HARD GATE.
+Run the existing Terraform-backed e2e tests for ALL resources in <SERVICE> to establish a
+verified baseline BEFORE any migration work. This is a HARD GATE — all resources are tested
+in a single uptest invocation.
 
-**If this ticket fails, ALL downstream tickets for this resource are blocked:**
-- native-<SERVICE>-<resource_slug> (implement)
-- native-<SERVICE>-<resource_slug>-e2e (E2E RAW)
-Other resources in the service are unaffected.
+**If this ticket fails, ALL downstream tickets for the service are blocked.**
 
 ### Spec Reference
 Read `.agents/specs/terraform-removal-migration.md` section "Step 0: Baseline E2E"
 for complete rules and failure handling.
 
-### Example Manifest
-<example_manifest_path>
-  (or: MISSING — locate or create before running)
+### Example Manifests
+<comma-separated list of all example manifest paths for the service>
 
 ### E2E Command
 ```bash
-# Tear down any stale kind cluster from previous runs to ensure a clean slate.
-# The `family-e2e` target reuses existing clusters, which can leave stale pods
-# running old binaries. Always start fresh.
 make controlplane.down 2>/dev/null || true
 
 export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
 
-export UPTEST_EXAMPLE_LIST="<example_manifest_path>"
+export UPTEST_EXAMPLE_LIST="<comma-separated list of ALL example manifest paths>"
 make e2e SUBPACKAGES="config <SERVICE>"
 ```
 
@@ -398,27 +393,11 @@ make e2e SUBPACKAGES="config <SERVICE>"
 | Example manifest is broken     | Mark FAILED — do NOT fix the manifest       |
 | Timeout / infrastructure issue | Mark FAILED — do NOT retry                  |
 
-When this ticket fails, record the exact error output in the ticket (update description)
-and mark the ticket Failed.
+Record which specific resources failed. If only some fail, note them in the description
+so downstream implement/e2e tickets can be adjusted.
 
 ### AWS Resource Leak Cleanup (MANDATORY after failure)
-When an e2e test fails, AWS resources created during the test may be left behind.
-`make controlplane.down` only tears down the kind cluster — it does NOT clean up AWS resources.
-After marking the ticket Failed, check for and delete leaked resources:
-```bash
-# 1. Parse the example manifest for resource names and regions
-grep -E 'name:|region:' <example_manifest_path>
-
-# 2. Use AWS CLI to check for leaked resources (adapt per service)
-# Example for SQS:
-aws sqs list-queues --region <REGION> --queue-name-prefix <name>
-# Example for SFN:
-aws stepfunctions list-state-machines --region <REGION> | grep <name>
-
-# 3. Delete any found resources
-# aws sqs delete-queue --queue-url <url> --region <REGION>
-# aws stepfunctions delete-state-machine --state-machine-arn <arn> --region <REGION>
-```
+After marking Failed, check for and delete leaked AWS resources.
 Record any cleaned-up resources in the ticket description.
 
 ### Result Capture
@@ -427,8 +406,8 @@ Paste the final `uptest` output here (last 50 lines) before marking Done.
 
 **Acceptance criteria** (as array):
 ```
-["TF resource <resource_go> reaches Ready condition",
- "TF resource <resource_go> deletes cleanly with no errors",
+["All TF resources in <SERVICE> reach Ready condition",
+ "All TF resources delete cleanly with no errors",
  "No AWS permission errors in output",
  "No AWS quota or limit errors in output",
  "E2E output captured in ticket",
@@ -650,7 +629,7 @@ phase:      implement
 labels:     ["stage:executor"]
 priority:   High   (if UseAsync=true OR has ConfigurationInjector OR has CustomDiff)
             Normal (all other resources)
-depends_on: ["native-<SERVICE>-scaffold", "native-<SERVICE>-baseline-<resource_slug>"]
+depends_on: ["native-<SERVICE>-scaffold", "native-<SERVICE>-baseline"]
 ```
 
 **Description** — fill in ALL metadata gathered in Step 4:
@@ -1251,20 +1230,20 @@ Executor ant will pick up stage:executor tickets automatically.
     → Example: <path or MISSING>
 
 ### Tickets Created (<total_count> total)
-  Phase baseline:   <N> tickets  (native-<SERVICE>-baseline-*)
+  Phase baseline:   1 ticket     (native-<SERVICE>-baseline)
   Phase scaffold:   1 ticket     (native-<SERVICE>-scaffold)
   Phase implement:  <N> tickets  (native-<SERVICE>-<resource_slug>)
   Phase e2e:        <N> tickets  (native-<SERVICE>-*-e2e)
   Phase regression: 1 ticket     (native-<SERVICE>-tf-regression)
   Phase verify:     1 ticket     (native-<SERVICE>-verify)
   ─────────────────────────────────────────────────────────
-  TOTAL:            <4N+3> tickets
+  TOTAL:            <2N+3> tickets
 
 ### Dependency Chain
-  baseline-<resource> ──┐
-                         ├──→ <resource> (implement) ──→ <resource>-e2e ──┐
-  scaffold ─────────────┘                                                   ├──→ tf-regression ──→ verify
-  (repeat for each resource) ────────────────────────────────────────────────┘
+  baseline (all TF e2e) ──┐
+                           ├──→ <resource> (implement) ──→ <resource>-e2e ──┐
+  scaffold ────────────────┘                                                  ├──→ tf-regression ──→ verify
+  (repeat for each resource) ─────────────────────────────────────────────────┘
 
 Note: Cutover is a global operation done after ALL services are migrated. Not created here.
 
