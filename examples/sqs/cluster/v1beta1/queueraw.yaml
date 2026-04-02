@@ -20,3 +20,5 @@ spec:
       Environment: production
   providerConfigRef:
     name: default
+    kind: ClusterProviderConfig
+
