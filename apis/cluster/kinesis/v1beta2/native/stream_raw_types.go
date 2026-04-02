@@ -225,3 +225,26 @@ func (s *StreamRAW) GetAtProvider() StreamRAWObservation { return s.Status.AtPro
 
 // SetAtProvider sets the observed state.
 func (s *StreamRAW) SetAtProvider(o StreamRAWObservation) { s.Status.AtProvider = o }
+
+// SetForProviderEncryptionType sets spec.forProvider.encryptionType.
+// Used by late-initialization so that cluster and namespaced scope types both
+// update their persisted spec correctly.
+func (s *StreamRAW) SetForProviderEncryptionType(v *string) { s.Spec.ForProvider.EncryptionType = v }
+
+// SetForProviderRetentionPeriod sets spec.forProvider.retentionPeriod.
+func (s *StreamRAW) SetForProviderRetentionPeriod(v *float64) {
+	s.Spec.ForProvider.RetentionPeriod = v
+}
+
+// SetForProviderShardCount sets spec.forProvider.shardCount.
+func (s *StreamRAW) SetForProviderShardCount(v *float64) { s.Spec.ForProvider.ShardCount = v }
+
+// SetForProviderMaxRecordSizeInKib sets spec.forProvider.maxRecordSizeInKib.
+func (s *StreamRAW) SetForProviderMaxRecordSizeInKib(v *float64) {
+	s.Spec.ForProvider.MaxRecordSizeInKib = v
+}
+
+// SetForProviderStreamModeDetails sets spec.forProvider.streamModeDetails.
+func (s *StreamRAW) SetForProviderStreamModeDetails(v *StreamModeDetailsRAWParameters) {
+	s.Spec.ForProvider.StreamModeDetails = v
+}

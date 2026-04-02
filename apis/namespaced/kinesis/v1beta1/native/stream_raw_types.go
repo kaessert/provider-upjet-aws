@@ -245,6 +245,34 @@ func (s *StreamRAW) GetAtProvider() clusternative.StreamRAWObservation { return 
 // SetAtProvider sets the observed state.
 func (s *StreamRAW) SetAtProvider(o clusternative.StreamRAWObservation) { s.Status.AtProvider = o }
 
+// SetForProviderEncryptionType sets spec.forProvider.encryptionType.
+// Used by late-initialization so that mutations propagate back to the
+// namespaced spec (GetForProvider() returns a field-copied struct).
+func (s *StreamRAW) SetForProviderEncryptionType(v *string) { s.Spec.ForProvider.EncryptionType = v }
+
+// SetForProviderRetentionPeriod sets spec.forProvider.retentionPeriod.
+func (s *StreamRAW) SetForProviderRetentionPeriod(v *float64) {
+	s.Spec.ForProvider.RetentionPeriod = v
+}
+
+// SetForProviderShardCount sets spec.forProvider.shardCount.
+func (s *StreamRAW) SetForProviderShardCount(v *float64) { s.Spec.ForProvider.ShardCount = v }
+
+// SetForProviderMaxRecordSizeInKib sets spec.forProvider.maxRecordSizeInKib.
+func (s *StreamRAW) SetForProviderMaxRecordSizeInKib(v *float64) {
+	s.Spec.ForProvider.MaxRecordSizeInKib = v
+}
+
+// SetForProviderStreamModeDetails sets spec.forProvider.streamModeDetails.
+// Converts from the cluster-scoped type to the namespaced local type.
+func (s *StreamRAW) SetForProviderStreamModeDetails(v *clusternative.StreamModeDetailsRAWParameters) {
+	if v == nil {
+		s.Spec.ForProvider.StreamModeDetails = nil
+		return
+	}
+	s.Spec.ForProvider.StreamModeDetails = &StreamModeDetailsRAWParameters{StreamMode: v.StreamMode}
+}
+
 // streamModeDetailsToCluster converts a namespaced StreamModeDetailsRAWParameters
 // to the cluster-scoped type.
 func streamModeDetailsToCluster(p *StreamModeDetailsRAWParameters) *clusternative.StreamModeDetailsRAWParameters {
