@@ -7,7 +7,7 @@ kind: StateMachineRAW
 metadata:
   annotations:
     meta.upbound.io/example-id: sfn/v1beta2/statemachineraw
-  name: my-state-machine-raw
+  name: my-state-machine
 spec:
   forProvider:
     definition: |
