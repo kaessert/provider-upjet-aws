@@ -307,8 +307,10 @@ type BucketRAWObservation struct {
 }
 
 // BucketRAWStatus is the observed state.
+// NOTE: Must embed xpv1.ResourceStatus (not ConditionedStatus) — angryjet's
+// Managed() matcher checks for ResourceStatus by type name.
 type BucketRAWStatus struct {
-    xpv1.ConditionedStatus `json:",inline"`
+    xpv1.ResourceStatus `json:",inline"`
     AtProvider BucketRAWObservation `json:"atProvider,omitempty"`
 }
 
@@ -367,6 +369,15 @@ type BucketRAWSpec struct {
 
     ForProvider  BucketRAWParameters     `json:"forProvider"`
     InitProvider BucketRAWInitParameters `json:"initProvider,omitempty"`
+}
+
+// BucketRAWStatus is the observed state.
+// NOTE: Must embed xpv1.ResourceStatus (not ConditionedStatus) — angryjet's
+// ManagedV2() matcher checks for ResourceStatus by type name. Using
+// ConditionedStatus causes angryjet to silently skip resolver generation.
+type BucketRAWStatus struct {
+    xpv1.ResourceStatus `json:",inline"`
+    AtProvider BucketRAWObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:resource:scope=Namespaced
@@ -1495,6 +1506,7 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Missing `providerConfigRef.kind` in cluster-scoped example manifests | Cluster-scoped examples (`scope=Cluster`) MUST include `spec.providerConfigRef.kind: ClusterProviderConfig` (or the appropriate kind). Without it, the controller cannot resolve the ProviderConfig. Namespaced examples should include `spec.providerConfigRef.kind: ClusterProviderConfig` when referencing a cluster-scoped ProviderConfig |
 | Inconsistent AWS account IDs in example manifests | Example manifests that contain ARNs inside opaque JSON strings (policies, state machine definitions) must use the standard test account ID `609897127049` consistently. Using random or personal account IDs makes examples fail in CI. Use `609897127049` for all hardcoded ARNs |
 | Forgetting CRD manifests in scaffold step | The scaffold ticket must generate CRD YAML manifests via `controller-gen crd` and place them in `package/crds/`. Without CRD manifests, the types compile but cannot be installed in a cluster. See Section 17.1 below |
+| Using `ConditionedStatus` instead of `ResourceStatus` in status types | Both cluster and namespaced status types MUST embed `xpv1.ResourceStatus` (not `xpv1.ConditionedStatus`). `angryjet`'s `Managed()` and `ManagedV2()` matchers do a literal type name check for `ResourceStatus`. Using `ConditionedStatus` causes angryjet to silently skip the entire type — no `zz_generated.resolvers.go` is produced, and no error is reported. `ResourceStatus` embeds `ConditionedStatus` + `ObservedStatus`, so it's a strict superset |
 
 ### 17.1 CRD Manifest Generation
 
@@ -1556,6 +1568,7 @@ RAW example manifests must follow these rules:
 - [ ] No hand-written types in parent `v1beta2/` package (RAW types in `native/` subpackage only)
 - [ ] Working tree is clean after implementation (`git status` shows no untracked SFN files outside `native/`)
 - [ ] Namespaced types define **own** `Parameters`/`InitParameters` structs (NOT imported from cluster) with scope-appropriate reference annotations
+- [ ] Status types embed `xpv1.ResourceStatus` (NOT `ConditionedStatus`) — angryjet silently skips resolver generation otherwise
 - [ ] `make generate.native` produces `zz_generated.resolvers.go` in BOTH `apis/cluster/.../native/` and `apis/namespaced/.../native/`
 - [ ] XValidation rules placed on `Spec` field (not `ForProvider`) — CEL expressions that access both `forProvider` and `initProvider` require spec-level scope
 - [ ] Example manifests include `providerConfigRef.kind` (e.g., `ClusterProviderConfig` for cluster-scoped resources)
