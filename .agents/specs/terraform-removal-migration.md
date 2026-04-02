@@ -475,12 +475,13 @@ Create the RAW type definitions and empty controller stubs for ALL resources in 
 
 ```
 apis/cluster/<service>/<version>/native/<resource>_raw_types.go      — RAW CRD types (cluster)
-apis/namespaced/<service>/<version>/native/<resource>_raw_types.go   — RAW CRD types (namespaced)
+apis/namespaced/<service>/<version>/native/<resource>_raw_types.go   — RAW CRD types (namespaced, own param types)
 internal/controller/<service>/<resource>/crud.go                     — Empty shared CRUD stub
 internal/controller/cluster/<service>/<resource>raw/controller.go    — Cluster scope Setup + thin wrapper stub
 internal/controller/namespaced/<service>/<resource>raw/controller.go — Namespaced scope Setup + thin wrapper stub
-examples/<service>/cluster/<version>/<resource>raw.yaml              — Example manifest
+examples/<service>/cluster/<version>/<resource>raw.yaml              — Example manifest (no hardcoded account IDs)
 examples/<service>/namespaced/<version>/<resource>raw.yaml           — Example manifest
+package/crds/<group>_<resource>raws.yaml                             — CRD manifests (generated)
 ```
 
 Wire into provider binary at `cmd/provider/<service>/zz_main.go`.
@@ -491,6 +492,23 @@ Field placement rules:
 - Include `+crossplane:generate:reference` annotations (rewrite any `TerraformID()` extractors)
 - Include `spec.forProvider.region` (required for credential resolution)
 - Both cluster and namespaced types must implement the `<Resource>CR` interface (see Dual Scope Architecture)
+
+Namespaced type rules:
+- **Define separate `Parameters`/`InitParameters` structs** — do NOT import from cluster
+- Reference annotations must point to namespaced types (`apis/namespaced/...`) not cluster types
+- Field names, types, json tags must match cluster params exactly (only annotation paths differ)
+- `Observation` struct may be shared (imported from cluster) since it has no reference annotations
+- Run `make generate.native` and verify `zz_generated.resolvers.go` is produced for BOTH scopes
+
+CRD manifest rules:
+- Generate CRD YAML via `controller-gen crd` against native type paths
+- Place in `package/crds/`
+- Verify XValidation rules appear at `spec` level (not nested under `forProvider`)
+
+Example manifest rules:
+- No hardcoded 12-digit AWS account IDs (use `000000000000` placeholders)
+- Include `providerConfigRef.kind: ClusterProviderConfig` for cluster-scoped examples
+- Mirror TF examples exactly (same fields, only `kind` changes)
 
 ### Step 2: Implement CRUD (1 ticket per resource — covers BOTH scopes)
 

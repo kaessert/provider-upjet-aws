@@ -329,15 +329,44 @@ type BucketRAW struct {
 ### 3.2 Namespaced type (embeds `v2.ManagedResourceSpec`)
 
 ```go
+// apis/namespaced/<service>/<version>/native/<resource>_raw_types.go
+package native
+
 import (
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/apimachinery/pkg/runtime/schema"
+
+    xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
     xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 )
 
-type BucketRAWSpec struct {
-    ForProvider BucketRAWParameters `json:"forProvider"`
+// BucketRAWParameters — namespaced scope. Defines its own fields with
+// scope-appropriate reference annotations so angryjet generates correct resolvers.
+// Field names, types, and json tags MUST match the cluster-scoped BucketRAWParameters exactly.
+type BucketRAWParameters struct {
+    // +kubebuilder:validation:Required
+    Region string `json:"region"`
 
+    // +optional
+    Tags map[string]*string `json:"tags,omitempty"`
+
+    // Reference annotation points to NAMESPACED QueueRAW (not cluster):
+    // +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/<service>/<version>/native.QueueRAW
+    // +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractResourceID()
+    SomeRef *string `json:"someRef,omitempty"`
+
+    // +optional
+    SomeRefRef *xpv1.NamespacedReference `json:"someRefRef,omitempty"`
+    // +optional
+    SomeRefSelector *xpv1.NamespacedSelector `json:"someRefSelector,omitempty"`
+}
+
+type BucketRAWSpec struct {
     // ManagedResourceSpec gives providerConfigRef (with Kind field), etc.
     xpv2.ManagedResourceSpec `json:",inline"`
+
+    ForProvider  BucketRAWParameters     `json:"forProvider"`
+    InitProvider BucketRAWInitParameters `json:"initProvider,omitempty"`
 }
 
 // +kubebuilder:resource:scope=Namespaced
@@ -346,6 +375,23 @@ type BucketRAW struct { ... }
 
 **Namespaced types embed `xpv2.ManagedResourceSpec` (v2)** — this makes them implement
 `resource.ModernManaged`.
+
+> ⚠️ **Do NOT import cluster parameter types into namespaced types.** Each scope must define
+> its own `Parameters`, `InitParameters`, and `Observation` structs so that
+> `+crossplane:generate:reference` annotations point to the correct scope's types.
+> Without this, `angryjet` either skips resolver generation or generates resolvers that
+> reference the wrong scope's types, breaking `Ref`/`Selector` fields in namespaced mode.
+>
+> **Why**: `angryjet` is a literal marker→code generator. It reads the `type=...` path from
+> annotations and hardcodes it into the resolver. It has no scope-rewriting logic.
+> When namespaced types import cluster params, the annotations say
+> `type=.../apis/cluster/.../native.QueueRAW` — but namespaced resources need to reference
+> `type=.../apis/namespaced/.../native.QueueRAW`.
+>
+> **Rule**: Field names, types, json tags, and kubebuilder validation markers must be
+> identical between cluster and namespaced parameter types. Only the `+crossplane:generate:reference:type`
+> path differs (`apis/cluster/...` vs `apis/namespaced/...`). The `Observation` struct can be
+> shared (imported from cluster) since it has no reference annotations.
 
 ### 3.3 Field placement rules
 
@@ -992,6 +1038,24 @@ go run ./vendor/github.com/crossplane/crossplane-tools/cmd/crossplane-gen/... \
 
 The generated `zz_resolve_references.go` file is committed to the `native/` sub-package. Re-run this command whenever reference annotations change.
 
+### 12.3 Scope-specific reference annotations
+
+Reference annotations in **cluster** types must point to cluster-scoped types, and
+annotations in **namespaced** types must point to namespaced types:
+
+```go
+// In apis/cluster/<service>/<version>/native/<resource>_raw_types.go:
+// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/cluster/sqs/v1beta1/native.QueueRAW
+
+// In apis/namespaced/<service>/<version>/native/<resource>_raw_types.go:
+// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native.QueueRAW
+```
+
+After running `make generate.native`, verify that `zz_generated.resolvers.go` is produced
+in **both** the cluster and namespaced `native/` directories. If the namespaced resolver is
+missing, the most likely cause is that namespaced types are importing cluster parameter types
+instead of defining their own (see Section 3.2).
+
 ---
 
 ## 13. Scheme Registration
@@ -1426,6 +1490,46 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Hand-written types in parent `v1beta2` package during parallel phase | RAW types MUST live in the `native/` subpackage ONLY. Placing types in the parent package collides with `zz_*` generated types and breaks compilation |
 | Adding `//go:build` tags to native controller files | Do NOT add build tags. `make build` uses `GO_TAGS=""` (no tags), so tagged files are excluded and `native_imports.go` fails to import them. The `buildtagger` tool only processes `zz_controller.go` files during lint — hand-written `controller.go` files must remain untagged |
 | Adding fields to RAW types that don't exist in the TF type | RAW types MUST have the same CRD schema as TF types. Adding "convenience" fields (e.g., structured alternatives to a raw JSON string field) breaks YAML compatibility — existing manifests won't work identically with both kinds. The same constraint applies to example manifests: RAW examples must be exact copies of TF examples with only `kind` and account ID changed |
+| Importing cluster parameter types in namespaced types | Each scope MUST define its own `Parameters` and `InitParameters` structs with scope-appropriate `+crossplane:generate:reference:type` annotations. Importing cluster params prevents `angryjet` from generating correct namespaced resolvers — `Ref`/`Selector` fields silently break |
+| Placing `+kubebuilder:validation:XValidation` on `forProvider` field | XValidation rules for required-field checks ("spec.forProvider.X is a required parameter") must be placed on the **`Spec` field** of the root type, NOT on `ForProvider`. CEL expressions like `has(self.forProvider.policy) || (has(self.initProvider) && has(self.initProvider.policy))` reference both `forProvider` and `initProvider` — these are siblings under `spec`, so the rule must be scoped at the `spec` level |
+| Missing `providerConfigRef.kind` in cluster-scoped example manifests | Cluster-scoped examples (`scope=Cluster`) MUST include `spec.providerConfigRef.kind: ClusterProviderConfig` (or the appropriate kind). Without it, the controller cannot resolve the ProviderConfig. Namespaced examples should include `spec.providerConfigRef.kind: ClusterProviderConfig` when referencing a cluster-scoped ProviderConfig |
+| Hardcoded AWS account IDs in example manifests | Example manifests must NEVER contain literal 12-digit AWS account IDs. Use placeholders like `000000000000` or dynamically-constructed ARNs via references. Hardcoded IDs cause e2e failures for any account other than the original author's |
+| Forgetting CRD manifests in scaffold step | The scaffold ticket must generate CRD YAML manifests via `controller-gen crd` and place them in `package/crds/`. Without CRD manifests, the types compile but cannot be installed in a cluster. See Section 17.1 below |
+
+### 17.1 CRD Manifest Generation
+
+After creating RAW type files, generate CRD manifests:
+
+```bash
+# Generate CRD manifests for native types
+go run sigs.k8s.io/controller-tools/cmd/controller-gen \
+    crd:crdVersions=v1 \
+    paths=./apis/cluster/<service>/<version>/native/ \
+    paths=./apis/namespaced/<service>/<version>/native/ \
+    output:crd:artifacts:config=package/crds
+```
+
+This produces CRD YAML files in `package/crds/`. Verify:
+- One CRD per RAW type per scope (e.g., `sqs.aws.upbound.io_queueraws.yaml`)
+- `scope: Cluster` or `scope: Namespaced` is correct
+- XValidation rules appear at `spec` level (not nested under `forProvider`)
+
+This step is part of the scaffold ticket, not a separate ticket.
+
+### 17.2 Example Manifest Requirements
+
+RAW example manifests must follow these rules:
+
+1. **No hardcoded account IDs** — use `000000000000` or reference-based ARN construction
+2. **Include `providerConfigRef`** with the correct `kind`:
+   ```yaml
+   spec:
+     providerConfigRef:
+       name: default
+       kind: ClusterProviderConfig   # Required for cluster-scoped resources
+   ```
+3. **Mirror TF examples** — same fields, same structure, only `kind` changes (e.g., `Queue` → `QueueRAW`)
+4. **Self-contained** — examples that reference other resources should either use `Ref`/`Selector` fields or include the dependent resources in the same example file
 
 ---
 
@@ -1451,6 +1555,12 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 - [ ] No misleading idempotency comments on Create (verify AWS API behavior before commenting)
 - [ ] No hand-written types in parent `v1beta2/` package (RAW types in `native/` subpackage only)
 - [ ] Working tree is clean after implementation (`git status` shows no untracked SFN files outside `native/`)
+- [ ] Namespaced types define **own** `Parameters`/`InitParameters` structs (NOT imported from cluster) with scope-appropriate reference annotations
+- [ ] `make generate.native` produces `zz_generated.resolvers.go` in BOTH `apis/cluster/.../native/` and `apis/namespaced/.../native/`
+- [ ] XValidation rules placed on `Spec` field (not `ForProvider`) — CEL expressions that access both `forProvider` and `initProvider` require spec-level scope
+- [ ] Example manifests include `providerConfigRef.kind` (e.g., `ClusterProviderConfig` for cluster-scoped resources)
+- [ ] Example manifests contain NO hardcoded 12-digit AWS account IDs (use `000000000000` placeholders)
+- [ ] CRD manifests generated and placed in `package/crds/` (run `controller-gen crd` against native type paths)
 
 ---
 
