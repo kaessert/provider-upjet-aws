@@ -1,48 +1,59 @@
 # SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
 #
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: CC0-1.0
 
-# Dead-letter queue — must exist before the redrive policy can reference it.
-apiVersion: sqs.aws.upbound.io/v1beta1
-kind: QueueRAW
-metadata:
-  name: example-dlq
-  labels:
-    testing.upbound.io/example-name: example-dlq
-spec:
-  forProvider:
-    name: example-dlq
-    region: us-west-1
-
----
-# Source queue — the queue on which the redrive policy is set.
-apiVersion: sqs.aws.upbound.io/v1beta1
-kind: QueueRAW
-metadata:
-  name: example
-  labels:
-    testing.upbound.io/example-name: example
-spec:
-  forProvider:
-    name: queueredrivepolicy-src
-    region: us-west-1
-
----
-# Redrive policy — attaches to the source queue and routes failed messages to the DLQ.
 apiVersion: sqs.aws.upbound.io/v1beta1
 kind: QueueRedrivePolicyRAW
 metadata:
-  name: queueredrivepolicy-raw
+  annotations:
+    upjet.upbound.io/manual-intervention: "It requires a real queue arn to be specified."
+    meta.upbound.io/example-id: sqs/v1beta1/queueredrivepolicyraw
   labels:
-    testing.upbound.io/example-name: queueredrivepolicy-raw
+    testing.upbound.io/example-name: example
+  name: qrpexample
 spec:
   forProvider:
-    region: us-west-1
-    queueUrlRef:
-      name: example
-    redrivePolicy: |
-      {
-        "deadLetterTargetArn": "arn:aws:sqs:us-west-1:609897127049:example-dlq",
-        "maxReceiveCount": 4
-      }
+    redrivePolicy: |-
+      ${jsonencode({
+          deadLetterTargetArn = "arn:aws:sqs:us-east-1:609897127049:examplequeue-ddl"
+          maxReceiveCount     = 4
+        })}
+    region: us-east-1
+    queueUrlSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
 
+---
+
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: QueueRAW
+metadata:
+  annotations:
+    meta.upbound.io/example-id: sqs/v1beta1/queueredrivepolicyraw
+  labels:
+    testing.upbound.io/example-name: ddl
+  name: ddl
+spec:
+  forProvider:
+    name: examplequeue-ddl
+    redriveAllowPolicy: |-
+      ${jsonencode({
+          redrivePermission = "byQueue",
+          sourceQueueArns   = ["arn:aws:sqs:us-east-1:609897127049:examplequeue"]
+        })}
+    region: us-east-1
+
+---
+
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: QueueRAW
+metadata:
+  annotations:
+    meta.upbound.io/example-id: sqs/v1beta1/queueredrivepolicyraw
+  labels:
+    testing.upbound.io/example-name: example
+  name: qrpexample
+spec:
+  forProvider:
+    name: examplequeue
+    region: us-east-1
