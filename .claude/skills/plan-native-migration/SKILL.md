@@ -528,7 +528,7 @@ apis/cluster/<SERVICE>/<version>/native/<resource_file>_raw_types.go
   - Types: `<resource_go>RAWParameters`, `<resource_go>RAWInitParameters`,
            `<resource_go>RAWObservation`, `<resource_go>RAWSpec`, `<resource_go>RAWStatus`,
            `<resource_go>RAW`, `<resource_go>RAWList`
-  - Embed: `v1.ResourceSpec` in Spec, `v1.ConditionedStatus` in Status (crossplane-runtime)
+  - Embed: `v1.ResourceSpec` in Spec, `v1.ResourceStatus` in Status (crossplane-runtime — NOT ConditionedStatus; angryjet requires ResourceStatus by type name)
   - `<resource_go>RAW` must have markers: `+kubebuilder:object:root=true`,
     `+kubebuilder:subresource:status`, `+kubebuilder:resource:scope=Cluster`
   - Implement the `<resource_go>CR` interface declared in crud.go (compiler-verified)
@@ -539,7 +539,9 @@ apis/namespaced/<SERVICE>/<version>/native/<resource_file>_raw_types.go
 ```
   - Mirror of cluster type; resource scope = Namespaced
   - `+kubebuilder:resource:scope=Namespaced`
-  - Same field layout, same interfaces
+  - Define **own** `Parameters`/`InitParameters` structs (do NOT import from cluster) with scope-appropriate reference annotations pointing to `apis/namespaced/...` types
+  - Embed `v2.ManagedResourceSpec` in Spec, `v1.ResourceStatus` in Status (NOT ConditionedStatus)
+  - Same field layout as cluster params (names, types, json tags must match exactly)
 
 ```
 internal/controller/<SERVICE>/<resource_file>/crud.go

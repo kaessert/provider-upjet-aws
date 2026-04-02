@@ -507,7 +507,7 @@ CRD manifest rules:
 
 Example manifest rules:
 - Use test account ID `609897127049` consistently for any embedded ARNs in JSON strings
-- Include `providerConfigRef.kind: ClusterProviderConfig` for **namespaced** examples only (xpv2 typed reference); cluster-scoped examples omit `kind` (xpv1 untyped reference)
+- Mirror TF examples' `providerConfigRef` exactly (present if TF has it, omitted if TF omits it)
 - Mirror TF examples exactly (same fields, only `kind` changes)
 
 ### Step 2: Implement CRUD (1 ticket per resource — covers BOTH scopes)
