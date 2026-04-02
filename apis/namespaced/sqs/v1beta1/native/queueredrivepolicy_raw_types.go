@@ -19,7 +19,6 @@ type QueueRedrivePolicyRAWSpec struct {
 	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.redrivePolicy) || (has(self.initProvider) && has(self.initProvider.redrivePolicy))",message="spec.forProvider.redrivePolicy is a required parameter"
 	ForProvider clusternative.QueueRedrivePolicyRAWParameters `json:"forProvider"`
 
 	// InitProvider holds the same fields as ForProvider, with the exception
@@ -51,6 +50,7 @@ type QueueRedrivePolicyRAW struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.redrivePolicy) || (has(self.initProvider) && has(self.initProvider.redrivePolicy))",message="spec.forProvider.redrivePolicy is a required parameter"
 	Spec   QueueRedrivePolicyRAWSpec   `json:"spec"`
 	Status QueueRedrivePolicyRAWStatus `json:"status,omitempty"`
 }
