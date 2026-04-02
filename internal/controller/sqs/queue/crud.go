@@ -56,6 +56,15 @@ type QueueCR interface {
 	GetInitProvider() *clusternative.QueueRAWInitParameters
 	GetAtProvider() clusternative.QueueRAWObservation
 	SetAtProvider(clusternative.QueueRAWObservation)
+	// SetForProviderDeduplicationScope sets spec.forProvider.deduplicationScope.
+	// GetForProvider() for namespaced resources returns a field-copied struct;
+	// mutations to it do not propagate back to the spec. These explicit setters
+	// are used by late-initialization so that the persisted spec is updated
+	// correctly for both cluster and namespaced scope types.
+	SetForProviderDeduplicationScope(*string)
+	SetForProviderFifoThroughputLimit(*string)
+	SetForProviderKMSDataKeyReusePeriodSeconds(*float64)
+	SetForProviderSqsManagedSseEnabled(*bool)
 }
 
 // ExternalClient implements the shared CRUD logic for Queue resources.
@@ -230,45 +239,72 @@ func mapAttrsToObservation(attrs map[string]string, queueURL string) clusternati
 
 // lateInitialize copies AWS-defaulted field values into the spec when those
 // fields were not explicitly set.  Returns true if any field was populated.
+//
+// Note: we use explicit SetForProvider* setters rather than mutating through
+// the pointer returned by GetForProvider(). For namespaced resources,
+// GetForProvider() returns a field-copied struct (not a direct pointer to
+// spec.forProvider), so mutations through that pointer would not persist.
+// The setter methods work correctly for both cluster and namespaced scopes.
 func lateInitialize(cr QueueCR, attrs map[string]string) bool {
 	spec := cr.GetForProvider()
-	c1 := lateInitStringAttr(&spec.DeduplicationScope, attrs, "DeduplicationScope")
-	c2 := lateInitStringAttr(&spec.FifoThroughputLimit, attrs, "FifoThroughputLimit")
-	c3 := lateInitFloat64Attr(&spec.KMSDataKeyReusePeriodSeconds, attrs, "KmsDataKeyReusePeriodSeconds")
-	c4 := lateInitBoolAttr(&spec.SqsManagedSseEnabled, attrs, "SqsManagedSseEnabled")
-	return c1 || c2 || c3 || c4
-}
 
-// lateInitStringAttr late-initializes a *string spec field from an attribute map.
-func lateInitStringAttr(dst **string, attrs map[string]string, key string) bool {
-	v, ok := attrs[key]
-	if !ok || v == "" {
-		return false
+	var changed bool
+
+	if v, ok := lateInitStringVal(spec.DeduplicationScope, attrs, "DeduplicationScope"); ok {
+		cr.SetForProviderDeduplicationScope(v)
+		changed = true
 	}
-	return nativehelper.LateInitializeStringPtr(dst, &v)
-}
-
-// lateInitBoolAttr late-initializes a *bool spec field from an attribute map.
-func lateInitBoolAttr(dst **bool, attrs map[string]string, key string) bool {
-	v, ok := attrs[key]
-	if !ok || v == "" {
-		return false
+	if v, ok := lateInitStringVal(spec.FifoThroughputLimit, attrs, "FifoThroughputLimit"); ok {
+		cr.SetForProviderFifoThroughputLimit(v)
+		changed = true
 	}
-	b := v == "true"
-	return nativehelper.LateInitializeBoolPtr(dst, &b)
+	if v, ok := lateInitFloat64Val(spec.KMSDataKeyReusePeriodSeconds, attrs, "KmsDataKeyReusePeriodSeconds"); ok {
+		cr.SetForProviderKMSDataKeyReusePeriodSeconds(v)
+		changed = true
+	}
+	if v, ok := lateInitBoolVal(spec.SqsManagedSseEnabled, attrs, "SqsManagedSseEnabled"); ok {
+		cr.SetForProviderSqsManagedSseEnabled(v)
+		changed = true
+	}
+
+	return changed
 }
 
-// lateInitFloat64Attr late-initializes a *float64 spec field from an attribute map.
-func lateInitFloat64Attr(dst **float64, attrs map[string]string, key string) bool {
+// lateInitStringVal returns the string value to late-initialise and true when
+// the field is unset and the attribute exists and is non-empty. The returned
+// *string is always a freshly allocated copy safe for use as a setter argument.
+func lateInitStringVal(current *string, attrs map[string]string, key string) (*string, bool) {
 	v, ok := attrs[key]
-	if !ok || v == "" {
-		return false
+	if !ok || v == "" || current != nil {
+		return nil, false
+	}
+	copy := v
+	return &copy, true
+}
+
+// lateInitFloat64Val returns the float64 value to late-initialise and true when
+// the field is unset and the attribute exists and is non-empty.
+func lateInitFloat64Val(current *float64, attrs map[string]string, key string) (*float64, bool) {
+	v, ok := attrs[key]
+	if !ok || v == "" || current != nil {
+		return nil, false
 	}
 	f, err := strconv.ParseFloat(v, 64)
 	if err != nil {
-		return false
+		return nil, false
 	}
-	return nativehelper.LateInitializeFloat64Ptr(dst, &f)
+	return &f, true
+}
+
+// lateInitBoolVal returns the bool value to late-initialise and true when the
+// field is unset and the attribute exists and is non-empty.
+func lateInitBoolVal(current *bool, attrs map[string]string, key string) (*bool, bool) {
+	v, ok := attrs[key]
+	if !ok || v == "" || current != nil {
+		return nil, false
+	}
+	b := v == "true"
+	return &b, true
 }
 
 // isUpToDate compares the desired spec against the observed AWS state.

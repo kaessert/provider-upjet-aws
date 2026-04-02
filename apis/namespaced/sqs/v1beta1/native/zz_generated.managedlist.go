@@ -7,15 +7,6 @@ package native
 
 import resource "github.com/crossplane/crossplane-runtime/v2/pkg/resource"
 
-// GetItems of this QueueRAWList.
-func (l *QueueRAWList) GetItems() []resource.Managed {
-	items := make([]resource.Managed, len(l.Items))
-	for i := range l.Items {
-		items[i] = &l.Items[i]
-	}
-	return items
-}
-
 // GetItems of this QueuePolicyRAWList.
 func (l *QueuePolicyRAWList) GetItems() []resource.Managed {
 	items := make([]resource.Managed, len(l.Items))
@@ -25,8 +16,8 @@ func (l *QueuePolicyRAWList) GetItems() []resource.Managed {
 	return items
 }
 
-// GetItems of this QueueRedrivePolicyRAWList.
-func (l *QueueRedrivePolicyRAWList) GetItems() []resource.Managed {
+// GetItems of this QueueRAWList.
+func (l *QueueRAWList) GetItems() []resource.Managed {
 	items := make([]resource.Managed, len(l.Items))
 	for i := range l.Items {
 		items[i] = &l.Items[i]
@@ -36,6 +27,15 @@ func (l *QueueRedrivePolicyRAWList) GetItems() []resource.Managed {
 
 // GetItems of this QueueRedriveAllowPolicyRAWList.
 func (l *QueueRedriveAllowPolicyRAWList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}
+
+// GetItems of this QueueRedrivePolicyRAWList.
+func (l *QueueRedrivePolicyRAWList) GetItems() []resource.Managed {
 	items := make([]resource.Managed, len(l.Items))
 	for i := range l.Items {
 		items[i] = &l.Items[i]

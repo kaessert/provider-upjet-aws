@@ -14,22 +14,77 @@ import (
 	clusternative "github.com/upbound/provider-aws/v2/apis/cluster/sqs/v1beta1/native"
 )
 
+// QueueRedriveAllowPolicyRAWParameters defines the namespaced configuration
+// parameters for a native SQS Queue Redrive Allow Policy.  The QueueURL
+// reference annotation points to the namespaced QueueRAW type so that
+// angryjet generates a namespaced resolver.
+type QueueRedriveAllowPolicyRAWParameters struct {
+	// The URL of the SQS Queue to which to attach the redrive allow policy.
+	//
+	// +optional
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native.QueueRAW
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractResourceID()
+	QueueURL *string `json:"queueUrl,omitempty"`
+
+	// Reference to a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+
+	// Selector for a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+
+	// The JSON redrive allow policy for the SQS queue. Learn more in the
+	// Amazon SQS dead-letter queues documentation.
+	// +kubebuilder:validation:Optional
+	RedriveAllowPolicy *string `json:"redriveAllowPolicy,omitempty"`
+
+	// Region where this resource will be managed. Required for credential resolution.
+	// +kubebuilder:validation:Required
+	Region *string `json:"region"`
+}
+
+// QueueRedriveAllowPolicyRAWInitParameters defines the namespaced init
+// parameters for a native SQS Queue Redrive Allow Policy.
+type QueueRedriveAllowPolicyRAWInitParameters struct {
+	// The URL of the SQS Queue to which to attach the redrive allow policy.
+	// +optional
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native.QueueRAW
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractResourceID()
+	QueueURL *string `json:"queueUrl,omitempty"`
+
+	// Reference to a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+
+	// Selector for a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+
+	// The JSON redrive allow policy for the SQS queue.
+	// +kubebuilder:validation:Optional
+	RedriveAllowPolicy *string `json:"redriveAllowPolicy,omitempty"`
+}
+
 // QueueRedriveAllowPolicyRAWSpec defines the desired state of QueueRedriveAllowPolicyRAW (namespaced scope).
 type QueueRedriveAllowPolicyRAWSpec struct {
 	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
-	ForProvider clusternative.QueueRedriveAllowPolicyRAWParameters `json:"forProvider"`
+	ForProvider QueueRedriveAllowPolicyRAWParameters `json:"forProvider"`
 
 	// InitProvider holds the same fields as ForProvider, with the exception
 	// of Identifier and other resource reference fields.
 	// +optional
-	InitProvider clusternative.QueueRedriveAllowPolicyRAWInitParameters `json:"initProvider,omitempty"`
+	InitProvider QueueRedriveAllowPolicyRAWInitParameters `json:"initProvider,omitempty"`
 }
 
 // QueueRedriveAllowPolicyRAWStatus defines the observed state of QueueRedriveAllowPolicyRAW.
+// Note: using xpv1.ResourceStatus (not ConditionedStatus) so that angryjet's
+// ManagedV2() matcher recognises this as a v2-style managed resource and
+// generates zz_generated.resolvers.go for this package.
 type QueueRedriveAllowPolicyRAWStatus struct {
-	xpv1.ConditionedStatus `json:",inline"`
+	xpv1.ResourceStatus `json:",inline"`
 
 	// AtProvider holds the provider-specific observation fields for the resource.
 	AtProvider clusternative.QueueRedriveAllowPolicyRAWObservation `json:"atProvider,omitempty"`
@@ -76,14 +131,28 @@ func init() {
 	SchemeBuilder.Register(&QueueRedriveAllowPolicyRAW{}, &QueueRedriveAllowPolicyRAWList{})
 }
 
-// GetForProvider returns the ForProvider parameters.
+// GetForProvider converts the namespaced ForProvider params to the cluster
+// type required by the shared QueueRedriveAllowPolicyCR interface.  The shared
+// CRUD code only reads from the returned value (no late-init writes), so
+// returning a freshly allocated cluster struct is safe.
 func (q *QueueRedriveAllowPolicyRAW) GetForProvider() *clusternative.QueueRedriveAllowPolicyRAWParameters {
-	return &q.Spec.ForProvider
+	return &clusternative.QueueRedriveAllowPolicyRAWParameters{
+		QueueURL:           q.Spec.ForProvider.QueueURL,
+		QueueURLRef:        q.Spec.ForProvider.QueueURLRef,
+		QueueURLSelector:   q.Spec.ForProvider.QueueURLSelector,
+		RedriveAllowPolicy: q.Spec.ForProvider.RedriveAllowPolicy,
+		Region:             q.Spec.ForProvider.Region,
+	}
 }
 
-// GetInitProvider returns the InitProvider parameters.
+// GetInitProvider converts the namespaced InitProvider params to the cluster type.
 func (q *QueueRedriveAllowPolicyRAW) GetInitProvider() *clusternative.QueueRedriveAllowPolicyRAWInitParameters {
-	return &q.Spec.InitProvider
+	return &clusternative.QueueRedriveAllowPolicyRAWInitParameters{
+		QueueURL:           q.Spec.InitProvider.QueueURL,
+		QueueURLRef:        q.Spec.InitProvider.QueueURLRef,
+		QueueURLSelector:   q.Spec.InitProvider.QueueURLSelector,
+		RedriveAllowPolicy: q.Spec.InitProvider.RedriveAllowPolicy,
+	}
 }
 
 // GetAtProvider returns the current observed state.

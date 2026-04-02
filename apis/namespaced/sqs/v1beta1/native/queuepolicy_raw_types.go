@@ -14,22 +14,77 @@ import (
 	clusternative "github.com/upbound/provider-aws/v2/apis/cluster/sqs/v1beta1/native"
 )
 
+// QueuePolicyRAWParameters defines the namespaced configuration parameters for
+// a native SQS Queue Policy.  The QueueURL reference annotation points to the
+// namespaced QueueRAW type so that angryjet generates a namespaced resolver
+// (resolving within the same namespace rather than cluster-wide).
+type QueuePolicyRAWParameters struct {
+	// JSON policy for the SQS queue. Ensure that Version = "2012-10-17" is set
+	// in the policy or AWS may hang in creating the queue.
+	// +kubebuilder:validation:Optional
+	Policy *string `json:"policy,omitempty"`
+
+	// URL of the SQS Queue to which to attach the policy.
+	//
+	// +optional
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native.QueueRAW
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractResourceID()
+	QueueURL *string `json:"queueUrl,omitempty"`
+
+	// Reference to a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+
+	// Selector for a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+
+	// Region where this resource will be managed. Required for credential resolution.
+	// +kubebuilder:validation:Required
+	Region *string `json:"region"`
+}
+
+// QueuePolicyRAWInitParameters defines the namespaced init parameters for a
+// native SQS Queue Policy.
+type QueuePolicyRAWInitParameters struct {
+	// JSON policy for the SQS queue.
+	// +kubebuilder:validation:Optional
+	Policy *string `json:"policy,omitempty"`
+
+	// URL of the SQS Queue to which to attach the policy.
+	// +optional
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native.QueueRAW
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractResourceID()
+	QueueURL *string `json:"queueUrl,omitempty"`
+
+	// Reference to a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+
+	// Selector for a QueueRAW to populate queueUrl.
+	// +kubebuilder:validation:Optional
+	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+}
+
 // QueuePolicyRAWSpec defines the desired state of QueuePolicyRAW (namespaced scope).
 type QueuePolicyRAWSpec struct {
 	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
-	ForProvider clusternative.QueuePolicyRAWParameters `json:"forProvider"`
+	ForProvider QueuePolicyRAWParameters `json:"forProvider"`
 
 	// InitProvider holds the same fields as ForProvider, with the exception
 	// of Identifier and other resource reference fields.
 	// +optional
-	InitProvider clusternative.QueuePolicyRAWInitParameters `json:"initProvider,omitempty"`
+	InitProvider QueuePolicyRAWInitParameters `json:"initProvider,omitempty"`
 }
 
 // QueuePolicyRAWStatus defines the observed state of QueuePolicyRAW.
+// Note: using xpv1.ResourceStatus (not ConditionedStatus) so that angryjet's
+// ManagedV2() matcher recognises this as a v2-style managed resource and
+// generates zz_generated.resolvers.go for this package.
 type QueuePolicyRAWStatus struct {
-	xpv1.ConditionedStatus `json:",inline"`
+	xpv1.ResourceStatus `json:",inline"`
 
 	// AtProvider holds the provider-specific observation fields for the resource.
 	AtProvider clusternative.QueuePolicyRAWObservation `json:"atProvider,omitempty"`
@@ -76,14 +131,28 @@ func init() {
 	SchemeBuilder.Register(&QueuePolicyRAW{}, &QueuePolicyRAWList{})
 }
 
-// GetForProvider returns the ForProvider parameters.
+// GetForProvider converts the namespaced ForProvider params to the cluster
+// type required by the shared QueuePolicyCR interface.  The shared CRUD code
+// only reads from the returned value (no late-init writes), so returning a
+// freshly allocated cluster struct is safe.
 func (q *QueuePolicyRAW) GetForProvider() *clusternative.QueuePolicyRAWParameters {
-	return &q.Spec.ForProvider
+	return &clusternative.QueuePolicyRAWParameters{
+		Policy:           q.Spec.ForProvider.Policy,
+		QueueURL:         q.Spec.ForProvider.QueueURL,
+		QueueURLRef:      q.Spec.ForProvider.QueueURLRef,
+		QueueURLSelector: q.Spec.ForProvider.QueueURLSelector,
+		Region:           q.Spec.ForProvider.Region,
+	}
 }
 
-// GetInitProvider returns the InitProvider parameters.
+// GetInitProvider converts the namespaced InitProvider params to the cluster type.
 func (q *QueuePolicyRAW) GetInitProvider() *clusternative.QueuePolicyRAWInitParameters {
-	return &q.Spec.InitProvider
+	return &clusternative.QueuePolicyRAWInitParameters{
+		Policy:           q.Spec.InitProvider.Policy,
+		QueueURL:         q.Spec.InitProvider.QueueURL,
+		QueueURLRef:      q.Spec.InitProvider.QueueURLRef,
+		QueueURLSelector: q.Spec.InitProvider.QueueURLSelector,
+	}
 }
 
 // GetAtProvider returns the current observed state.

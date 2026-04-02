@@ -261,3 +261,26 @@ func (q *QueueRAW) GetAtProvider() QueueRAWObservation { return q.Status.AtProvi
 
 // SetAtProvider sets the observed state.
 func (q *QueueRAW) SetAtProvider(o QueueRAWObservation) { q.Status.AtProvider = o }
+
+// SetForProviderDeduplicationScope sets spec.forProvider.deduplicationScope.
+// Required by the QueueCR interface to support late-initialization in both
+// cluster and namespaced scopes.
+func (q *QueueRAW) SetForProviderDeduplicationScope(v *string) {
+	q.Spec.ForProvider.DeduplicationScope = v
+}
+
+// SetForProviderFifoThroughputLimit sets spec.forProvider.fifoThroughputLimit.
+func (q *QueueRAW) SetForProviderFifoThroughputLimit(v *string) {
+	q.Spec.ForProvider.FifoThroughputLimit = v
+}
+
+// SetForProviderKMSDataKeyReusePeriodSeconds sets
+// spec.forProvider.kmsDataKeyReusePeriodSeconds.
+func (q *QueueRAW) SetForProviderKMSDataKeyReusePeriodSeconds(v *float64) {
+	q.Spec.ForProvider.KMSDataKeyReusePeriodSeconds = v
+}
+
+// SetForProviderSqsManagedSseEnabled sets spec.forProvider.sqsManagedSseEnabled.
+func (q *QueueRAW) SetForProviderSqsManagedSseEnabled(v *bool) {
+	q.Spec.ForProvider.SqsManagedSseEnabled = v
+}
