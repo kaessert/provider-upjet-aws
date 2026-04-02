@@ -2,6 +2,39 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Dead-letter queue — must exist before the redrive policy can reference it.
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: QueueRAW
+metadata:
+  name: example-dlq
+  labels:
+    testing.upbound.io/example-name: example-dlq
+spec:
+  forProvider:
+    name: example-dlq
+    region: us-west-1
+  providerConfigRef:
+    name: default
+    kind: ClusterProviderConfig
+
+---
+# Source queue — the queue on which the redrive policy is set.
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: QueueRAW
+metadata:
+  name: example
+  labels:
+    testing.upbound.io/example-name: example
+spec:
+  forProvider:
+    name: queueredrivepolicy-src
+    region: us-west-1
+  providerConfigRef:
+    name: default
+    kind: ClusterProviderConfig
+
+---
+# Redrive policy — attaches to the source queue and routes failed messages to the DLQ.
 apiVersion: sqs.aws.upbound.io/v1beta1
 kind: QueueRedrivePolicyRAW
 metadata:
@@ -20,3 +53,4 @@ spec:
       }
   providerConfigRef:
     name: default
+    kind: ClusterProviderConfig
