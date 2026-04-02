@@ -30,3 +30,4 @@ spec:
       }
   providerConfigRef:
     name: default
+    kind: ClusterProviderConfig
