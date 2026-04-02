@@ -11,7 +11,7 @@ metadata:
     testing.upbound.io/example-name: example
 spec:
   forProvider:
-    name: upbound-sqs-raw
+    name: upbound-sqs-raw-ns
     delaySeconds: 90
     maxMessageSize: 2048
     messageRetentionSeconds: 86400
