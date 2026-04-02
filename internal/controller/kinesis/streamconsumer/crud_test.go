@@ -116,6 +116,33 @@ func TestObserve_EmptyExternalName(t *testing.T) {
 	}
 }
 
+// TestObserve_NonARNExternalName verifies that a non-ARN external name (i.e.
+// the default Kubernetes resource name set by Crossplane before Create is
+// called) is treated as "not yet created" without making any API calls.
+// This is necessary because aws_kinesis_stream_consumer uses IdentifierFromProvider
+// — the external name is only a valid ARN after Create stores it.
+func TestObserve_NonARNExternalName(t *testing.T) {
+	cr := newTestCR("my-consumer", "my-consumer") // non-ARN default set by Crossplane
+	callCount := 0
+	e := &ExternalClient{Client: &mockKinesisConsumerClient{
+		describeStreamConsumerFn: func(_ context.Context, _ *awskinesis.DescribeStreamConsumerInput, _ ...func(*awskinesis.Options)) (*awskinesis.DescribeStreamConsumerOutput, error) {
+			callCount++
+			return nil, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false for non-ARN external name")
+	}
+	if callCount != 0 {
+		t.Errorf("expected no API call for non-ARN external name, got %d call(s)", callCount)
+	}
+}
+
 // TestObserve_ResourceNotFound verifies that ResourceNotFoundException is
 // translated to ResourceExists=false (not an error).
 func TestObserve_ResourceNotFound(t *testing.T) {

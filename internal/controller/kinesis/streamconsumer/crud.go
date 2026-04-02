@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awskinesis "github.com/aws/aws-sdk-go-v2/service/kinesis"
@@ -69,7 +70,11 @@ type ExternalClient struct {
 // Observe checks whether the external StreamConsumer resource exists and is up-to-date.
 func (e *ExternalClient) Observe(ctx context.Context, cr StreamConsumerCR) (managed.ExternalObservation, error) {
 	consumerARN := nativehelper.GetExternalName(cr)
-	if consumerARN == "" {
+	// IdentifierFromProvider: the external name is only meaningful once it has
+	// been set to a consumer ARN by Create. Before that, Crossplane initialises
+	// it to the Kubernetes resource name (a non-ARN value). Treat any external
+	// name that is not an ARN as "not yet created" so that Create is invoked.
+	if consumerARN == "" || !strings.HasPrefix(consumerARN, "arn:") {
 		return managed.ExternalObservation{ResourceExists: false}, nil
 	}
 
