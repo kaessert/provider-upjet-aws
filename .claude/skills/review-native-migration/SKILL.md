@@ -72,8 +72,8 @@ Check specifically:
 10. **CRD YAMLs exist**: `ls package/crds/$ARGUMENTS.aws.upbound.io_*raws.yaml`
 11. **Intra-service references** point to RAW types (not TF types)
 12. **No extra fields** in RAW types that don't exist in TF types (YAML compatibility)
-13. **Example manifests** are exact copies of TF examples (only kind + account ID changed)
-14. **No hardcoded account IDs** in example manifests (except test account 609897127049)
+13. **Example manifests** are exact copies of TF examples (only `kind` changed)
+14. **Test account ID `609897127049`** used consistently for all ARNs embedded in opaque JSON strings (policies, state machine definitions, redrive policies)
 
 ### 1e. Spec & Skill Alignment
 

@@ -479,7 +479,7 @@ apis/namespaced/<service>/<version>/native/<resource>_raw_types.go   — RAW CRD
 internal/controller/<service>/<resource>/crud.go                     — Empty shared CRUD stub
 internal/controller/cluster/<service>/<resource>raw/controller.go    — Cluster scope Setup + thin wrapper stub
 internal/controller/namespaced/<service>/<resource>raw/controller.go — Namespaced scope Setup + thin wrapper stub
-examples/<service>/cluster/<version>/<resource>raw.yaml              — Example manifest (no hardcoded account IDs)
+examples/<service>/cluster/<version>/<resource>raw.yaml              — Example manifest
 examples/<service>/namespaced/<version>/<resource>raw.yaml           — Example manifest
 package/crds/<group>_<resource>raws.yaml                             — CRD manifests (generated)
 ```
@@ -506,7 +506,7 @@ CRD manifest rules:
 - Verify XValidation rules appear at `spec` level (not nested under `forProvider`)
 
 Example manifest rules:
-- No hardcoded 12-digit AWS account IDs (use `000000000000` placeholders)
+- Use test account ID `609897127049` consistently for any embedded ARNs in JSON strings
 - Include `providerConfigRef.kind: ClusterProviderConfig` for cluster-scoped examples
 - Mirror TF examples exactly (same fields, only `kind` changes)
 
