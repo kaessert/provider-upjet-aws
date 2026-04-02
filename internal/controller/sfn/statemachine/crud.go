@@ -55,6 +55,12 @@ type StateMachineCR interface {
 	GetInitProvider() *v1beta2native.StateMachineRAWInitParameters
 	GetAtProvider() v1beta2native.StateMachineRAWObservation
 	SetAtProvider(v1beta2native.StateMachineRAWObservation)
+	// SetForProviderType sets spec.forProvider.type.
+	// GetForProvider() for namespaced resources returns a field-copied struct;
+	// mutations to it do not propagate back to the spec. SetForProviderType is
+	// the explicit setter used by late-initialization so that the persisted spec
+	// is updated correctly for both cluster and namespaced scope types.
+	SetForProviderType(*string)
 }
 
 // ExternalClient implements the shared CRUD logic for StateMachine resources.
@@ -571,19 +577,19 @@ func mapEncryptionConfigFromAWS(cfg *sfntypes.EncryptionConfiguration) *v1beta2n
 //
 // Fields late-initialized:
 //   - spec.forProvider.type  → AWS defaults to STANDARD when unset.
+//
+// Note: for namespaced resources, GetForProvider() returns a field-copied
+// struct. Mutations to that copy do not propagate back to the CR spec. Use
+// cr.SetForProviderType (or other explicit setters) rather than mutating the
+// returned pointer directly.
 func lateInitialize(cr StateMachineCR, resp *awssfn.DescribeStateMachineOutput) bool {
 	spec := cr.GetForProvider()
-	changed := false
-
-	// AWS always sets the type; if the user did not specify it, fill it in.
-	if resp.Type != "" {
+	if resp.Type != "" && spec.Type == nil {
 		typeStr := string(resp.Type)
-		if nativehelper.LateInitializeStringPtr(&spec.Type, &typeStr) {
-			changed = true
-		}
+		cr.SetForProviderType(&typeStr)
+		return true
 	}
-
-	return changed
+	return false
 }
 
 // ── up-to-date comparison helpers ─────────────────────────────────────────────

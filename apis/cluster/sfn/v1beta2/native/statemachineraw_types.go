@@ -374,3 +374,10 @@ func (sm *StateMachineRAW) GetAtProvider() StateMachineRAWObservation {
 func (sm *StateMachineRAW) SetAtProvider(o StateMachineRAWObservation) {
 	sm.Status.AtProvider = o
 }
+
+// SetForProviderType sets spec.forProvider.type. Used by late-initialization
+// logic in the shared CRUD package to write AWS-defaulted type values back
+// into the spec without requiring a separate interface for the cluster type.
+func (sm *StateMachineRAW) SetForProviderType(t *string) {
+	sm.Spec.ForProvider.Type = t
+}
