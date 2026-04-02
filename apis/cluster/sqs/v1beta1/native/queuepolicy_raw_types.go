@@ -74,7 +74,6 @@ type QueuePolicyRAWSpec struct {
 	xpv2.ManagedResourceSpec `json:",inline"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
-	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.policy) || (has(self.initProvider) && has(self.initProvider.policy))",message="spec.forProvider.policy is a required parameter"
 	ForProvider QueuePolicyRAWParameters `json:"forProvider"`
 
 	// InitProvider holds the same fields as ForProvider, with the exception
@@ -106,6 +105,7 @@ type QueuePolicyRAW struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:XValidation:rule="!('*' in self.managementPolicies || 'Create' in self.managementPolicies || 'Update' in self.managementPolicies) || has(self.forProvider.policy) || (has(self.initProvider) && has(self.initProvider.policy))",message="spec.forProvider.policy is a required parameter"
 	Spec   QueuePolicyRAWSpec   `json:"spec"`
 	Status QueuePolicyRAWStatus `json:"status,omitempty"`
 }

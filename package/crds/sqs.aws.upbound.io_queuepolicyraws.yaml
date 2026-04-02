@@ -156,11 +156,6 @@ spec:
                 required:
                 - region
                 type: object
-                x-kubernetes-validations:
-                - message: spec.forProvider.policy is a required parameter
-                  rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
-                    || ''Update'' in self.managementPolicies) || has(self.forProvider.policy)
-                    || (has(self.initProvider) && has(self.initProvider.policy))'
               initProvider:
                 description: |-
                   InitProvider holds the same fields as ForProvider, with the exception
@@ -311,6 +306,11 @@ spec:
             required:
             - forProvider
             type: object
+            x-kubernetes-validations:
+            - message: spec.forProvider.policy is a required parameter
+              rule: '!(''*'' in self.managementPolicies || ''Create'' in self.managementPolicies
+                || ''Update'' in self.managementPolicies) || has(self.forProvider.policy)
+                || (has(self.initProvider) && has(self.initProvider.policy))'
           status:
             description: QueuePolicyRAWStatus defines the observed state of QueuePolicyRAW.
             properties:
