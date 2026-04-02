@@ -697,7 +697,10 @@ Full config entry: `<exact_line_from_externalname.go>`
 
 Implementation guide:
 - In Create(): after calling AWS, set: `meta.SetExternalName(cr, <id from response>)`
-  - IdentifierFromProvider: ID is the main resource identifier in response (ARN, ID field)
+  - IdentifierFromProvider: ID is the main resource identifier in response (ARN, ID field).
+    **CRITICAL**: Store the full ARN/ID as the external name — do NOT rely on `status.atProvider`
+    fields set during Create, because the reconciler resets status after persisting the annotation.
+    In Observe, read the ARN back via `meta.GetExternalName(cr)` for Describe/Get calls.
   - NameAsIdentifier: ID is the name you passed in; `meta.GetExternalName(cr)` gives it
   - ParameterAsIdentifier(<field>): ID comes from `cr.Spec.ForProvider.<Field>`
   - TemplatedStringAsIdentifier: reconstruct the composite ID from the template fields

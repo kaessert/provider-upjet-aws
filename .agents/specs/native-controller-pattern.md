@@ -661,6 +661,22 @@ func (e *external) Create(ctx context.Context, cr *MyResourceRAW) (managed.Exter
 - For async resources: call `native.SetAsyncOperation`, return immediately (Observe will poll)
 - Return `ConnectionDetails` for any sensitive outputs (see connection-details-catalog.json)
 
+> ⚠️ **Status values set in Create are NOT persisted.** The reconciler updates the external
+> name annotation after Create returns, and the resulting API server write resets
+> `status.atProvider` to whatever the server had before (empty). Any values you set in
+> `cr.Status.AtProvider` during Create (e.g., ARN, ID) will be **lost** before the next
+> Observe call.
+>
+> **Solution for `IdentifierFromProvider` resources**: Store the full ARN/ID as the
+> external name via `native.SetExternalName(cr, arn)`. The external name annotation IS
+> persisted atomically. In Observe, read it back via `native.GetExternalName(cr)` and
+> use it for Describe/Get API calls. Fall back to `status.atProvider` fields only after
+> the first successful Observe populates them.
+>
+> This pattern is required for all resources where Observe needs an identifier that
+> AWS assigns during creation (ARNs, provider-generated IDs). It does NOT apply to
+> `NameAsIdentifier` resources where the name is known before Create.
+
 ### 5.3 Update
 
 ```go
@@ -1493,6 +1509,7 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Using `upjet/v2/pkg/resource.SetUpToDateCondition` | Use `native.SetTestConditionIfAnnotated(cr, upToDate)` instead — same behavior, no upjet import |
 | Treating nil spec + non-nil AWS response as "not up to date" | For optional blocks (`min=0` in schema.json), `if spec == nil { return true }` — AWS always returns defaults |
 | Calling `SetExternalName` in Observe | Only call in Create (after successful provider response) |
+| Storing provider-assigned ID only in `status.atProvider` | `status.atProvider` set during Create is **lost** before the next Observe (reconciler resets status after persisting the annotation). For `IdentifierFromProvider` resources, store the full ARN/ID as the external name via `native.SetExternalName(cr, arn)` — annotations are persisted atomically. In Observe, read via `native.GetExternalName(cr)` and fall back to `status.atProvider` only after the first successful Observe populates it |
 | Missing late initialization in Observe | Call `native.LateInitialize*Ptr()` for AWS-defaulted fields (e.g., `type`, logging level) and return `ResourceLateInitialized: true` |
 | Not setting `Unavailable()` for non-ACTIVE states | In Observe, always have an `else` branch: `cr.SetConditions(xpv1.Unavailable())` for DELETING, PENDING, etc. |
 | Incomplete drift detection in `isUpToDate` | Compare ALL mutable fields in each sub-struct. Missing a field (e.g., `KMSDataKeyReusePeriodSeconds` in encryption config) causes silent drift — changes to that field are ignored forever |
