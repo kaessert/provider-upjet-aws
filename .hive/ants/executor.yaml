@@ -294,6 +294,14 @@ directive_graph:
       - Always read the spec referenced in the ticket description before implementing
       - External name strategy MUST match config/externalname.go for the resource
       - No upjet imports in native controller or type files
+      - NEVER modify committed example manifests to fix schema errors. If an example fails
+        strict decoding (e.g., "unknown field"), the RAW TYPE DEFINITION is wrong, not the
+        example. Examples mirror TF examples — they are the source of truth for YAML
+        compatibility. Fix the type, regenerate CRDs, re-run. Mark Failed if you cannot fix
+        the type in the current ticket's scope.
+      - For e2e name-collision avoidance: create a TEMPORARY copy of the namespaced example
+        with -ns suffixed names. Use the copy for e2e only. Delete it after the test. Never
+        commit modified resource names to permanent example files.
       </migration_context>
 
       <e2e_tickets>

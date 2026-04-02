@@ -875,10 +875,18 @@ Same hard failure rules as baseline — any failure means mark FAILED, no workar
 - Namespaced: `examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml`
   (If the namespaced example doesn't exist, create a temporary one from the cluster
   example: adjust `apiVersion` to `<SERVICE>.aws.m.upbound.io/<version>`, add
-  `metadata.namespace: upbound-system`. **Use distinct AWS resource names** — add a
-  `-ns` suffix to avoid conflicts with the cluster example (e.g., `upbound-sqs-raw-ns`).
-  Many AWS services enforce deletion cooldowns that cause failures if names collide.
-  Remove it after e2e passes — do NOT commit.)
+  `metadata.namespace: upbound-system`. Remove it after e2e passes — do NOT commit.)
+
+**CRITICAL: E2e name-collision avoidance**
+When running both scopes concurrently, AWS resource names may collide. Create a
+**temporary copy** of the namespaced example with `-ns` suffixed names for the e2e
+run only. Delete the copy after the test. **Never modify the permanent namespaced
+example** — it must mirror the TF namespaced example exactly.
+
+**CRITICAL: Never modify committed examples to fix schema errors**
+If an example fails strict decoding (e.g., `unknown field`), the RAW TYPE is wrong,
+not the example. Examples mirror TF examples — they are the source of truth. Mark
+Failed with a diagnosis pointing at the type mismatch.
 
 ### E2E Command
 ```bash
@@ -946,7 +954,9 @@ Paste the final uptest output (last 50 lines) before marking Done.
  "No untracked files in service directories (git ls-files --others)",
  "E2E output captured in ticket",
  "No leaked AWS resources after test (cleaned up if failed)",
- "Temporary namespaced example removed if created (not committed)"]
+ "Temporary namespaced example removed if created (not committed)",
+ "No modifications to permanent/committed example files (git diff examples/ must be clean after test)",
+ "RAW examples still mirror TF examples (only kind differs — verify with diff)"]
 ```
 
 ---

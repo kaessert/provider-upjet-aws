@@ -508,7 +508,10 @@ CRD manifest rules:
 Example manifest rules:
 - Use test account ID `609897127049` consistently for any embedded ARNs in JSON strings
 - Mirror TF examples' `providerConfigRef` exactly (present if TF has it, omitted if TF omits it)
-- Mirror TF examples exactly (same fields, only `kind` changes)
+- Mirror TF examples exactly (same fields, same values, same YAML structure — only `kind` changes to `<Kind>RAW`)
+- **API version matching**: RAW examples MUST use the same `apiVersion` as the corresponding TF example for each resource in the file. If the TF example uses `v1beta2` for Stream, the RAW example must use `v1beta2` for StreamRAW. If the TF example uses `v1beta1`, the RAW type must exist at v1beta1 (or the example must use the version where the type exists, provided the CRD schema matches)
+- **MaxItems:1 field types**: For TF blocks with `max_items=1`, the RAW type must use the same Go type as the TF type at the target version (`[]Type` for v1beta1, `*Type` for v1beta2). This ensures the YAML format (list vs object) matches. Verify by checking `apis/cluster/<service>/<version>/zz_<resource>_types.go`
+- **Namespaced examples mirror TF exactly** — including resource names. Do NOT add `-ns` suffixes to permanent namespaced example files. E2e name-collision avoidance is handled at test time (see Step 3)
 
 ### Step 2: Implement CRUD (1 ticket per resource — covers BOTH scopes)
 
@@ -541,7 +544,8 @@ Reference material for executor:
 Run the e2e test with the RAW kind, covering **both cluster and namespaced scopes** in a single uptest invocation. The `setup.sh` script creates both `ProviderConfig` (cluster) and `ClusterProviderConfig` (namespaced), so both scopes work automatically.
 
 - Include both the cluster and namespaced RAW example in `UPTEST_EXAMPLE_LIST`
-- **Use distinct AWS resource names per scope** — namespaced examples must use different AWS resource names (e.g., `-ns` suffix) to avoid conflicts when both scopes create resources concurrently. Many AWS services enforce deletion cooldowns (e.g., SQS 60s) that cause the second creation to fail if names collide.
+- **E2e name-collision avoidance**: When running both scopes concurrently, AWS resource names may collide (many services enforce deletion cooldowns). To avoid this, create a **temporary copy** of the namespaced example with `-ns` suffixed resource names (e.g., `example` → `example-ns`). Use this copy for the e2e run only. **Delete the temporary copy after the test** — do NOT commit it. The permanent namespaced example in the repo must mirror the TF namespaced example exactly.
+- **Never modify committed example files during e2e**. If an example fails schema validation, the type definition is wrong (see native-controller-pattern.md pitfalls: "Modifying committed example manifests to fix schema errors"). Mark the ticket Failed with a diagnosis pointing at the type mismatch.
 - Run through uptest/chainsaw (create → wait Ready → delete → wait gone)
 - If no permanent namespaced example exists yet, create a temporary one by copying the cluster example and adjusting `apiVersion` (`aws.m.upbound.io`), adding `metadata.namespace: upbound-system`, and changing the resource `scope`. Remove the temporary namespaced example after the e2e passes (do not commit it).
 - Capture test results
