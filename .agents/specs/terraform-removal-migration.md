@@ -536,11 +536,13 @@ Reference material for executor:
 6. MoveToStatus catalog: `.agents/specs/move-to-status-catalog.json`
 7. Connection details catalog: `.agents/specs/connection-details-catalog.json`
 
-### Step 3: E2E Test RAW (1 ticket per resource, cluster scope only)
+### Step 3: E2E Test RAW (1 ticket per resource — both scopes in one run)
 
-Run the e2e test with the RAW kind:
-- Copy example YAML, change `kind: Bucket` → `kind: BucketRAW`
+Run the e2e test with the RAW kind, covering **both cluster and namespaced scopes** in a single uptest invocation. The `setup.sh` script creates both `ProviderConfig` (cluster) and `ClusterProviderConfig` (namespaced), so both scopes work automatically.
+
+- Include both the cluster and namespaced RAW example in `UPTEST_EXAMPLE_LIST`
 - Run through uptest/chainsaw (create → wait Ready → delete → wait gone)
+- If no permanent namespaced example exists yet, create a temporary one by copying the cluster example and adjusting `apiVersion` (`aws.m.upbound.io`), adding `metadata.namespace: upbound-system`, and changing the resource `scope`. Remove the temporary namespaced example after the e2e passes (do not commit it).
 - Capture test results
 - Same hard failure rules as baseline: permission errors, quota errors, or any infrastructure issue → mark Failed, no workarounds
 

@@ -878,17 +878,22 @@ depends_on: ["native-<SERVICE>-<resource_slug>"]
 **Description:**
 
 ```
-## E2E Test: <resource_go>RAW (<SERVICE>)
+## E2E Test: <resource_go>RAW (<SERVICE>) — both scopes
 
-Run end-to-end test of the native RAW controller using the RAW example manifest.
+Run end-to-end test of the native RAW controller using both cluster and namespaced
+example manifests in a single uptest invocation. The setup script creates both
+`ProviderConfig` (cluster) and `ClusterProviderConfig` (namespaced) automatically.
 Same hard failure rules as baseline — any failure means mark FAILED, no workarounds.
 
 ### Spec Reference
 `.agents/specs/terraform-removal-migration.md` — Section "Step 3: E2E Test RAW"
 
-### RAW Example Manifest
-examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml
-(Created by scaffold ticket. Change `kind: <resource_go>` → `kind: <resource_go>RAW`.)
+### RAW Example Manifests
+- Cluster: `examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml`
+- Namespaced: `examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml`
+  (If the namespaced example doesn't exist, create a temporary one from the cluster
+  example: adjust `apiVersion` to `<SERVICE>.aws.m.upbound.io/<version>`, add
+  `metadata.namespace: upbound-system`. Remove it after e2e passes — do NOT commit.)
 
 ### E2E Command
 ```bash
@@ -899,7 +904,7 @@ export UPTEST_CLOUD_CREDENTIALS="DEFAULT='[default]
 aws_access_key_id = ${AWS_ACCESS_KEY_ID}
 aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}'"
 
-export UPTEST_EXAMPLE_LIST="examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml"
+export UPTEST_EXAMPLE_LIST="examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml,examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml"
 make e2e SUBPACKAGES="config <SERVICE>"
 ```
 
@@ -921,10 +926,11 @@ After marking the ticket Failed, check for and delete leaked resources:
 ```
 
 ### What to Verify
-1. `<resource_go>RAW` resource transitions to Ready condition
-2. No TF-related errors in controller logs (must be pure native SDK path)
-3. `<resource_go>RAW` deletes cleanly (DeletedSuccessfully condition)
-4. External name is set correctly on the CR after creation
+1. **Cluster** `<resource_go>RAW` resource transitions to Ready condition
+2. **Namespaced** `<resource_go>RAW` resource transitions to Ready condition
+3. No TF-related errors in controller logs (must be pure native SDK path)
+4. Both resources delete cleanly (DeletedSuccessfully condition)
+5. External name is set correctly on both CRs after creation
 5. Full compilation check passes BEFORE running e2e:
    ```bash
    go build ./apis/cluster/<SERVICE>/... && go build ./apis/namespaced/<SERVICE>/... && \
@@ -945,15 +951,17 @@ Paste the final uptest output (last 50 lines) before marking Done.
 
 **Acceptance criteria** (as array):
 ```
-["<resource_go>RAW resource reaches Ready condition during e2e",
- "<resource_go>RAW resource deletes cleanly with no errors",
+["Cluster <resource_go>RAW resource reaches Ready condition during e2e",
+ "Namespaced <resource_go>RAW resource reaches Ready condition during e2e",
+ "Both resources delete cleanly with no errors",
  "Controller logs show no upjet or terraform errors",
- "External name correctly populated on the CR after creation",
+ "External name correctly populated on both CRs after creation",
  "No AWS permission errors",
  "Full compilation check passes before e2e (go build + go test on all service packages)",
  "No untracked files in service directories (git ls-files --others)",
  "E2E output captured in ticket",
- "No leaked AWS resources after test (cleaned up if failed)"]
+ "No leaked AWS resources after test (cleaned up if failed)",
+ "Temporary namespaced example removed if created (not committed)"]
 ```
 
 ---
