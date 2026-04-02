@@ -352,10 +352,12 @@ func TestCreate_SetsExternalNameAndARN(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// External name should be set to the topic name
+	// External name should be set to the full ARN (persisted atomically by
+	// the managed reconciler so Observe can find the topic on the next cycle
+	// even before status.atProvider is flushed).
 	extName := meta.GetExternalName(cr)
-	if extName != testTopicName {
-		t.Errorf("expected external name=%q, got %q", testTopicName, extName)
+	if extName != testTopicARN {
+		t.Errorf("expected external name=%q (full ARN), got %q", testTopicARN, extName)
 	}
 
 	// atProvider.Arn should be set

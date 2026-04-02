@@ -150,16 +150,25 @@ func (e *ExternalClient) Create(ctx context.Context, cr TopicCR) (managed.Extern
 		topicArn = *resp.TopicArn
 	}
 
-	// Extract the topic name from the ARN (last segment after ":").
-	name := nameFromARN(topicArn)
-	if name == "" {
-		name = topicName
+	// Store the full ARN as the external-name annotation.  The external-name
+	// annotation is persisted atomically by the managed reconciler immediately
+	// after Create returns, unlike status.atProvider fields.  By storing the
+	// ARN here we guarantee that topicARN() can reconstruct it on the very
+	// next Observe call even when status has not been flushed yet.
+	if topicArn != "" {
+		meta.SetExternalName(cr, topicArn)
+	} else {
+		// Fallback (unexpected): store the topic name so we at least have
+		// something in the annotation.
+		name := nameFromARN(topicArn)
+		if name == "" {
+			name = topicName
+		}
+		meta.SetExternalName(cr, name)
 	}
 
-	// Store the topic name as the external name annotation.
-	meta.SetExternalName(cr, name)
-
-	// Store the full ARN in atProvider.
+	// Store the full ARN in atProvider as well (best-effort; the reconciler
+	// may not flush status before the next Observe, but we store it anyway).
 	obs := cr.GetAtProvider()
 	obs.Arn = &topicArn
 	obs.ID = &topicArn
@@ -258,10 +267,16 @@ func topicARN(cr TopicCR) string {
 
 // topicNameFromCR returns the topic name to use in CreateTopic.
 // Uses the external name annotation if it's distinct from the K8s name,
-// otherwise falls back to the K8s metadata name.
+// otherwise falls back to the K8s metadata name.  If the external name is
+// stored as a full ARN (e.g., after a successful Create), the topic name
+// is extracted from the last segment of the ARN.
 func topicNameFromCR(cr TopicCR) string {
 	extName := meta.GetExternalName(cr)
 	if extName != "" && extName != cr.GetName() {
+		// If the external name is a full SNS ARN, extract just the topic name.
+		if strings.HasPrefix(extName, "arn:aws:sns:") {
+			return nameFromARN(extName)
+		}
 		return extName
 	}
 	return cr.GetName()
