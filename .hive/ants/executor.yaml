@@ -302,6 +302,9 @@ directive_graph:
       - For e2e name-collision avoidance: create a TEMPORARY copy of the namespaced example
         with -ns suffixed names. Use the copy for e2e only. Delete it after the test. Never
         commit modified resource names to permanent example files.
+      - Never hand-edit CRD YAML files in package/crds/. They are generated artifacts from
+        `make generate.native`. If a CRD is wrong (missing field, wrong schema), fix the Go
+        type definition and re-run `make generate.native`. Hand-editing CRDs creates drift.
       </migration_context>
 
       <e2e_tickets>
@@ -335,7 +338,6 @@ directive_graph:
     type: node
   params: {}
 enabled: true
-model: sonnet
 file_watch_patterns: []
 params: {}
 pheromone_watch:

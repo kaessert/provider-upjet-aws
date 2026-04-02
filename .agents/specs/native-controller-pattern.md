@@ -1524,23 +1524,17 @@ For fields marked `sensitive:*` in the catalog: read from the SecretRef in the s
 | Placing `+kubebuilder:validation:XValidation` on `forProvider` field | XValidation rules for required-field checks ("spec.forProvider.X is a required parameter") must be placed on the **`Spec` field** of the root type, NOT on `ForProvider`. CEL expressions like `has(self.forProvider.policy) || (has(self.initProvider) && has(self.initProvider.policy))` reference both `forProvider` and `initProvider` — these are siblings under `spec`, so the rule must be scoped at the `spec` level |
 | Missing `providerConfigRef` in examples that need non-default config | If the TF example specifies `providerConfigRef`, the RAW example must too. If the TF example omits it (relying on the default), the RAW example should also omit it. Do NOT add `providerConfigRef` to RAW examples that TF examples don't have — this violates the mirroring rule. The e2e setup script creates default ProviderConfig/ClusterProviderConfig in both scopes |
 | Inconsistent AWS account IDs in example manifests | Example manifests that contain ARNs inside opaque JSON strings (policies, state machine definitions) must use the standard test account ID `609897127049` consistently. Using random or personal account IDs makes examples fail in CI. Use `609897127049` for all hardcoded ARNs |
-| Forgetting CRD manifests in scaffold step | The scaffold ticket must generate CRD YAML manifests via `controller-gen crd` and place them in `package/crds/`. Without CRD manifests, the types compile but cannot be installed in a cluster. See Section 17.1 below |
+| Forgetting CRD manifests in scaffold step | The scaffold ticket must run `make generate.native` which generates CRD YAML manifests via `controller-gen crd` and places them in `package/crds/`. Without CRD manifests, the types compile but cannot be installed in a cluster. See Section 17.1 |
+| Hand-editing CRD YAML files in `package/crds/` | CRD manifests are **generated artifacts** — never hand-edit them. If a CRD is wrong (missing field, wrong type, incorrect validation), the Go type definition is the source of truth. Fix the type, run `make generate.native`, and the CRD will be regenerated correctly. Hand-editing CRDs creates drift that is silently overwritten on the next generate |
 | Using `ConditionedStatus` instead of `ResourceStatus` in status types | Both cluster and namespaced status types MUST embed `xpv1.ResourceStatus` (not `xpv1.ConditionedStatus`). `angryjet`'s `Managed()` and `ManagedV2()` matchers do a literal type name check for `ResourceStatus`. Using `ConditionedStatus` causes angryjet to silently skip the entire type — no `zz_generated.resolvers.go` is produced, and no error is reported. `ResourceStatus` embeds `ConditionedStatus` + `ObservedStatus`, so it's a strict superset |
 
 ### 17.1 CRD Manifest Generation
 
-After creating RAW type files, generate CRD manifests:
+CRD manifests for native types are generated automatically by `make generate.native` (step 3 of that target). This runs `controller-gen crd:allowDangerousTypes=true` against all `apis/**/native/` subpackages and outputs to `package/crds/`.
 
-```bash
-# Generate CRD manifests for native types
-go run sigs.k8s.io/controller-tools/cmd/controller-gen \
-    crd:crdVersions=v1 \
-    paths=./apis/cluster/<service>/<version>/native/ \
-    paths=./apis/namespaced/<service>/<version>/native/ \
-    output:crd:artifacts:config=package/crds
-```
+**Never hand-edit CRD YAML files in `package/crds/`.** If a CRD is wrong (e.g., missing a field like `namespace` in `writeConnectionSecretToRef`), fix the Go type definition and re-run `make generate.native`. The CRDs will be regenerated correctly from the types.
 
-This produces CRD YAML files in `package/crds/`. Verify:
+After running `make generate.native`, verify:
 - One CRD per RAW type per scope (e.g., `sqs.aws.upbound.io_queueraws.yaml`)
 - `scope: Cluster` or `scope: Namespaced` is correct
 - XValidation rules appear at `spec` level (not nested under `forProvider`)

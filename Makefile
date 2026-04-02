@@ -221,12 +221,12 @@ generate.init: $(TERRAFORM_PROVIDER_SCHEMA) pull-docs
 #   1. controller-gen object: — regenerates zz_generated.deepcopy.go for native + ProviderConfig
 #   2. angryjet generate-methodsets — regenerates zz_generated.managed.go,
 #      zz_generated.managedlist.go, and zz_generated.resolvers.go for native packages
+#   3. controller-gen crd — regenerates CRD manifests in package/crds/ for all native types
 #
 # This target intentionally does NOT:
 #   - Download Terraform provider schema (no generate.init dependency)
 #   - Run the upjet generator
 #   - Run the upjet resolver (only for TF-bridged types)
-#   - Regenerate CRD manifests (native types share the TF-generated CRDs in phase 0)
 #
 # Usage:
 #   make generate.native
@@ -246,6 +246,17 @@ generate.native:
 			--header-file=hack/boilerplate.go.txt \
 			$$pkg || exit 1; \
 	done
+	@# Generate CRD manifests for all native types into package/crds/.
+	@# allowDangerousTypes=true is needed because some TF types use float64 fields
+	@# and our RAW types must mirror them. CRDs are committed artifacts — never hand-edit.
+	@$(INFO) Generating native CRD manifests...
+	@NATIVE_DIRS=$$(find apis -path '*/native' -type d | sed 's|^|paths=./|' | tr '\n' ' '); \
+	if [ -n "$$NATIVE_DIRS" ]; then \
+		go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen \
+			"crd:allowDangerousTypes=true" \
+			$$NATIVE_DIRS \
+			output:crd:dir=package/crds; \
+	fi
 	@$(OK) Native code generation complete
 
 .PHONY: generate.native

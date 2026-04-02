@@ -578,17 +578,11 @@ examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml
 
 <repeat the above block for each resource in the service>
 
-### CRD YAML Generation (MANDATORY)
-`make generate.native` does NOT generate CRD YAMLs — it only generates deepcopy and
-methodsets. The scaffold MUST generate CRD manifests for all RAW types:
-```bash
-# Generate CRD YAMLs for native types into package/crds/
-go run -tags generate sigs.k8s.io/controller-tools/cmd/controller-gen \
-  crd:allowDangerousTypes=true,crdVersions=v1 \
-  paths=./apis/cluster/<SERVICE>/<version>/native/... \
-  paths=./apis/namespaced/<SERVICE>/<version>/native/... \
-  output:artifacts:config=./package/crds
-```
+### CRD YAML Generation (handled by make generate.native)
+`make generate.native` now generates CRD manifests automatically (step 3). No separate
+`controller-gen crd` invocation is needed — just run `make generate.native` and the CRDs
+appear in `package/crds/`. **Never hand-edit CRD YAML files.**
+
 Verify CRD files were created:
 ```bash
 ls package/crds/<SERVICE>.aws.upbound.io_*raws.yaml

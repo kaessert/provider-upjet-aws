@@ -65,13 +65,14 @@ make generate.native
    - `apis/namespaced/v1beta1/...` — Namespaced ProviderConfig types
    - Every `apis/**/native/` subpackage (dynamically discovered via `find`)
 2. Runs `angryjet generate-methodsets` on every `apis/**/native/` subpackage.
+3. Runs `controller-gen crd` on every `apis/**/native/` subpackage, outputting CRD manifests to `package/crds/`.
 
 **Characteristics:**
 
 | Property | Value |
 |----------|-------|
 | Duration | **Seconds to ~1 minute** |
-| Files touched | Only `zz_generated.deepcopy.go` / `zz_generated.managed.go` inside `native/` subpackages + two ProviderConfig deepcopy files |
+| Files touched | `zz_generated.deepcopy.go` / `zz_generated.managed.go` inside `native/` subpackages + two ProviderConfig deepcopy files + CRD YAMLs in `package/crds/` |
 | Required tool env | No Terraform schema required |
 | Safe for iteration | Yes — does NOT touch existing TF-generated `zz_*` files outside `native/` |
 
