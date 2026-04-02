@@ -1,7 +1,7 @@
-# Chimera Generate Workflow — Developer & Agent Guide
+# Dual Generate Workflow — Developer & Agent Guide
 
 > **What this is**: Reference guide for the two code-generation paths available
-> during the TF-to-native migration ("chimera" phase).  Misunderstanding which
+> during the TF-to-native migration.  Misunderstanding which
 > command to run is the single largest source of accidental mass-diffs (800+
 > cosmetic file changes) during development.
 
@@ -11,7 +11,7 @@
 
 - [Overview — Two Generate Paths](#overview--two-generate-paths)
 - [When to Use Which](#when-to-use-which)
-- [Chimera Invariants](#chimera-invariants)
+- [Coexistence Invariants](#coexistence-invariants)
 - [Common Pitfalls](#common-pitfalls)
 - [Troubleshooting](#troubleshooting)
 
@@ -121,9 +121,9 @@ variance.
 
 ---
 
-## Chimera Invariants
+## Coexistence Invariants
 
-These invariants **must always be true** for the chimera (TF+native parallel)
+These invariants **must always be true** for the TF+native parallel
 setup to work correctly.  They are enforced by guardrail tests in
 `generate/chimera_test.go` (`go test ./generate/...`).
 

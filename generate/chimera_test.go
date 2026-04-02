@@ -43,7 +43,7 @@ var tfSpecificMethods = map[string]bool{ //nolint:gochecknoglobals
 // resolver causes a runtime panic.  This test catches the case where someone
 // accidentally copies a TF-style method onto a native type.
 //
-// Invariant 1 from the chimera guardrail spec.
+// Invariant 1 from the coexistence guardrail spec.
 func TestNativeTypesNotTerraformed(t *testing.T) {
 	t.Helper()
 	repoRoot := ".."
@@ -155,7 +155,7 @@ func isNativePackage(importPath string) bool {
 // Non-deterministic generation (e.g. from map-iteration order) would manifest
 // as a diff between two runs.  This test catches that class of bug.
 //
-// Invariant 2 from the chimera guardrail spec.
+// Invariant 2 from the coexistence guardrail spec.
 func TestNativeGenerationIdempotent(t *testing.T) {
 	repoRoot := ".."
 
@@ -343,7 +343,7 @@ var hookVarRE = regexp.MustCompile(`^var NativeSetupHook_(\w+)\s`)
 // generated zz_main.go will contain a reference to a non-existent variable and
 // fail to compile.
 //
-// Invariant 3 from the chimera guardrail spec.
+// Invariant 3 from the coexistence guardrail spec.
 func TestNativeSetupHookVarsMatchServices(t *testing.T) {
 	repoRoot := ".."
 
@@ -435,7 +435,7 @@ func checkHookCoverage(t *testing.T, hookFile string, expected, declared map[str
 // cluster pattern, and that the function works correctly against the real
 // package tree (not just static string matching).
 //
-// Invariant 4 — strengthened — from the chimera guardrail spec.
+// Invariant 4 — strengthened — from the coexistence guardrail spec.
 func TestFilterNativePackagesAlsoExcludesNamespaced(t *testing.T) {
 	repoRoot := ".."
 
