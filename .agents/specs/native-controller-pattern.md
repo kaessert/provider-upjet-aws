@@ -1536,6 +1536,7 @@ RAW example manifests must follow these rules:
 2. **Mirror TF `providerConfigRef`** — if the TF example has `providerConfigRef`, include it in the RAW example. If TF omits it (relying on default), RAW should also omit it. The e2e setup script creates default ProviderConfig in both scopes.
 3. **Mirror TF examples** — same fields, same structure, only `kind` changes (e.g., `Queue` → `QueueRAW`)
 4. **Self-contained** — examples that reference other resources should either use `Ref`/`Selector` fields or include the dependent resources in the same example file
+5. **Distinct AWS resource names per scope** — when cluster and namespaced examples run in the same e2e invocation, they create real AWS resources concurrently. If both use the same AWS resource name (e.g., same SQS queue name), the second creation fails or hits a deletion cooldown (SQS enforces 60s after delete). Use a `-ns` suffix for namespaced examples: `upbound-sqs-raw` (cluster) vs `upbound-sqs-raw-ns` (namespaced)
 
 ---
 

@@ -541,6 +541,7 @@ Reference material for executor:
 Run the e2e test with the RAW kind, covering **both cluster and namespaced scopes** in a single uptest invocation. The `setup.sh` script creates both `ProviderConfig` (cluster) and `ClusterProviderConfig` (namespaced), so both scopes work automatically.
 
 - Include both the cluster and namespaced RAW example in `UPTEST_EXAMPLE_LIST`
+- **Use distinct AWS resource names per scope** — namespaced examples must use different AWS resource names (e.g., `-ns` suffix) to avoid conflicts when both scopes create resources concurrently. Many AWS services enforce deletion cooldowns (e.g., SQS 60s) that cause the second creation to fail if names collide.
 - Run through uptest/chainsaw (create → wait Ready → delete → wait gone)
 - If no permanent namespaced example exists yet, create a temporary one by copying the cluster example and adjusting `apiVersion` (`aws.m.upbound.io`), adding `metadata.namespace: upbound-system`, and changing the resource `scope`. Remove the temporary namespaced example after the e2e passes (do not commit it).
 - Capture test results

@@ -893,7 +893,10 @@ Same hard failure rules as baseline — any failure means mark FAILED, no workar
 - Namespaced: `examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml`
   (If the namespaced example doesn't exist, create a temporary one from the cluster
   example: adjust `apiVersion` to `<SERVICE>.aws.m.upbound.io/<version>`, add
-  `metadata.namespace: upbound-system`. Remove it after e2e passes — do NOT commit.)
+  `metadata.namespace: upbound-system`. **Use distinct AWS resource names** — add a
+  `-ns` suffix to avoid conflicts with the cluster example (e.g., `upbound-sqs-raw-ns`).
+  Many AWS services enforce deletion cooldowns that cause failures if names collide.
+  Remove it after e2e passes — do NOT commit.)
 
 ### E2E Command
 ```bash
