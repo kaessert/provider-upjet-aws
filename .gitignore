@@ -20,3 +20,6 @@ e2e/*/_output
 
 # packages
 *.xpkg
+
+# Hive runtime state (ephemeral per-nest)
+.hive/pheromone/
