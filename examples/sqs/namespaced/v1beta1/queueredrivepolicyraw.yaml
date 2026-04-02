@@ -19,5 +19,4 @@ spec:
         "deadLetterTargetArn": "arn:aws:sqs:us-west-1:609897127049:example-dlq",
         "maxReceiveCount": 4
       }
-  providerConfigRef:
-    name: default
+

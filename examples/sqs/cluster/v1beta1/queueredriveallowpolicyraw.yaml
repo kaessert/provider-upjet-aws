@@ -14,9 +14,6 @@ spec:
   forProvider:
     name: upbound-qrap-dlq
     region: us-west-1
-  providerConfigRef:
-    name: default
-    kind: ClusterProviderConfig
 
 ---
 # Redrive allow policy — sets which source queues may use the above queue as their DLQ.
@@ -34,6 +31,4 @@ spec:
       name: example
     redriveAllowPolicy: |
       {"redrivePermission": "allowAll"}
-  providerConfigRef:
-    name: default
-    kind: ClusterProviderConfig
+

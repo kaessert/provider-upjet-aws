@@ -13,9 +13,6 @@ spec:
   forProvider:
     name: example-dlq
     region: us-west-1
-  providerConfigRef:
-    name: default
-    kind: ClusterProviderConfig
 
 ---
 # Source queue — the queue on which the redrive policy is set.
@@ -29,9 +26,6 @@ spec:
   forProvider:
     name: queueredrivepolicy-src
     region: us-west-1
-  providerConfigRef:
-    name: default
-    kind: ClusterProviderConfig
 
 ---
 # Redrive policy — attaches to the source queue and routes failed messages to the DLQ.
@@ -51,6 +45,4 @@ spec:
         "deadLetterTargetArn": "arn:aws:sqs:us-west-1:609897127049:example-dlq",
         "maxReceiveCount": 4
       }
-  providerConfigRef:
-    name: default
-    kind: ClusterProviderConfig
+
