@@ -313,6 +313,11 @@ func (t *TopicSubscriptionRAW) GetAtProvider() TopicSubscriptionRAWObservation {
 	return t.Status.AtProvider
 }
 
+// SetForProviderFilterPolicyScope sets FilterPolicyScope for late-initialization.
+func (t *TopicSubscriptionRAW) SetForProviderFilterPolicyScope(v *string) {
+	t.Spec.ForProvider.FilterPolicyScope = v
+}
+
 // SetAtProvider sets the observed state.
 func (t *TopicSubscriptionRAW) SetAtProvider(o TopicSubscriptionRAWObservation) {
 	t.Status.AtProvider = o

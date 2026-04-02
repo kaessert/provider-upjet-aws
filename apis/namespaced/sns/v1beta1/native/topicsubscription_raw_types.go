@@ -289,3 +289,10 @@ func (t *TopicSubscriptionRAW) GetAtProvider() clusternative.TopicSubscriptionRA
 func (t *TopicSubscriptionRAW) SetAtProvider(o clusternative.TopicSubscriptionRAWObservation) {
 	t.Status.AtProvider = o
 }
+
+// SetForProviderFilterPolicyScope sets FilterPolicyScope for late-initialization.
+// This setter is needed because GetForProvider() returns a field-copied struct,
+// so mutations through the returned pointer do not propagate back to the spec.
+func (t *TopicSubscriptionRAW) SetForProviderFilterPolicyScope(v *string) {
+	t.Spec.ForProvider.FilterPolicyScope = v
+}
