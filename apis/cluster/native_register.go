@@ -9,6 +9,8 @@
 package cluster
 
 import (
+	nativeelasticache1 "github.com/upbound/provider-aws/v2/apis/cluster/elasticache/v1beta1/native"
+	nativeelasticache2 "github.com/upbound/provider-aws/v2/apis/cluster/elasticache/v1beta2/native"
 	nativekinesis1 "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta1/native"
 	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta2/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/cluster/sfn/v1beta2/native"
@@ -18,6 +20,12 @@ import (
 )
 
 func init() {
+	// Register native elasticache types (SubnetGroupRAW, ParameterGroupRAW, UserGroupRAW,
+	// ClusterRAW, GlobalReplicationGroupRAW, ServerlessCacheRAW + UserRAW spoke, ReplicationGroupRAW spoke)
+	AddToSchemes = append(AddToSchemes, nativeelasticache1.SchemeBuilder.AddToScheme)
+	// Register native elasticache v1beta2 types (UserRAW hub, ReplicationGroupRAW hub)
+	AddToSchemes = append(AddToSchemes, nativeelasticache2.SchemeBuilder.AddToScheme)
+
 	// Register native kinesis types (StreamRAW, StreamConsumerRAW and their list
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativekinesis1.SchemeBuilder.AddToScheme)

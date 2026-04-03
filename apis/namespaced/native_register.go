@@ -23,6 +23,8 @@
 package namespaced
 
 import (
+	nativeelasticache1 "github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta1/native"
+	nativeelasticache2 "github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta2/native"
 	nativekinesis "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta1/native"
 	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta2/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
@@ -31,6 +33,11 @@ import (
 )
 
 func init() {
+	// Register native elasticache types for namespaced scope
+	AddToSchemes = append(AddToSchemes, nativeelasticache1.SchemeBuilder.AddToScheme)
+	// Register native elasticache v1beta2 types (UserRAW hub, ReplicationGroupRAW hub)
+	AddToSchemes = append(AddToSchemes, nativeelasticache2.SchemeBuilder.AddToScheme)
+
 	// Register native kinesis types (StreamRAW, StreamConsumerRAW and their list
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativekinesis.SchemeBuilder.AddToScheme)

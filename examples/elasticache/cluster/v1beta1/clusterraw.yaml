@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+apiVersion: elasticache.aws.upbound.io/v1beta1
+kind: ClusterRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: foo
+  name: foo
+spec:
+  forProvider:
+    engine: memcached
+    nodeType: cache.m4.large
+    numCacheNodes: 1
+    parameterGroupName: default.memcached1.4
+    port: 11211
+    region: us-east-2

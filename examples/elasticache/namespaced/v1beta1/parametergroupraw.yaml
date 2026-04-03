@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+apiVersion: elasticache.aws.m.upbound.io/v1beta1
+kind: ParameterGroupRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: bar
+  name: bar
+  namespace: default
+spec:
+  forProvider:
+    family: memcached1.4
+    name: bar
+    region: us-west-1
