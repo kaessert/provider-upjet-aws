@@ -13,6 +13,6 @@ spec:
     description: "example replication group"
     nodeType: cache.m4.large
     numCacheClusters: 2
-    parameterGroupName: default.redis3.2
+    parameterGroupName: default.redis7
     port: 6379
     region: us-west-2
