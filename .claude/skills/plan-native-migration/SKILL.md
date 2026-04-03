@@ -23,8 +23,8 @@ complete dependency-chained ticket graph that the executor ant can work through 
 > behavior, same defaults, same errors. Zero behavioral differences are acceptable. This rule must
 > be reflected in every ticket's acceptance criteria.
 
-This skill generates approximately 7 + (4 × N) tickets per service, where N is the number
-of resources. For a 2-resource service like `sfn`, that is 15 tickets total.
+This skill generates approximately 4 + (3 × N) tickets per service, where N is the number
+of resources. For a 2-resource service like `sfn`, that is 10 tickets total.
 
 ---
 
@@ -422,30 +422,41 @@ Paste the final `uptest` output here (last 50 lines) before marking Done.
 
 ---
 
-## Step 6: Create Scaffold Ticket (1 per service)
+## Step 6: Create Scaffold Tickets (1 per resource)
 
-Create ONE scaffold ticket covering ALL resources in the service, both cluster and namespaced
-scopes. This ticket does NOT implement CRUD — it creates types and empty stubs that compile.
+Create ONE scaffold ticket PER RESOURCE, covering both cluster and namespaced scopes for that
+resource. This keeps each ticket to a manageable size (~10 files per resource per scope).
+Each ticket does NOT implement CRUD — it creates types and empty stubs that compile.
 
-The scaffold ticket has NO depends_on so it can start immediately in parallel with baselines.
+Scaffold tickets have NO depends_on so they can start immediately in parallel with baselines.
+The executor works through them sequentially (one at a time), but each is self-contained.
 
-**Ticket structure:**
+**For each resource, create one ticket:**
 
 ```
-id:      native-<SERVICE>-scaffold
-title:   Scaffold RAW types and controller stubs for <SERVICE> (both scopes, all resources)
+id:      native-<SERVICE>-scaffold-<resource_slug>
+title:   Scaffold <resource_go>RAW types and controller stubs (<SERVICE>)
 plan:    native-<SERVICE>
 phase:   scaffold
 labels:  ["stage:executor"]
 priority: High
 ```
 
-**Description** (list ALL resources with their specific files):
+For the FIRST resource's scaffold ticket, also include:
+- Scheme registration in `apis/cluster/native_register.go` AND `apis/namespaced/native_register.go`
+- `NativeSetupHook_<SERVICE>` assignment in the wrapper `init()` function
+- Running `make generate.native` to generate CRDs for all scaffolded types so far
+
+For SUBSEQUENT scaffold tickets, include:
+- Adding the new type to the existing scheme registration
+- Re-running `make generate.native` to add the new CRD
+
+**Description** (per resource):
 
 ```
-## Scaffold: RAW Types and Controller Stubs for <SERVICE>
+## Scaffold: <resource_go>RAW Types and Controller Stubs
 
-Create RAW type definitions and empty controller stubs for ALL resources in <SERVICE>.
+Create RAW type definitions and empty controller stubs for <TF_NAME>.
 Both cluster AND namespaced scopes. No CRUD implementation — stubs must compile, nothing more.
 
 ### Spec References
@@ -597,7 +608,7 @@ ls package/crds/<SERVICE>.aws.m.upbound.io_*raws.yaml
 Commit these CRD YAML files — without them the e2e test will fail with
 `no matches for kind "<Resource>RAW" in version "<SERVICE>.aws.upbound.io/v1beta1"`.
 
-### Acceptance Criteria (All Must Pass Before Any Implement Ticket)
+### Acceptance Criteria (Per Scaffold Ticket)
 ```
 
 **Acceptance criteria** (as array):
@@ -610,6 +621,7 @@ Commit these CRD YAML files — without them the e2e test will fail with
  "All RAW types implement the <Resource>CR interface (verified by compiler)",
  "No upjet imports in any new file (grep -r 'crossplane/upjet' apis/cluster/<SERVICE>/*/native/ internal/controller/<SERVICE>/ — must return empty)",
  "CRD YAML files generated and committed in package/crds/ for all RAW types (both scopes)",
+ "Native types registered in apis/cluster/native_register.go AND apis/namespaced/native_register.go (AddToScheme calls for each RAW type)",
  "Example RAW yaml manifests created for each resource"]
 ```
 
@@ -629,7 +641,7 @@ phase:      implement
 labels:     ["stage:executor"]
 priority:   High   (if UseAsync=true OR has ConfigurationInjector OR has CustomDiff)
             Normal (all other resources)
-depends_on: ["native-<SERVICE>-scaffold", "native-<SERVICE>-baseline"]
+depends_on: ["native-<SERVICE>-scaffold-<resource_slug>", "native-<SERVICE>-baseline"]
 ```
 
 **Description** — fill in ALL metadata gathered in Step 4:
@@ -1286,19 +1298,19 @@ Executor ant will pick up stage:executor tickets automatically.
 
 ### Tickets Created (<total_count> total)
   Phase baseline:   1 ticket     (native-<SERVICE>-baseline)
-  Phase scaffold:   1 ticket     (native-<SERVICE>-scaffold)
+  Phase scaffold:   <N> tickets  (native-<SERVICE>-scaffold-<resource>)
   Phase implement:  <N> tickets  (native-<SERVICE>-<resource_slug>)
   Phase e2e:        <N> tickets  (native-<SERVICE>-*-e2e)
   Phase regression: 1 ticket     (native-<SERVICE>-tf-regression)
   Phase verify:     1 ticket     (native-<SERVICE>-verify)
   Phase review:     1 ticket     (native-<SERVICE>-review) → stage:reviewer
   ─────────────────────────────────────────────────────────
-  TOTAL:            <2N+4> tickets
+  TOTAL:            <3N+4> tickets
 
 ### Dependency Chain
   baseline (all TF e2e) ──┐
                            ├──→ <resource> (implement) ──→ <resource>-e2e ──┐
-  scaffold ────────────────┘                                                  ├──→ tf-regression ──→ verify
+  scaffold-<resource> ─────┘                                                  ├──→ tf-regression ──→ verify ──→ review
   (repeat for each resource) ─────────────────────────────────────────────────┘
 
 Note: Cutover is a global operation done after ALL services are migrated. Not created here.
