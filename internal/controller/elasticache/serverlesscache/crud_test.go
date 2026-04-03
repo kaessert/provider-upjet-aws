@@ -485,6 +485,87 @@ func TestCreate_Success_SetsAsyncState(t *testing.T) {
 	}
 }
 
+func TestCreate_AlreadyExists_SetsAsyncStateNoError(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		createServerlessCacheFn: func(_ context.Context, _ *awselasticache.CreateServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.CreateServerlessCacheOutput, error) {
+			return nil, &smithy.GenericAPIError{
+				Code:    "ServerlessCacheAlreadyExistsFault",
+				Message: "Serverless Cache already exists",
+			}
+		},
+	}}
+
+	_, err := e.Create(context.Background(), cr)
+	if err != nil {
+		t.Errorf("expected no error for AlreadyExistsFault (name reservation period), got: %v", err)
+	}
+
+	// Async state should be set to "creating" so Observe backs off
+	asyncState := native.GetAsyncState(cr)
+	if asyncState == nil {
+		t.Fatal("expected async state to be set after AlreadyExistsFault")
+	}
+	if asyncState.Operation != "creating" {
+		t.Errorf("expected async state Operation=creating, got %q", asyncState.Operation)
+	}
+}
+
+func TestObserve_NotFound_WithRecentCreatingState_BacksOff(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Simulate the case where Create was called and got AlreadyExistsFault,
+	// setting a recent "creating" async state.
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "creating",
+		StartedAt: time.Now(), // very recent
+		RequestID: "",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return nil, notFoundError()
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should back off — resource "exists" from controller's perspective (waiting for AWS)
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true during name-reservation backoff")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true during name-reservation backoff")
+	}
+}
+
+func TestObserve_NotFound_WithOldCreatingState_ReturnsNotExists(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Simulate the case where a "creating" async state is old (> 5 minutes)
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "creating",
+		StartedAt: time.Now().Add(-10 * time.Minute), // 10 minutes ago (expired)
+		RequestID: "",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return nil, notFoundError()
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Old state should not prevent recreation
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false when creating state is expired and resource not found")
+	}
+}
+
 // ── Update tests ───────────────────────────────────────────────────────────────
 
 func TestUpdate_Success_SetsAsyncState(t *testing.T) {

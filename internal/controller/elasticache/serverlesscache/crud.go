@@ -9,6 +9,7 @@ package serverlesscache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
 	ectypes "github.com/aws/aws-sdk-go-v2/service/elasticache/types"
+	smithy "github.com/aws/smithy-go"
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/resource"
@@ -84,10 +86,23 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 	})
 	if err != nil {
 		if nativehelper.IsNotFound(err) {
+			// Check if there's a recent "creating" async state. This can happen
+			// when AWS is in a name-reservation period after deletion of a
+			// create-failed resource. During this period, DescribeServerlessCaches
+			// returns NotFound but CreateServerlessCache returns AlreadyExistsFault.
+			// Back off for up to 5 minutes to give AWS time to release the name.
+			if asyncState != nil && asyncState.Operation == "creating" &&
+				time.Since(asyncState.StartedAt) < 5*time.Minute {
+				cr.SetConditions(xpv1.Unavailable())
+				return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
+			}
 			if asyncState != nil && asyncState.Operation == "deleting" {
 				// Delete has completed — resource is gone.
 				nativehelper.ClearAsyncState(cr)
 				return managed.ExternalObservation{ResourceExists: false}, nil
+			}
+			if asyncState != nil {
+				nativehelper.ClearAsyncState(cr)
 			}
 			return managed.ExternalObservation{ResourceExists: false}, nil
 		}
@@ -184,6 +199,21 @@ func (e *ExternalClient) Create(ctx context.Context, cr ServerlessCacheCR) (mana
 	input := buildCreateInput(cr)
 	resp, err := e.Client.CreateServerlessCache(ctx, input)
 	if err != nil {
+		// Handle name-reservation period: AWS reports AlreadyExists even when
+		// DescribeServerlessCaches returns NotFound (resource is being purged but
+		// its name is still reserved). Treat this as a transient condition rather
+		// than a hard error, so the reconciler doesn't enter a fast error loop.
+		var ae smithy.APIError
+		if errors.As(err, &ae) && ae.ErrorCode() == "ServerlessCacheAlreadyExistsFault" {
+			// Set async state so Observe backs off (ResourceExists=true,
+			// ResourceUpToDate=true) for up to 5 minutes while AWS releases the name.
+			nativehelper.SetAsyncState(cr, nativehelper.AsyncState{
+				Operation: "creating",
+				StartedAt: time.Now(),
+				RequestID: "",
+			})
+			return managed.ExternalCreation{}, nil
+		}
 		return managed.ExternalCreation{}, nativehelper.Wrap(err, errCreate)
 	}
 
