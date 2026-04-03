@@ -1592,6 +1592,7 @@ RAW example manifests must follow these rules:
 - [ ] All JSON/IAM policy comparisons use semantic equality (`jsonEqual()`, `native.PoliciesAreEquivalent()`) — never string `!=` or `reflect.DeepEqual` on JSON strings
 - [ ] For every field where `isUpToDate` returns `false`, the `Update` method handles that same value (no silent no-ops that cause infinite reconciliation)
 - [ ] Multi-version resources implement `Hub()` on the hub version, `ConvertTo()`/`ConvertFrom()` on spoke versions **immediately** — not deferred to cutover (see §17)
+- [ ] After fixing a cross-cutting issue, grep **all** migrated services for the same pattern (e.g., `grep -r 'config/cluster/common' apis/namespaced/*/native/`) — bugs like wrong-scope extractors recur via copy-paste
 
 ---
 
