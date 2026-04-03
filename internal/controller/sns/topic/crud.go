@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
 	snstypes "github.com/aws/aws-sdk-go-v2/service/sns/types"
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
@@ -259,7 +260,7 @@ func topicARN(cr TopicCR) string {
 		return *obs.Arn
 	}
 	extName := meta.GetExternalName(cr)
-	if strings.HasPrefix(extName, "arn:aws:sns:") {
+	if awsarn.IsARN(extName) {
 		return extName
 	}
 	return ""
@@ -274,7 +275,7 @@ func topicNameFromCR(cr TopicCR) string {
 	extName := meta.GetExternalName(cr)
 	if extName != "" && extName != cr.GetName() {
 		// If the external name is a full SNS ARN, extract just the topic name.
-		if strings.HasPrefix(extName, "arn:aws:sns:") {
+		if awsarn.IsARN(extName) {
 			return nameFromARN(extName)
 		}
 		return extName
