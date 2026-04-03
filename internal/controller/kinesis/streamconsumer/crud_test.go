@@ -236,7 +236,8 @@ func TestObserve_DELETING(t *testing.T) {
 }
 
 // TestObserve_ACTIVE_UpToDate verifies that an ACTIVE consumer with matching
-// spec returns ResourceExists=true, ResourceUpToDate=true.
+// spec returns ResourceExists=true, ResourceUpToDate=true, and sets the
+// Available condition (Ready=True).
 func TestObserve_ACTIVE_UpToDate(t *testing.T) {
 	cr := newTestCR("my-consumer", testConsumerARN)
 
@@ -258,6 +259,11 @@ func TestObserve_ACTIVE_UpToDate(t *testing.T) {
 	}
 	if !obs.ResourceUpToDate {
 		t.Error("expected ResourceUpToDate=true when spec matches AWS state")
+	}
+	// ACTIVE consumer must set the Available (Ready=True) condition.
+	cond := cr.GetCondition(xpv1.TypeReady)
+	if cond.Status != "True" {
+		t.Errorf("expected Ready=True (Available) for ACTIVE consumer, got status=%v reason=%v", cond.Status, cond.Reason)
 	}
 }
 

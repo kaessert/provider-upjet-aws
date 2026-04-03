@@ -111,6 +111,7 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StreamConsumerCR) (mana
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
+	cr.SetConditions(xpv1.Available())
 	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
 
 	return managed.ExternalObservation{

@@ -313,7 +313,11 @@ spec:
                 || ''Update'' in self.managementPolicies) || has(self.forProvider.policy)
                 || (has(self.initProvider) && has(self.initProvider.policy))'
           status:
-            description: QueuePolicyRAWStatus defines the observed state of QueuePolicyRAW.
+            description: |-
+              QueuePolicyRAWStatus defines the observed state of QueuePolicyRAW.
+              Note: using xpv1.ResourceStatus (not ConditionedStatus) so that angryjet's
+              ManagedV2() matcher recognises this as a v2-style managed resource and
+              generates zz_generated.resolvers.go for this package.
             properties:
               atProvider:
                 description: AtProvider holds the provider-specific observation fields
@@ -372,6 +376,13 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the latest metadata.generation
+                  which resulted in either a ready state, or stalled due to error
+                  it can not recover from without human intervention.
+                format: int64
+                type: integer
             type: object
         required:
         - spec

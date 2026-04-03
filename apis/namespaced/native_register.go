@@ -24,6 +24,7 @@ package namespaced
 
 import (
 	nativekinesis "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta1/native"
+	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta2/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
 	nativesns "github.com/upbound/provider-aws/v2/apis/namespaced/sns/v1beta1/native"
 	nativesqs "github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native"
@@ -33,6 +34,10 @@ func init() {
 	// Register native kinesis types (StreamRAW, StreamConsumerRAW and their list
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativekinesis.SchemeBuilder.AddToScheme)
+
+	// Register native kinesis v1beta2 types (StreamRAW served-but-not-stored alias)
+	// so that the API server accepts manifests using kinesis.aws.m.upbound.io/v1beta2.
+	AddToSchemes = append(AddToSchemes, nativekinesis2.SchemeBuilder.AddToScheme)
 
 	// Register native sfn types (StateMachineRAW and StateMachineRAWList)
 	// so that the controller manager can discover and watch them.
