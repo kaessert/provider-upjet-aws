@@ -104,21 +104,37 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 	cr.SetAtProvider(observationFromSDK(sc))
 
 	// Handle async in-progress and terminal states.
+	// Note: AWS ElastiCache API returns lowercase status values for ServerlessCache
+	// (e.g., "creating", "available", "create-failed"), not uppercase.
 	switch status {
-	case "CREATING":
+	case "creating":
 		cr.SetConditions(xpv1.Unavailable())
 		return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
-	case "MODIFYING":
+	case "modifying":
 		cr.SetConditions(xpv1.Unavailable())
 		return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
-	case "DELETING":
+	case "deleting":
 		cr.SetConditions(xpv1.Deleting())
 		return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
-	case "CREATE-FAILED":
+	case "create-failed":
+		// Auto-recovery: delete the failed resource so the controller can recreate it.
+		// AWS allows deleting create-failed resources. After deletion, the next
+		// Observe call will see NotFound → ResourceExists=false → Create is triggered.
 		nativehelper.ClearAsyncState(cr)
-		return managed.ExternalObservation{ResourceExists: true},
-			fmt.Errorf("serverless cache creation failed")
-	case "AVAILABLE":
+		cr.SetConditions(xpv1.Unavailable())
+		_, delErr := e.Client.DeleteServerlessCache(ctx, &awselasticache.DeleteServerlessCacheInput{
+			ServerlessCacheName: aws.String(extName),
+		})
+		if delErr != nil && !nativehelper.IsNotFound(delErr) {
+			// Delete failed; surface the error so it appears in the CR status.
+			return managed.ExternalObservation{ResourceExists: true},
+				fmt.Errorf("serverless cache is in create-failed state and could not be deleted for recovery: %w", delErr)
+		}
+		// Delete initiated successfully (or resource already gone).
+		// Return ResourceExists=true, ResourceUpToDate=true to let the deletion
+		// complete on the next poll (when status becomes "deleting" or NotFound).
+		return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
+	case "available":
 		// Clear any stale async annotation from a previous create/modify operation.
 		nativehelper.ClearAsyncState(cr)
 		cr.SetConditions(xpv1.Available())

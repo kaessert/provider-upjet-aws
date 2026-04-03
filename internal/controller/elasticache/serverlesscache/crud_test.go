@@ -91,12 +91,12 @@ func newTestCR(name, extName string) *clusternative.ServerlessCacheRAW {
 	return cr
 }
 
-// availableServerlessCache returns a minimal AVAILABLE serverless cache.
+// availableServerlessCache returns a minimal available serverless cache.
 func availableServerlessCache(name, arn string) ectypes.ServerlessCache {
 	return ectypes.ServerlessCache{
 		ServerlessCacheName: aws.String(name),
 		ARN:                 aws.String(arn),
-		Status:              aws.String("AVAILABLE"),
+		Status:              aws.String("available"),
 		Engine:              aws.String("redis"),
 	}
 }
@@ -150,7 +150,7 @@ func TestObserve_Status_CREATING_ReturnsUnavailableUpToDate(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("CREATING"),
+						Status:              aws.String("creating"),
 					},
 				},
 			}, nil
@@ -162,12 +162,12 @@ func TestObserve_Status_CREATING_ReturnsUnavailableUpToDate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for CREATING status")
+		t.Error("expected ResourceExists=true for creating status")
 	}
 	if !obs.ResourceUpToDate {
-		t.Error("expected ResourceUpToDate=true for CREATING status (no spurious Update)")
+		t.Error("expected ResourceUpToDate=true for creating status (no spurious Update)")
 	}
-	// Endpoint is nil during CREATING — nil-guard test
+	// Endpoint is nil during creating — nil-guard test
 	// No panic should occur
 }
 
@@ -194,13 +194,13 @@ func TestObserve_Status_AVAILABLE_ClearsAsyncState(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for AVAILABLE status")
+		t.Error("expected ResourceExists=true for available status")
 	}
 
 	// Async state should be cleared
 	asyncState := native.GetAsyncState(cr)
 	if asyncState != nil {
-		t.Errorf("expected async state to be cleared when AVAILABLE, got: %+v", asyncState)
+		t.Errorf("expected async state to be cleared when available, got: %+v", asyncState)
 	}
 }
 
@@ -213,7 +213,7 @@ func TestObserve_Status_MODIFYING_ReturnsUnavailableUpToDate(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("MODIFYING"),
+						Status:              aws.String("modifying"),
 					},
 				},
 			}, nil
@@ -225,10 +225,10 @@ func TestObserve_Status_MODIFYING_ReturnsUnavailableUpToDate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for MODIFYING status")
+		t.Error("expected ResourceExists=true for modifying status")
 	}
 	if !obs.ResourceUpToDate {
-		t.Error("expected ResourceUpToDate=true for MODIFYING status (no spurious Update)")
+		t.Error("expected ResourceUpToDate=true for modifying status (no spurious Update)")
 	}
 }
 
@@ -241,7 +241,7 @@ func TestObserve_Status_DELETING_ReturnsDeletingUpToDate(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("DELETING"),
+						Status:              aws.String("deleting"),
 					},
 				},
 			}, nil
@@ -253,14 +253,14 @@ func TestObserve_Status_DELETING_ReturnsDeletingUpToDate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for DELETING status")
+		t.Error("expected ResourceExists=true for deleting status")
 	}
 	if !obs.ResourceUpToDate {
-		t.Error("expected ResourceUpToDate=true for DELETING status")
+		t.Error("expected ResourceUpToDate=true for deleting status")
 	}
 }
 
-func TestObserve_Status_CREATEFAILED_ReturnsError(t *testing.T) {
+func TestObserve_Status_CREATEFAILED_AutoRecovery(t *testing.T) {
 	cr := newTestCR("my-cache", testCacheName)
 	// Set async state as if a create was in progress
 	native.SetAsyncState(cr, native.AsyncState{
@@ -269,6 +269,7 @@ func TestObserve_Status_CREATEFAILED_ReturnsError(t *testing.T) {
 		RequestID: "req-123",
 	})
 
+	var deleteCalled bool
 	e := &ExternalClient{Client: &mockElastiCacheClient{
 		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
 			return &awselasticache.DescribeServerlessCachesOutput{
@@ -276,22 +277,36 @@ func TestObserve_Status_CREATEFAILED_ReturnsError(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("CREATE-FAILED"),
+						Status:              aws.String("create-failed"),
 					},
 				},
 			}, nil
 		},
+		deleteServerlessCacheFn: func(_ context.Context, params *awselasticache.DeleteServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.DeleteServerlessCacheOutput, error) {
+			deleteCalled = true
+			return &awselasticache.DeleteServerlessCacheOutput{}, nil
+		},
 	}}
 
-	_, err := e.Observe(context.Background(), cr)
-	if err == nil {
-		t.Error("expected error for CREATE-FAILED status")
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Errorf("expected no error for create-failed (auto-recovery), got: %v", err)
+	}
+	// Auto-recovery: delete was initiated, treat as still-existing until deleted
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true during create-failed auto-recovery")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true during create-failed auto-recovery (waiting for delete)")
+	}
+	if !deleteCalled {
+		t.Error("expected DeleteServerlessCache to be called for auto-recovery")
 	}
 
 	// Async state should be cleared
 	asyncState := native.GetAsyncState(cr)
 	if asyncState != nil {
-		t.Errorf("expected async state to be cleared after CREATE-FAILED, got: %+v", asyncState)
+		t.Errorf("expected async state to be cleared after create-failed, got: %+v", asyncState)
 	}
 }
 
@@ -335,7 +350,7 @@ func TestObserve_ConnectionDetails_WithEndpoints(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("AVAILABLE"),
+						Status:              aws.String("available"),
 						Engine:              aws.String("redis"),
 						Endpoint: &ectypes.Endpoint{
 							Address: aws.String("my-cache.serverless.use1.cache.amazonaws.com"),
@@ -356,7 +371,7 @@ func TestObserve_ConnectionDetails_WithEndpoints(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for AVAILABLE status")
+		t.Error("expected ResourceExists=true for available status")
 	}
 
 	// Verify connection details key names (indexed format for backward compat)
@@ -394,7 +409,7 @@ func TestObserve_ConnectionDetails_WithEndpoints(t *testing.T) {
 
 func TestObserve_ConnectionDetails_NilEndpoint_NoNilPanic(t *testing.T) {
 	cr := newTestCR("my-cache", testCacheName)
-	// Set async state to "creating" to simulate CREATING state; endpoint should be nil.
+	// Set async state to "creating" to simulate creating state; endpoint should be nil.
 	native.SetAsyncState(cr, native.AsyncState{
 		Operation: "creating",
 		StartedAt: time.Now(),
@@ -408,9 +423,9 @@ func TestObserve_ConnectionDetails_NilEndpoint_NoNilPanic(t *testing.T) {
 					{
 						ServerlessCacheName: aws.String(testCacheName),
 						ARN:                 aws.String(testARN),
-						Status:              aws.String("CREATING"),
-						Endpoint:            nil, // nil endpoint during CREATING
-						ReaderEndpoint:      nil, // nil reader endpoint during CREATING
+						Status:              aws.String("creating"),
+						Endpoint:            nil, // nil endpoint during creating
+						ReaderEndpoint:      nil, // nil reader endpoint during creating
 					},
 				},
 			}, nil
@@ -423,10 +438,10 @@ func TestObserve_ConnectionDetails_NilEndpoint_NoNilPanic(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !obs.ResourceExists {
-		t.Error("expected ResourceExists=true for CREATING status")
+		t.Error("expected ResourceExists=true for creating status")
 	}
 	if !obs.ResourceUpToDate {
-		t.Error("expected ResourceUpToDate=true for CREATING status")
+		t.Error("expected ResourceUpToDate=true for creating status")
 	}
 }
 
@@ -446,7 +461,7 @@ func TestCreate_Success_SetsAsyncState(t *testing.T) {
 				ServerlessCache: &ectypes.ServerlessCache{
 					ServerlessCacheName: aws.String(testCacheName),
 					ARN:                 aws.String(testARN),
-					Status:              aws.String("CREATING"),
+					Status:              aws.String("creating"),
 				},
 			}, nil
 		},
@@ -488,7 +503,7 @@ func TestUpdate_Success_SetsAsyncState(t *testing.T) {
 				ServerlessCache: &ectypes.ServerlessCache{
 					ServerlessCacheName: aws.String(testCacheName),
 					ARN:                 aws.String(testARN),
-					Status:              aws.String("MODIFYING"),
+					Status:              aws.String("modifying"),
 				},
 			}, nil
 		},
@@ -528,7 +543,7 @@ func TestDelete_Success_SetsAsyncState(t *testing.T) {
 				ServerlessCache: &ectypes.ServerlessCache{
 					ServerlessCacheName: aws.String(testCacheName),
 					ARN:                 aws.String(testARN),
-					Status:              aws.String("DELETING"),
+					Status:              aws.String("deleting"),
 				},
 			}, nil
 		},
