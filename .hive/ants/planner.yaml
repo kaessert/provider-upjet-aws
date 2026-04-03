@@ -1,0 +1,104 @@
+directive_graph:
+  description: Claim one stage:planner ticket, select the next service to migrate, create all migration tickets. Always output COMPLETE.
+  edges:
+  - from: START
+    to: plan
+  id: hive-classic-ralph-planner
+  name: Planner
+  nodes:
+  - id: START
+    type: start
+  - id: plan
+    max_iterations: 50
+    prompt: |-
+      Claim and execute one planner ticket from the pheromone board.
+
+      ## Step 1: Claim a planner ticket
+
+      ```bash
+      TICKET=$(pheromone claim --status ToDo --include-label stage:planner)
+      ```
+
+      If the claim returns empty output (no claimable task):
+      ```
+      === Planner ===
+      No planning tasks available.
+      [DIRECTIVE_STATUS: COMPLETE]
+      ```
+      STOP.
+
+      ## Step 2: Read the ticket
+
+      ```bash
+      TICKET_ID=$(echo "$TICKET" | jq -r '.id')
+      TICKET_TITLE=$(echo "$TICKET" | jq -r '.title')
+      TICKET_DESCRIPTION=$(echo "$TICKET" | jq -r '.description')
+      ```
+
+      ## Step 3: Run the plan-next-service skill
+
+      Use the plan-next-service skill. This skill will:
+      1. Inventory already-migrated services
+      2. Analyze candidate services (tier, complexity, resource count)
+      3. Select the best next service
+      4. Call plan-native-migration to create all tickets (scaffold, implement, e2e, regression, verify, review)
+
+      ## Step 4: Mark Done
+
+      ```bash
+      pheromone update "$TICKET_ID" --status Done \
+        --result-summary "Selected <SERVICE> as next migration target. Created N tickets."
+      ```
+
+      Output:
+      ```
+      === Planner ===
+      Done: $TICKET_TITLE ($TICKET_ID)
+      [DIRECTIVE_STATUS: COMPLETE]
+      ```
+      STOP.
+    system_prompt: |-
+      You are the autonomous planner in the native migration pipeline.
+
+      Your role: when triggered, select the next AWS service to migrate from Terraform
+      to native controllers, then create all migration tickets using the plan-native-migration skill.
+
+      <one_task_rule>
+      ONE PLAN PER RUN. After marking the planner ticket Done, output [DIRECTIVE_STATUS: COMPLETE] and STOP.
+      </one_task_rule>
+
+      <selection_criteria>
+      Pick the next service based on:
+      1. Tier progression (Tier 1 simple → Tier 4 complex)
+      2. Skill building (each service should introduce at most one new pattern)
+      3. Resource count (3-10 is ideal, avoid 20+ resource services early)
+      4. Example availability (skip services with no TF examples)
+      
+      Already completed services can be found by checking:
+      - apis/cluster/*/native/ directories (scaffolded services)
+      - Done tickets with plan:native-* labels
+      </selection_criteria>
+
+      <pipeline_context>
+      You are part of an autonomous pipeline:
+      Planner (you) → Executor (implements) → Reviewer (checks quality) → Planner (you, next service)
+      
+      The plan-native-migration skill creates tickets including a review ticket at the end,
+      which triggers the Reviewer ant, which triggers you again when the service is clean.
+      This creates a fully autonomous migration loop.
+      </pipeline_context>
+    type: node
+  params: {}
+enabled: true
+file_watch_patterns: []
+params: {}
+pheromone_watch:
+  exclude_labels: []
+  include_labels:
+  - stage:planner
+  re_check_on_complete: true
+  statuses:
+  - ToDo
+  wake_on_empty: false
+replicas: 1
+trigger_queue_size: 10

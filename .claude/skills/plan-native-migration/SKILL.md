@@ -1207,6 +1207,46 @@ Overall: N/N PASS → MIGRATION READY
 
 ---
 
+## Step 10b: Create Review Ticket
+
+Create one review ticket that triggers the autonomous review loop after verification.
+This ticket is picked up by the **reviewer ant** (not the executor).
+
+```
+CreateTicket:
+  id:          native-<SERVICE>-review
+  title:       Review native <SERVICE> migration (round 1)
+  plan:        native-<SERVICE>
+  labels:      ["stage:reviewer"]
+  priority:    High
+  depends_on:  ["native-<SERVICE>-verify"]
+```
+
+**Description** (verbatim):
+```
+Review the completed native migration for <SERVICE>.
+
+Run the review-and-fix skill for <SERVICE>. This will:
+1. Review all code, tests, types, and examples
+2. Check parity against TF types  
+3. If issues found → create fix tickets (stage:executor) + e2e retest + follow-up review
+4. If clean → create a planner ticket (stage:planner) to trigger next service migration
+
+Service: <SERVICE>
+Resources: <N> total
+Plan: native-<SERVICE>
+Round: 1
+```
+
+**Acceptance criteria** (as array):
+```
+["Review completed for all <N> resources",
+ "All critical/medium issues have fix tickets created OR no issues found",
+ "Either follow-up review ticket created (issues found) or planner ticket created (clean)"]
+```
+
+---
+
 ## ~~Step 11: Cutover~~ — NOT created per service
 
 Cutover (renaming RAW → original, removing TF scaffolding) is a **global operation** done once
@@ -1245,8 +1285,9 @@ Executor ant will pick up stage:executor tickets automatically.
   Phase e2e:        <N> tickets  (native-<SERVICE>-*-e2e)
   Phase regression: 1 ticket     (native-<SERVICE>-tf-regression)
   Phase verify:     1 ticket     (native-<SERVICE>-verify)
+  Phase review:     1 ticket     (native-<SERVICE>-review) → stage:reviewer
   ─────────────────────────────────────────────────────────
-  TOTAL:            <2N+3> tickets
+  TOTAL:            <2N+4> tickets
 
 ### Dependency Chain
   baseline (all TF e2e) ──┐
