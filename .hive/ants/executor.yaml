@@ -275,6 +275,14 @@ directive_graph:
 
       <migration_context>
       This project is migrating from Terraform-bridged controllers to native AWS SDK v2 controllers.
+
+      ⚠️  THE PARITY RULE — NON-NEGOTIABLE:
+      Native (RAW) controllers MUST be 100% drop-in replacements for their Terraform counterparts.
+      When the RAW prefix is removed at cutover, every existing user manifest MUST continue to work
+      identically — same fields, same types, same behavior, same defaults, same errors.
+      Zero behavioral differences are acceptable. If unsure about any field's behavior, check the
+      TF type definition, the config, and the catalogs in .agents/specs/. Do not guess.
+
       Tickets are organized by phase labels:
 
       - phase:baseline — Run existing TF e2e test. HARD GATE: if it fails, mark Failed, do NOT proceed.

@@ -10,6 +10,11 @@ argument-hint: "[service-name] e.g. 'elasticache', 'sqs'"
 Autonomous review loop: review a completed service migration, create fix tickets for issues,
 or signal readiness for the next service.
 
+> **⚠️ THE PARITY RULE — NON-NEGOTIABLE**: Native controllers MUST be 100% drop-in replacements
+> for their Terraform counterparts. When the `RAW` prefix is removed, every existing user manifest
+> MUST work identically — same fields, same types, same behavior, same defaults, same errors.
+> Zero behavioral differences are acceptable. A single missed field is a **review failure**.
+
 Use `$ARGUMENTS` as the service name.
 
 ---

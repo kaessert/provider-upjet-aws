@@ -6,6 +6,38 @@
 
 ---
 
+## ⚠️  THE PARITY RULE — NON-NEGOTIABLE
+
+**Native (RAW) controllers MUST be 100% drop-in replacements for their Terraform counterparts.**
+
+When the `RAW` prefix is removed at cutover, every existing user manifest MUST continue
+to work identically — same fields, same types, same behavior, same defaults, same errors.
+Zero behavioral differences are acceptable.
+
+This means:
+- **Same CRD schema**: Every field in the TF type exists in the RAW type with the identical
+  `json:` tag and identical Go type (including `*string` where TF uses `*string`, even if
+  the AWS SDK uses `*bool`). No added fields, no removed fields, no renamed fields.
+- **Same external name strategy**: The RAW controller resolves and stores external names
+  using the exact same pattern as defined in `config/externalname.go`.
+- **Same references**: Every cross-resource reference from `config.go` AND `overrides.go`
+  `KnownReferencers` is present with identical `Ref`/`Selector` field names.
+- **Same connection details**: The RAW controller publishes the exact same keys with the
+  same values as the TF controller (see `connection-details-catalog.json`).
+- **Same late initialization**: Fields are late-initialized from AWS defaults using the same
+  ignore list as the TF `LateInitializer.IgnoredFields` configuration.
+- **Same drift detection**: `isUpToDate` compares all mutable fields, skips computed-only
+  fields, and suppresses the same diffs as TF's `TerraformCustomDiff`.
+- **Same async behavior**: Resources with `UseAsync = true` use async annotations for all
+  three CRUD operations and poll status identically.
+- **Same error behavior**: NotFound returns `ResourceExists: false`, Delete is idempotent,
+  transitional states return `ResourceUpToDate: true` to prevent spurious Updates.
+
+**If you are unsure whether a native controller matches TF behavior for ANY field,
+check the TF type definition, the config, and the catalogs. Do not guess.**
+
+---
+
 ## 0. Quick Reference — Package Map
 
 | Purpose | Import path |

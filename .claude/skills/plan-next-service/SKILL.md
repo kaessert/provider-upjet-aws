@@ -9,6 +9,10 @@ argument-hint: "[completed-service] e.g. 'after elasticache'"
 
 Autonomously select the next AWS service for native migration and create all tickets.
 
+> **⚠️ THE PARITY RULE — NON-NEGOTIABLE**: Every native controller produced by this pipeline
+> MUST be a 100% drop-in replacement for its Terraform counterpart. When the `RAW` prefix is
+> removed at cutover, every existing user manifest MUST work identically. Zero differences.
+
 ---
 
 ## Step 1: Inventory Completed Services

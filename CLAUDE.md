@@ -330,6 +330,11 @@ cosmetic `zz_*` diffs from tool-version variance.  Use `make generate.native` fo
 
 ### Migration Strategy
 
+> **⚠️ THE PARITY RULE**: Native controllers MUST be 100% drop-in replacements for their
+> Terraform counterparts. When the `RAW` prefix is removed, every existing user manifest
+> MUST work identically — same fields, same types, same behavior, same defaults, same errors.
+> Zero behavioral differences are acceptable. See `.agents/specs/native-controller-pattern.md` §0.
+
 - **Parallel coexistence**: `Kind: Bucket` (TF) + `Kind: BucketRAW` (native) run simultaneously
 - **YAML compatibility**: RAW types produce identical CRD schema (same json tags, no `tf:` tags)
 - **Rolling cutover**: Per-service, 4 tiers from simple to complex (EC2 last)

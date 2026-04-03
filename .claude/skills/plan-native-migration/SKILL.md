@@ -17,6 +17,12 @@ Create all pheromone tickets required to migrate one AWS service from Terraform-
 controllers to native AWS SDK v2 controllers. Follow each step in order — the output is a
 complete dependency-chained ticket graph that the executor ant can work through autonomously.
 
+> **⚠️ THE PARITY RULE — NON-NEGOTIABLE**: Every native controller produced by this plan MUST
+> be a 100% drop-in replacement for its Terraform counterpart. When the `RAW` prefix is removed
+> at cutover, every existing user manifest MUST work identically — same fields, same types, same
+> behavior, same defaults, same errors. Zero behavioral differences are acceptable. This rule must
+> be reflected in every ticket's acceptance criteria.
+
 This skill generates approximately 7 + (4 × N) tickets per service, where N is the number
 of resources. For a 2-resource service like `sfn`, that is 15 tickets total.
 

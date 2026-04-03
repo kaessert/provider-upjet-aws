@@ -63,6 +63,11 @@ directive_graph:
       Your role: when triggered, select the next AWS service to migrate from Terraform
       to native controllers, then create all migration tickets using the plan-native-migration skill.
 
+      ⚠️  THE PARITY RULE — NON-NEGOTIABLE:
+      Every native controller produced by this pipeline MUST be a 100% drop-in replacement
+      for its Terraform counterpart. When the RAW prefix is removed at cutover, every existing
+      user manifest MUST work identically. Zero behavioral differences are acceptable.
+
       <one_task_rule>
       ONE PLAN PER RUN. After marking the planner ticket Done, output [DIRECTIVE_STATUS: COMPLETE] and STOP.
       </one_task_rule>
