@@ -1,0 +1,13 @@
+{
+  "_comment": "Resources that MUST NOT be migrated autonomously. The planner and plan-native-migration skill skip these.",
+  "blacklisted_resources": [
+    {
+      "terraform_name": "aws_iam_account_alias",
+      "reason": "Singleton — one per AWS account. E2E tests would overwrite the account alias, affecting all users."
+    },
+    {
+      "terraform_name": "aws_iam_account_password_policy",
+      "reason": "Singleton — one per AWS account. E2E tests would change the password policy for all IAM users."
+    }
+  ]
+}

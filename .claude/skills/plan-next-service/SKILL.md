@@ -66,6 +66,9 @@ Apply these criteria in order:
 2. **Skill building**: Choose services that introduce one new complexity at a time
 3. **Resource count**: Prefer 3-10 resources (manageable batch)
 4. **Example availability**: Skip services with no examples (can't e2e test)
+5. **Blacklist**: Read `.agents/specs/resource-blacklist.json` — skip any blacklisted resources
+   when counting a service's resource total. If ALL resources in a service are blacklisted,
+   skip the entire service.
 
 If there's a spec at `.agents/specs/native-tier3-pattern.md` or similar that covers the
 selected service, note it. If not, the plan-native-migration skill will handle discovery.

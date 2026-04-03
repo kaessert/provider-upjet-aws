@@ -39,6 +39,9 @@ Before creating any tickets, read both specs in full:
    architecture, Phase 0 prerequisites, per-service migration cycle (Steps 0–6), batch ordering,
    Per-Ticket Description Template, and the Plan Skill Design section (~line 658).
 
+3. **`.agents/specs/resource-blacklist.json`** — Resources that MUST NOT be migrated autonomously.
+   Skip any resource listed here when creating tickets. Do not scaffold, implement, or e2e test them.
+
 ---
 
 ## Step 1: Parse and Validate the Service Name
