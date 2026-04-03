@@ -73,7 +73,7 @@ type TopicSubscriptionRAWParameters struct {
 	// ARN of the IAM role to publish to Kinesis Data Firehose delivery stream.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SubscriptionRoleArn *string `json:"subscriptionRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate subscriptionRoleArn.
@@ -154,7 +154,7 @@ type TopicSubscriptionRAWInitParameters struct {
 	// ARN of the IAM role to publish to Kinesis Data Firehose delivery stream.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SubscriptionRoleArn *string `json:"subscriptionRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate subscriptionRoleArn.

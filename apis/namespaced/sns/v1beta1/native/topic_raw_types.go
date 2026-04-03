@@ -21,7 +21,7 @@ type TopicRAWParameters struct {
 	// IAM role for failure feedback for application endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	ApplicationFailureFeedbackRoleArn *string `json:"applicationFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate applicationFailureFeedbackRoleArn.
@@ -35,7 +35,7 @@ type TopicRAWParameters struct {
 	// IAM role permitted to receive success feedback for application endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	ApplicationSuccessFeedbackRoleArn *string `json:"applicationSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate applicationSuccessFeedbackRoleArn.
@@ -77,7 +77,7 @@ type TopicRAWParameters struct {
 	// IAM role for failure feedback for Firehose endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	FirehoseFailureFeedbackRoleArn *string `json:"firehoseFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate firehoseFailureFeedbackRoleArn.
@@ -91,7 +91,7 @@ type TopicRAWParameters struct {
 	// IAM role permitted to receive success feedback for Firehose endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	FirehoseSuccessFeedbackRoleArn *string `json:"firehoseSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate firehoseSuccessFeedbackRoleArn.
@@ -109,7 +109,7 @@ type TopicRAWParameters struct {
 	// IAM role for failure feedback for HTTP endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	HTTPFailureFeedbackRoleArn *string `json:"httpFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate httpFailureFeedbackRoleArn.
@@ -123,7 +123,7 @@ type TopicRAWParameters struct {
 	// IAM role permitted to receive success feedback for HTTP endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	HTTPSuccessFeedbackRoleArn *string `json:"httpSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate httpSuccessFeedbackRoleArn.
@@ -145,7 +145,7 @@ type TopicRAWParameters struct {
 	// IAM role for failure feedback for Lambda endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	LambdaFailureFeedbackRoleArn *string `json:"lambdaFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate lambdaFailureFeedbackRoleArn.
@@ -159,7 +159,7 @@ type TopicRAWParameters struct {
 	// IAM role permitted to receive success feedback for Lambda endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	LambdaSuccessFeedbackRoleArn *string `json:"lambdaSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate lambdaSuccessFeedbackRoleArn.
@@ -189,7 +189,7 @@ type TopicRAWParameters struct {
 	// IAM role for failure feedback for SQS endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SqsFailureFeedbackRoleArn *string `json:"sqsFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate sqsFailureFeedbackRoleArn.
@@ -203,7 +203,7 @@ type TopicRAWParameters struct {
 	// IAM role permitted to receive success feedback for SQS endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SqsSuccessFeedbackRoleArn *string `json:"sqsSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate sqsSuccessFeedbackRoleArn.
@@ -233,7 +233,7 @@ type TopicRAWInitParameters struct {
 	// IAM role for failure feedback for application endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	ApplicationFailureFeedbackRoleArn *string `json:"applicationFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate applicationFailureFeedbackRoleArn.
@@ -247,7 +247,7 @@ type TopicRAWInitParameters struct {
 	// IAM role permitted to receive success feedback for application endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	ApplicationSuccessFeedbackRoleArn *string `json:"applicationSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate applicationSuccessFeedbackRoleArn.
@@ -289,7 +289,7 @@ type TopicRAWInitParameters struct {
 	// IAM role for failure feedback for Firehose endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	FirehoseFailureFeedbackRoleArn *string `json:"firehoseFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate firehoseFailureFeedbackRoleArn.
@@ -303,7 +303,7 @@ type TopicRAWInitParameters struct {
 	// IAM role permitted to receive success feedback for Firehose endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	FirehoseSuccessFeedbackRoleArn *string `json:"firehoseSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate firehoseSuccessFeedbackRoleArn.
@@ -321,7 +321,7 @@ type TopicRAWInitParameters struct {
 	// IAM role for failure feedback for HTTP endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	HTTPFailureFeedbackRoleArn *string `json:"httpFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate httpFailureFeedbackRoleArn.
@@ -335,7 +335,7 @@ type TopicRAWInitParameters struct {
 	// IAM role permitted to receive success feedback for HTTP endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	HTTPSuccessFeedbackRoleArn *string `json:"httpSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate httpSuccessFeedbackRoleArn.
@@ -357,7 +357,7 @@ type TopicRAWInitParameters struct {
 	// IAM role for failure feedback for Lambda endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	LambdaFailureFeedbackRoleArn *string `json:"lambdaFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate lambdaFailureFeedbackRoleArn.
@@ -371,7 +371,7 @@ type TopicRAWInitParameters struct {
 	// IAM role permitted to receive success feedback for Lambda endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	LambdaSuccessFeedbackRoleArn *string `json:"lambdaSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate lambdaSuccessFeedbackRoleArn.
@@ -397,7 +397,7 @@ type TopicRAWInitParameters struct {
 	// IAM role for failure feedback for SQS endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SqsFailureFeedbackRoleArn *string `json:"sqsFailureFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate sqsFailureFeedbackRoleArn.
@@ -411,7 +411,7 @@ type TopicRAWInitParameters struct {
 	// IAM role permitted to receive success feedback for SQS endpoints.
 	// +kubebuilder:validation:Optional
 	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1.Role
-	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/cluster/common.ARNExtractor()
+	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/config/namespaced/common.ARNExtractor()
 	SqsSuccessFeedbackRoleArn *string `json:"sqsSuccessFeedbackRoleArn,omitempty"`
 
 	// Reference to a Role in iam to populate sqsSuccessFeedbackRoleArn.

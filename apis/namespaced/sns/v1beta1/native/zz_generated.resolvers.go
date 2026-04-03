@@ -11,8 +11,7 @@ import (
 	errors "github.com/pkg/errors"
 	v1beta1 "github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1"
 	v1beta11 "github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1"
-	common "github.com/upbound/provider-aws/v2/config/cluster/common"
-	common1 "github.com/upbound/provider-aws/v2/config/namespaced/common"
+	common "github.com/upbound/provider-aws/v2/config/namespaced/common"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -375,7 +374,7 @@ func (mg *TopicSubscriptionRAW) ResolveReferences(ctx context.Context, c client.
 
 	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.Endpoint),
-		Extract:      common1.ARNExtractor(),
+		Extract:      common.ARNExtractor(),
 		Namespace:    mg.GetNamespace(),
 		Reference:    mg.Spec.ForProvider.EndpointRef,
 		Selector:     mg.Spec.ForProvider.EndpointSelector,
@@ -409,7 +408,7 @@ func (mg *TopicSubscriptionRAW) ResolveReferences(ctx context.Context, c client.
 
 	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.TopicArn),
-		Extract:      common1.ARNExtractor(),
+		Extract:      common.ARNExtractor(),
 		Namespace:    mg.GetNamespace(),
 		Reference:    mg.Spec.ForProvider.TopicArnRef,
 		Selector:     mg.Spec.ForProvider.TopicArnSelector,
@@ -426,7 +425,7 @@ func (mg *TopicSubscriptionRAW) ResolveReferences(ctx context.Context, c client.
 
 	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.Endpoint),
-		Extract:      common1.ARNExtractor(),
+		Extract:      common.ARNExtractor(),
 		Namespace:    mg.GetNamespace(),
 		Reference:    mg.Spec.InitProvider.EndpointRef,
 		Selector:     mg.Spec.InitProvider.EndpointSelector,
@@ -460,7 +459,7 @@ func (mg *TopicSubscriptionRAW) ResolveReferences(ctx context.Context, c client.
 
 	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.TopicArn),
-		Extract:      common1.ARNExtractor(),
+		Extract:      common.ARNExtractor(),
 		Namespace:    mg.GetNamespace(),
 		Reference:    mg.Spec.InitProvider.TopicArnRef,
 		Selector:     mg.Spec.InitProvider.TopicArnSelector,
