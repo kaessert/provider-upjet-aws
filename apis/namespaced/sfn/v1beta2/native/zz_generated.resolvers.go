@@ -11,7 +11,7 @@ import (
 	errors "github.com/pkg/errors"
 	v1beta11 "github.com/upbound/provider-aws/v2/apis/namespaced/iam/v1beta1"
 	v1beta1 "github.com/upbound/provider-aws/v2/apis/namespaced/kms/v1beta1"
-	common "github.com/upbound/provider-aws/v2/config/cluster/common"
+	common "github.com/upbound/provider-aws/v2/config/namespaced/common"
 	native "github.com/upbound/provider-aws/v2/internal/native"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
