@@ -1,0 +1,608 @@
+// SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package serverlesscache
+
+import (
+	"context"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
+	ectypes "github.com/aws/aws-sdk-go-v2/service/elasticache/types"
+	smithy "github.com/aws/smithy-go"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	clusternative "github.com/upbound/provider-aws/v2/apis/cluster/elasticache/v1beta1/native"
+	"github.com/upbound/provider-aws/v2/internal/native"
+)
+
+// ── Mock client ────────────────────────────────────────────────────────────────
+
+type mockElastiCacheClient struct {
+	createServerlessCacheFn    func(ctx context.Context, params *awselasticache.CreateServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.CreateServerlessCacheOutput, error)
+	describeServerlessCachesFn func(ctx context.Context, params *awselasticache.DescribeServerlessCachesInput, optFns ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error)
+	modifyServerlessCacheFn    func(ctx context.Context, params *awselasticache.ModifyServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.ModifyServerlessCacheOutput, error)
+	deleteServerlessCacheFn    func(ctx context.Context, params *awselasticache.DeleteServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.DeleteServerlessCacheOutput, error)
+	listTagsForResourceFn      func(ctx context.Context, params *awselasticache.ListTagsForResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.ListTagsForResourceOutput, error)
+	addTagsToResourceFn        func(ctx context.Context, params *awselasticache.AddTagsToResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.AddTagsToResourceOutput, error)
+	removeTagsFromResourceFn   func(ctx context.Context, params *awselasticache.RemoveTagsFromResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.RemoveTagsFromResourceOutput, error)
+}
+
+func (m *mockElastiCacheClient) CreateServerlessCache(ctx context.Context, params *awselasticache.CreateServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.CreateServerlessCacheOutput, error) {
+	return m.createServerlessCacheFn(ctx, params, optFns...)
+}
+func (m *mockElastiCacheClient) DescribeServerlessCaches(ctx context.Context, params *awselasticache.DescribeServerlessCachesInput, optFns ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+	return m.describeServerlessCachesFn(ctx, params, optFns...)
+}
+func (m *mockElastiCacheClient) ModifyServerlessCache(ctx context.Context, params *awselasticache.ModifyServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.ModifyServerlessCacheOutput, error) {
+	return m.modifyServerlessCacheFn(ctx, params, optFns...)
+}
+func (m *mockElastiCacheClient) DeleteServerlessCache(ctx context.Context, params *awselasticache.DeleteServerlessCacheInput, optFns ...func(*awselasticache.Options)) (*awselasticache.DeleteServerlessCacheOutput, error) {
+	return m.deleteServerlessCacheFn(ctx, params, optFns...)
+}
+func (m *mockElastiCacheClient) ListTagsForResource(ctx context.Context, params *awselasticache.ListTagsForResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.ListTagsForResourceOutput, error) {
+	if m.listTagsForResourceFn != nil {
+		return m.listTagsForResourceFn(ctx, params, optFns...)
+	}
+	return &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}}, nil
+}
+func (m *mockElastiCacheClient) AddTagsToResource(ctx context.Context, params *awselasticache.AddTagsToResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.AddTagsToResourceOutput, error) {
+	if m.addTagsToResourceFn != nil {
+		return m.addTagsToResourceFn(ctx, params, optFns...)
+	}
+	return &awselasticache.AddTagsToResourceOutput{}, nil
+}
+func (m *mockElastiCacheClient) RemoveTagsFromResource(ctx context.Context, params *awselasticache.RemoveTagsFromResourceInput, optFns ...func(*awselasticache.Options)) (*awselasticache.RemoveTagsFromResourceOutput, error) {
+	if m.removeTagsFromResourceFn != nil {
+		return m.removeTagsFromResourceFn(ctx, params, optFns...)
+	}
+	return &awselasticache.RemoveTagsFromResourceOutput{}, nil
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+const (
+	testCacheName = "my-serverless-cache"
+	testRegion    = "us-east-1"
+	testARN       = "arn:aws:elasticache:us-east-1:123456789012:serverlesscache:my-serverless-cache"
+)
+
+// newTestCR builds a minimal cluster-scoped ServerlessCacheRAW for tests.
+func newTestCR(name, extName string) *clusternative.ServerlessCacheRAW {
+	cr := &clusternative.ServerlessCacheRAW{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Annotations: map[string]string{},
+		},
+		Spec: clusternative.ServerlessCacheRAWSpec{
+			ForProvider: clusternative.ServerlessCacheRAWParameters{
+				Region: aws.String(testRegion),
+				Engine: aws.String("redis"),
+			},
+		},
+	}
+	if extName != "" {
+		native.SetExternalName(cr, extName)
+	}
+	return cr
+}
+
+// availableServerlessCache returns a minimal AVAILABLE serverless cache.
+func availableServerlessCache(name, arn string) ectypes.ServerlessCache {
+	return ectypes.ServerlessCache{
+		ServerlessCacheName: aws.String(name),
+		ARN:                 aws.String(arn),
+		Status:              aws.String("AVAILABLE"),
+		Engine:              aws.String("redis"),
+	}
+}
+
+// notFoundError returns an AWS-style "not found" error for serverless cache.
+func notFoundError() error {
+	return &smithy.GenericAPIError{
+		Code:    "ServerlessCacheNotFoundFault",
+		Message: "Serverless cache not found",
+	}
+}
+
+// ── Observe tests ──────────────────────────────────────────────────────────────
+
+func TestObserve_EmptyExternalName(t *testing.T) {
+	cr := newTestCR("my-cache", "") // no external name
+	e := &ExternalClient{Client: &mockElastiCacheClient{}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false for empty external name")
+	}
+}
+
+func TestObserve_ResourceNotFound(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return nil, notFoundError()
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false when serverless cache not found")
+	}
+}
+
+func TestObserve_Status_CREATING_ReturnsUnavailableUpToDate(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("CREATING"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for CREATING status")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true for CREATING status (no spurious Update)")
+	}
+	// Endpoint is nil during CREATING — nil-guard test
+	// No panic should occur
+}
+
+func TestObserve_Status_AVAILABLE_ClearsAsyncState(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Set async state as if a create was in progress
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "creating",
+		StartedAt: time.Now(),
+		RequestID: "req-123",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			sc := availableServerlessCache(testCacheName, testARN)
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{sc},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for AVAILABLE status")
+	}
+
+	// Async state should be cleared
+	asyncState := native.GetAsyncState(cr)
+	if asyncState != nil {
+		t.Errorf("expected async state to be cleared when AVAILABLE, got: %+v", asyncState)
+	}
+}
+
+func TestObserve_Status_MODIFYING_ReturnsUnavailableUpToDate(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("MODIFYING"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for MODIFYING status")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true for MODIFYING status (no spurious Update)")
+	}
+}
+
+func TestObserve_Status_DELETING_ReturnsDeletingUpToDate(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("DELETING"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for DELETING status")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true for DELETING status")
+	}
+}
+
+func TestObserve_Status_CREATEFAILED_ReturnsError(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Set async state as if a create was in progress
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "creating",
+		StartedAt: time.Now(),
+		RequestID: "req-123",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("CREATE-FAILED"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	_, err := e.Observe(context.Background(), cr)
+	if err == nil {
+		t.Error("expected error for CREATE-FAILED status")
+	}
+
+	// Async state should be cleared
+	asyncState := native.GetAsyncState(cr)
+	if asyncState != nil {
+		t.Errorf("expected async state to be cleared after CREATE-FAILED, got: %+v", asyncState)
+	}
+}
+
+func TestObserve_NotFound_DeletingAsyncState_ReturnsResourceNotExists(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Simulate a delete that has completed (async state says "deleting", but resource is gone)
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "deleting",
+		StartedAt: time.Now(),
+		RequestID: "req-456",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return nil, notFoundError()
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false when NotFound with deleting asyncState")
+	}
+
+	// Async state should be cleared
+	asyncState := native.GetAsyncState(cr)
+	if asyncState != nil {
+		t.Errorf("expected async state to be cleared after delete completed, got: %+v", asyncState)
+	}
+}
+
+func TestObserve_ConnectionDetails_WithEndpoints(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("AVAILABLE"),
+						Engine:              aws.String("redis"),
+						Endpoint: &ectypes.Endpoint{
+							Address: aws.String("my-cache.serverless.use1.cache.amazonaws.com"),
+							Port:    aws.Int32(6379),
+						},
+						ReaderEndpoint: &ectypes.Endpoint{
+							Address: aws.String("my-cache.ro.serverless.use1.cache.amazonaws.com"),
+							Port:    aws.Int32(6379),
+						},
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for AVAILABLE status")
+	}
+
+	// Verify connection details key names (indexed format for backward compat)
+	cd := obs.ConnectionDetails
+	if cd == nil {
+		t.Fatal("expected non-nil connection details")
+	}
+
+	wantKeys := []string{
+		"endpoint_0_address",
+		"endpoint_0_port",
+		"reader_endpoint_0_address",
+		"reader_endpoint_0_port",
+	}
+	for _, k := range wantKeys {
+		if _, ok := cd[k]; !ok {
+			t.Errorf("expected connection detail key %q, not found; got keys: %v", k, keysOf(cd))
+		}
+	}
+
+	// Verify exact values
+	if got := string(cd["endpoint_0_address"]); got != "my-cache.serverless.use1.cache.amazonaws.com" {
+		t.Errorf("endpoint_0_address: want %q, got %q", "my-cache.serverless.use1.cache.amazonaws.com", got)
+	}
+	if got := string(cd["endpoint_0_port"]); got != "6379" {
+		t.Errorf("endpoint_0_port: want %q, got %q", "6379", got)
+	}
+	if got := string(cd["reader_endpoint_0_address"]); got != "my-cache.ro.serverless.use1.cache.amazonaws.com" {
+		t.Errorf("reader_endpoint_0_address: want %q, got %q", "my-cache.ro.serverless.use1.cache.amazonaws.com", got)
+	}
+	if got := string(cd["reader_endpoint_0_port"]); got != "6379" {
+		t.Errorf("reader_endpoint_0_port: want %q, got %q", "6379", got)
+	}
+}
+
+func TestObserve_ConnectionDetails_NilEndpoint_NoNilPanic(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	// Set async state to "creating" to simulate CREATING state; endpoint should be nil.
+	native.SetAsyncState(cr, native.AsyncState{
+		Operation: "creating",
+		StartedAt: time.Now(),
+		RequestID: "req-789",
+	})
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{
+					{
+						ServerlessCacheName: aws.String(testCacheName),
+						ARN:                 aws.String(testARN),
+						Status:              aws.String("CREATING"),
+						Endpoint:            nil, // nil endpoint during CREATING
+						ReaderEndpoint:      nil, // nil reader endpoint during CREATING
+					},
+				},
+			}, nil
+		},
+	}}
+
+	// This must not panic
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for CREATING status")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true for CREATING status")
+	}
+}
+
+// ── Create tests ───────────────────────────────────────────────────────────────
+
+func TestCreate_Success_SetsAsyncState(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+
+	var createCalled bool
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		createServerlessCacheFn: func(_ context.Context, params *awselasticache.CreateServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.CreateServerlessCacheOutput, error) {
+			createCalled = true
+			if aws.ToString(params.ServerlessCacheName) != testCacheName {
+				return nil, fmt.Errorf("unexpected cache name: %s", aws.ToString(params.ServerlessCacheName))
+			}
+			return &awselasticache.CreateServerlessCacheOutput{
+				ServerlessCache: &ectypes.ServerlessCache{
+					ServerlessCacheName: aws.String(testCacheName),
+					ARN:                 aws.String(testARN),
+					Status:              aws.String("CREATING"),
+				},
+			}, nil
+		},
+	}}
+
+	_, err := e.Create(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !createCalled {
+		t.Error("expected CreateServerlessCache to be called")
+	}
+
+	// Async state should be set with Operation="creating"
+	asyncState := native.GetAsyncState(cr)
+	if asyncState == nil {
+		t.Fatal("expected async state to be set after Create")
+	}
+	if asyncState.Operation != "creating" {
+		t.Errorf("expected async state Operation=creating, got %q", asyncState.Operation)
+	}
+}
+
+// ── Update tests ───────────────────────────────────────────────────────────────
+
+func TestUpdate_Success_SetsAsyncState(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	newDesc := "updated description"
+	cr.Spec.ForProvider.Description = &newDesc
+
+	var modifyCalled bool
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		modifyServerlessCacheFn: func(_ context.Context, params *awselasticache.ModifyServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.ModifyServerlessCacheOutput, error) {
+			modifyCalled = true
+			if aws.ToString(params.ServerlessCacheName) != testCacheName {
+				return nil, fmt.Errorf("unexpected cache name: %s", aws.ToString(params.ServerlessCacheName))
+			}
+			return &awselasticache.ModifyServerlessCacheOutput{
+				ServerlessCache: &ectypes.ServerlessCache{
+					ServerlessCacheName: aws.String(testCacheName),
+					ARN:                 aws.String(testARN),
+					Status:              aws.String("MODIFYING"),
+				},
+			}, nil
+		},
+	}}
+
+	_, err := e.Update(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !modifyCalled {
+		t.Error("expected ModifyServerlessCache to be called")
+	}
+
+	// Async state should be set with Operation="updating"
+	asyncState := native.GetAsyncState(cr)
+	if asyncState == nil {
+		t.Fatal("expected async state to be set after Update")
+	}
+	if asyncState.Operation != "updating" {
+		t.Errorf("expected async state Operation=updating, got %q", asyncState.Operation)
+	}
+}
+
+// ── Delete tests ───────────────────────────────────────────────────────────────
+
+func TestDelete_Success_SetsAsyncState(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+
+	var deleteCalled bool
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		deleteServerlessCacheFn: func(_ context.Context, params *awselasticache.DeleteServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.DeleteServerlessCacheOutput, error) {
+			deleteCalled = true
+			if aws.ToString(params.ServerlessCacheName) != testCacheName {
+				return nil, fmt.Errorf("unexpected cache name: %s", aws.ToString(params.ServerlessCacheName))
+			}
+			return &awselasticache.DeleteServerlessCacheOutput{
+				ServerlessCache: &ectypes.ServerlessCache{
+					ServerlessCacheName: aws.String(testCacheName),
+					ARN:                 aws.String(testARN),
+					Status:              aws.String("DELETING"),
+				},
+			}, nil
+		},
+	}}
+
+	_, err := e.Delete(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !deleteCalled {
+		t.Error("expected DeleteServerlessCache to be called")
+	}
+
+	// Async state should be set with Operation="deleting"
+	asyncState := native.GetAsyncState(cr)
+	if asyncState == nil {
+		t.Fatal("expected async state to be set after Delete")
+	}
+	if asyncState.Operation != "deleting" {
+		t.Errorf("expected async state Operation=deleting, got %q", asyncState.Operation)
+	}
+}
+
+func TestDelete_NotFound_Idempotent(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		deleteServerlessCacheFn: func(_ context.Context, _ *awselasticache.DeleteServerlessCacheInput, _ ...func(*awselasticache.Options)) (*awselasticache.DeleteServerlessCacheOutput, error) {
+			return nil, notFoundError()
+		},
+	}}
+
+	_, err := e.Delete(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error for not-found delete (idempotent), got: %v", err)
+	}
+}
+
+// ── isUpToDate tests ───────────────────────────────────────────────────────────
+
+func TestIsUpToDate_UpToDate(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	desc := "my description"
+	cr.Spec.ForProvider.Description = &desc
+
+	sc := availableServerlessCache(testCacheName, testARN)
+	sc.Description = &desc
+
+	if !isUpToDate(cr, sc, nil) {
+		t.Error("expected isUpToDate=true when spec matches observed state")
+	}
+}
+
+func TestIsUpToDate_DescriptionChanged(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	newDesc := "new description"
+	cr.Spec.ForProvider.Description = &newDesc
+
+	sc := availableServerlessCache(testCacheName, testARN)
+	oldDesc := "old description"
+	sc.Description = &oldDesc
+
+	if isUpToDate(cr, sc, nil) {
+		t.Error("expected isUpToDate=false when description differs")
+	}
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────────
+
+// keysOf returns the keys of a ConnectionDetails map for error messages.
+func keysOf(m map[string][]byte) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
