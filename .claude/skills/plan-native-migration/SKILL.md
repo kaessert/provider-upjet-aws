@@ -254,7 +254,7 @@ ls apis/cluster/$SERVICE/v1beta2/zz_<resource_file>_types.go 2>/dev/null
 - If `apis/cluster/$SERVICE/v1beta2/zz_<resource_file>_types.go` exists → storage version is `v1beta2`
 - Otherwise → storage version is `v1beta1`
 
-Multi-version resources need conversion webhooks at cutover — flag in summary warnings.
+Multi-version resources need `Hub()`/`ConvertTo()`/`ConvertFrom()` implemented **immediately** during the parallel phase (not deferred to cutover). Both versions are registered as CRDs, and Kubernetes attempts conversion as soon as both exist. Flag in summary warnings.
 
 ### 4j: Find Example Manifest
 
@@ -759,8 +759,13 @@ Key rules:
 **Multi-version CRD**: <yes | no>
 <If yes: >
   This resource has both v1beta1 and v1beta2 (storage version: <version>). During the
-  parallel phase, implement against the storage version only. At cutover, the cutover
-  ticket handles registering all versions and implementing conversion.
+  parallel phase, implement BOTH versions immediately:
+  - The hub (storage) version gets `Hub()` method (empty, marker only)
+  - The spoke version gets `ConvertTo()`/`ConvertFrom()` methods that copy fields
+    and explicitly set `TypeMeta` on the destination (the runtime does NOT preserve it)
+  - Both versions must be registered in scheme and have CRDs generated
+  Do NOT defer conversion to cutover — both versions are registered during the parallel
+  phase and Kubernetes will attempt conversion as soon as both CRDs exist.
 
 **IAM policy field**: <yes | no>
 <If yes: >
