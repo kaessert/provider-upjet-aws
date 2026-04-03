@@ -14,11 +14,7 @@ metadata:
   namespace: upbound-system
 spec:
   forProvider:
-    redrivePolicy: |-
-      ${jsonencode({
-          deadLetterTargetArn = "arn:aws:sqs:us-east-1:609897127049:examplequeue-ddl"
-          maxReceiveCount     = 4
-        })}
+    redrivePolicy: '{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:609897127049:examplequeue-ddl","maxReceiveCount":4}'
     region: us-east-1
     queueUrlSelector:
       matchLabels:
@@ -36,11 +32,7 @@ metadata:
 spec:
   forProvider:
     name: examplequeue-ddl
-    redriveAllowPolicy: |-
-      ${jsonencode({
-          redrivePermission = "byQueue",
-          sourceQueueArns   = ["arn:aws:sqs:us-east-1:609897127049:examplequeue"]
-        })}
+    redriveAllowPolicy: '{"redrivePermission":"byQueue","sourceQueueArns":["arn:aws:sqs:us-east-1:609897127049:examplequeue"]}'
     region: us-east-1
 ---
 apiVersion: sqs.aws.m.upbound.io/v1beta1

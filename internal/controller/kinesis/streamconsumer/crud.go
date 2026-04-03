@@ -72,10 +72,20 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StreamConsumerCR) (mana
 	consumerARN := nativehelper.GetExternalName(cr)
 	// IdentifierFromProvider: the external name is only meaningful once it has
 	// been set to a consumer ARN by Create. Before that, Crossplane initialises
-	// it to the Kubernetes resource name (a non-ARN value). Treat any external
-	// name that is not an ARN as "not yet created" so that Create is invoked.
+	// it to the Kubernetes resource name (a non-ARN value).
+	// When the external name is not yet an ARN, try to adopt a pre-existing
+	// consumer by looking it up by name + stream ARN. This makes the controller
+	// idempotent when a consumer was left behind by a previous reconcile cycle
+	// (e.g. after a failed test run that did not clean up AWS resources).
 	if consumerARN == "" || !strings.HasPrefix(consumerARN, "arn:") {
-		return managed.ExternalObservation{ResourceExists: false}, nil
+		adopted, err := e.adoptByName(ctx, cr)
+		if err != nil {
+			return managed.ExternalObservation{}, err
+		}
+		if !adopted {
+			return managed.ExternalObservation{ResourceExists: false}, nil
+		}
+		consumerARN = nativehelper.GetExternalName(cr)
 	}
 
 	resp, err := e.Client.DescribeStreamConsumer(ctx, &awskinesis.DescribeStreamConsumerInput{
@@ -215,6 +225,37 @@ func (e *ExternalClient) Delete(ctx context.Context, cr StreamConsumerCR) (manag
 	}
 
 	return managed.ExternalDelete{}, nil
+}
+
+// ── adoption helper ───────────────────────────────────────────────────────────
+
+// adoptByName looks up a pre-existing consumer by name + stream ARN and, if
+// found, sets the external name annotation to the consumer's ARN so that the
+// normal Observe path can proceed. Returns (true, nil) if adopted, (false, nil)
+// if not found, or (false, err) on unexpected errors.
+func (e *ExternalClient) adoptByName(ctx context.Context, cr StreamConsumerCR) (bool, error) {
+	spec := cr.GetForProvider()
+	if spec.Name == nil || spec.StreamArn == nil {
+		return false, nil
+	}
+
+	resp, err := e.Client.DescribeStreamConsumer(ctx, &awskinesis.DescribeStreamConsumerInput{
+		ConsumerName: spec.Name,
+		StreamARN:    spec.StreamArn,
+	})
+	switch {
+	case err == nil && resp.ConsumerDescription != nil:
+		// Found — adopt by setting external name to the consumer ARN.
+		nativehelper.SetExternalName(cr, aws.ToString(resp.ConsumerDescription.ConsumerARN))
+		return true, nil
+	case isNotFound(err):
+		return false, nil
+	case err != nil:
+		return false, nativehelper.Wrap(err, errDescribe)
+	default:
+		// Response with nil description — treat as not found.
+		return false, nil
+	}
 }
 
 // ── isUpToDate ────────────────────────────────────────────────────────────────

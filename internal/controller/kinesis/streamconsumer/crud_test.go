@@ -102,32 +102,13 @@ func activeConsumerDescription(name, consumerARN, streamARN string) *ktypes.Cons
 // ── Observe tests ──────────────────────────────────────────────────────────────
 
 // TestObserve_EmptyExternalName verifies that an empty external name annotation
-// results in ResourceExists: false without any API call.
+// triggers a lookup by name+streamARN, and when the consumer is not found
+// it returns ResourceExists: false so that Create is invoked.
 func TestObserve_EmptyExternalName(t *testing.T) {
 	cr := newTestCR("my-consumer", "") // no external name
-	e := &ExternalClient{Client: &mockKinesisConsumerClient{}}
-
-	obs, err := e.Observe(context.Background(), cr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if obs.ResourceExists {
-		t.Error("expected ResourceExists=false for empty external name")
-	}
-}
-
-// TestObserve_NonARNExternalName verifies that a non-ARN external name (i.e.
-// the default Kubernetes resource name set by Crossplane before Create is
-// called) is treated as "not yet created" without making any API calls.
-// This is necessary because aws_kinesis_stream_consumer uses IdentifierFromProvider
-// — the external name is only a valid ARN after Create stores it.
-func TestObserve_NonARNExternalName(t *testing.T) {
-	cr := newTestCR("my-consumer", "my-consumer") // non-ARN default set by Crossplane
-	callCount := 0
 	e := &ExternalClient{Client: &mockKinesisConsumerClient{
 		describeStreamConsumerFn: func(_ context.Context, _ *awskinesis.DescribeStreamConsumerInput, _ ...func(*awskinesis.Options)) (*awskinesis.DescribeStreamConsumerOutput, error) {
-			callCount++
-			return nil, nil
+			return nil, &ktypes.ResourceNotFoundException{Message: aws.String("Consumer not found")}
 		},
 	}}
 
@@ -136,10 +117,64 @@ func TestObserve_NonARNExternalName(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if obs.ResourceExists {
-		t.Error("expected ResourceExists=false for non-ARN external name")
+		t.Error("expected ResourceExists=false for empty external name with no pre-existing consumer")
 	}
-	if callCount != 0 {
-		t.Errorf("expected no API call for non-ARN external name, got %d call(s)", callCount)
+}
+
+// TestObserve_NonARNExternalName_NotFound verifies that a non-ARN external
+// name triggers a lookup by name+streamARN, and when the consumer is not found
+// it returns ResourceExists=false so that Create is invoked.
+func TestObserve_NonARNExternalName_NotFound(t *testing.T) {
+	cr := newTestCR("my-consumer", "my-consumer") // non-ARN default set by Crossplane
+	callCount := 0
+	e := &ExternalClient{Client: &mockKinesisConsumerClient{
+		describeStreamConsumerFn: func(_ context.Context, _ *awskinesis.DescribeStreamConsumerInput, _ ...func(*awskinesis.Options)) (*awskinesis.DescribeStreamConsumerOutput, error) {
+			callCount++
+			return nil, &ktypes.ResourceNotFoundException{Message: aws.String("Consumer not found")}
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if obs.ResourceExists {
+		t.Error("expected ResourceExists=false when consumer not found by name")
+	}
+	if callCount != 1 {
+		t.Errorf("expected exactly 1 API call for name-based lookup, got %d", callCount)
+	}
+}
+
+// TestObserve_NonARNExternalName_AdoptExisting verifies that a non-ARN external
+// name triggers a lookup by name+streamARN, and when the consumer IS found
+// the controller adopts it (sets external name = ARN, returns ResourceExists=true).
+func TestObserve_NonARNExternalName_AdoptExisting(t *testing.T) {
+	cr := newTestCR("my-consumer", "my-consumer") // non-ARN default set by Crossplane
+	desc := activeConsumerDescription(testConsumerName, testConsumerARN, testStreamARN)
+
+	e := &ExternalClient{Client: &mockKinesisConsumerClient{
+		describeStreamConsumerFn: func(_ context.Context, params *awskinesis.DescribeStreamConsumerInput, _ ...func(*awskinesis.Options)) (*awskinesis.DescribeStreamConsumerOutput, error) {
+			// First call: lookup by name (no ConsumerARN in input).
+			if params.ConsumerARN == nil {
+				return &awskinesis.DescribeStreamConsumerOutput{ConsumerDescription: desc}, nil
+			}
+			// Second call: normal describe after adoption.
+			return &awskinesis.DescribeStreamConsumerOutput{ConsumerDescription: desc}, nil
+		},
+		listTagsForResourceFn: noopListTagsForResource,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceExists {
+		t.Error("expected ResourceExists=true for adopted existing consumer")
+	}
+	// Verify that the external name was updated to the consumer ARN.
+	if got := native.GetExternalName(cr); got != testConsumerARN {
+		t.Errorf("expected external name set to %q after adoption, got %q", testConsumerARN, got)
 	}
 }
 
