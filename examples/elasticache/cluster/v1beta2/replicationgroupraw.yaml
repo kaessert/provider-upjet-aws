@@ -15,4 +15,4 @@ spec:
     numCacheClusters: 2
     parameterGroupName: default.redis3.2
     port: 6379
-    region: us-east-1
+    region: us-west-2

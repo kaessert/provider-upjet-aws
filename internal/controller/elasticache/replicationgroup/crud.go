@@ -485,7 +485,7 @@ func buildCreateInput(spec *clusternativev2.ReplicationGroupRAWParameters, extNa
 		CacheNodeType:               spec.NodeType,
 		CacheParameterGroupName:     spec.ParameterGroupName,
 		CacheSubnetGroupName:        spec.SubnetGroupName,
-		Engine:                      spec.Engine,
+		Engine:                      defaultToRedis(spec.Engine),
 		EngineVersion:               spec.EngineVersion,
 		GlobalReplicationGroupId:    spec.GlobalReplicationGroupID,
 		KmsKeyId:                    spec.KMSKeyID,
@@ -1162,4 +1162,15 @@ func sortedStringSliceEqual(a, b []string) bool {
 		}
 	}
 	return true
+}
+
+// defaultToRedis returns the provided engine string or defaults to "redis" if nil.
+// The AWS ElastiCache API requires the Engine field for CreateReplicationGroup.
+// The Terraform provider defaults this field to "redis", so native controllers
+// must mirror that behaviour for parity.
+func defaultToRedis(engine *string) *string {
+	if engine != nil {
+		return engine
+	}
+	return aws.String("redis")
 }
