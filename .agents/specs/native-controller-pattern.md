@@ -952,46 +952,47 @@ type AsyncState struct {
 ### 10.1 Setting async state (in Create/Update/Delete)
 
 ```go
-if err := native.SetAsyncOperation(cr, native.AsyncState{
+rid, _ := middleware.GetRequestIDMetadata(resp.ResultMetadata)
+native.SetAsyncState(cr, native.AsyncState{
     Operation: "creating",
     StartedAt: time.Now(),
-    RequestID: aws.ToString(resp.RequestMetadata.RequestId),
-}); err != nil {
-    return managed.ExternalCreation{}, err
-}
+    RequestID: rid,
+})
 ```
 
 ### 10.2 Polling in Observe
 
 ```go
-if native.IsAsyncInProgress(cr) {
-    state, err := native.GetAsyncOperation(cr)
-    if err != nil {
-        return managed.ExternalObservation{}, native.Wrap(err, errGetAsyncState)
-    }
+asyncState := native.GetAsyncState(cr)
 
-    // Describe the resource to check if the operation completed
-    resp, err := e.client.DescribeMyResource(ctx, &awssvc.DescribeMyResourceInput{
-        ResourceId: aws.String(native.GetExternalName(cr)),
-    })
-    if err != nil {
-        if native.IsNotFound(err) && state.Operation == "deleting" {
-            native.ClearAsyncOperation(cr)
+// Always describe — even during async ops, we need current status
+resp, err := e.client.DescribeMyResource(ctx, &awssvc.DescribeMyResourceInput{
+    ResourceId: aws.String(native.GetExternalName(cr)),
+})
+if err != nil {
+    if native.IsNotFound(err) {
+        if asyncState != nil && asyncState.Operation == "deleting" {
+            native.ClearAsyncState(cr)
             return managed.ExternalObservation{ResourceExists: false}, nil
         }
-        return managed.ExternalObservation{}, native.Wrap(err, errDescribe)
+        return managed.ExternalObservation{ResourceExists: false}, nil
     }
+    return managed.ExternalObservation{}, native.Wrap(err, errDescribe)
+}
 
+if asyncState != nil {
     switch aws.ToString(resp.Resource.Status) {
     case "ACTIVE":
-        native.ClearAsyncOperation(cr)
+        native.ClearAsyncState(cr)
         // fall through to normal observe
     case "CREATING", "UPDATING", "DELETING":
         // Still running — do not call Update; let reconciler re-poll
+        cr.SetConditions(xpv1.Unavailable())
         return managed.ExternalObservation{ResourceExists: true, ResourceUpToDate: true}, nil
     case "FAILED":
-        native.ClearAsyncOperation(cr)
-        return managed.ExternalObservation{}, fmt.Errorf("async %s failed for %s", state.Operation, native.GetExternalName(cr))
+        native.ClearAsyncState(cr)
+        return managed.ExternalObservation{ResourceExists: true},
+            fmt.Errorf("async %s failed for %s", asyncState.Operation, native.GetExternalName(cr))
     }
 }
 ```
@@ -999,7 +1000,7 @@ if native.IsAsyncInProgress(cr) {
 ### 10.3 Clearing async state
 
 ```go
-native.ClearAsyncOperation(cr) // removes the annotation
+native.ClearAsyncState(cr) // removes all three async annotations
 ```
 
 ---
