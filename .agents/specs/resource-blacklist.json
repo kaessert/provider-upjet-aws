@@ -1,13 +1,417 @@
 {
-  "_comment": "Resources that MUST NOT be migrated autonomously. The planner and plan-native-migration skill skip these.",
+  "_comment": "Resources that must NOT be migrated autonomously. BLOCK entries are skipped entirely by the planner and plan-native-migration skill. WARN entries require explicit human approval before any ticket is created.",
+  "schema_version": 2,
+  "severity_levels": {
+    "BLOCK": "Never migrate autonomously. Resource is a singleton, causes account-wide impact, or creates irreversible state that cannot be safely isolated to a test run.",
+    "WARN": "Migrate only with human review and extra safety gates. Resource is sensitive (shared infra, billing, DNS, audit trail) but can be isolated with care."
+  },
+  "stats": {
+    "total": 67,
+    "block": 4,
+    "warn": 63
+  },
   "blacklisted_resources": [
     {
       "terraform_name": "aws_iam_account_alias",
-      "reason": "Singleton — one per AWS account. E2E tests would overwrite the account alias, affecting all users."
+      "severity": "WARN",
+      "category": "IAM",
+      "reason": "Singleton \u2014 one per AWS account. E2E tests would overwrite the account alias, affecting all users."
     },
     {
       "terraform_name": "aws_iam_account_password_policy",
-      "reason": "Singleton — one per AWS account. E2E tests would change the password policy for all IAM users."
+      "severity": "WARN",
+      "category": "IAM",
+      "reason": "Singleton \u2014 one per AWS account. Changing or deleting the password policy affects every IAM user in the account."
+    },
+    {
+      "terraform_name": "aws_iam_service_linked_role",
+      "severity": "WARN",
+      "category": "IAM",
+      "reason": "Service-linked roles are auto-created and managed by AWS services (EKS, RDS, etc.). Deleting one breaks the dependent service account-wide; a test instance cannot be isolated from production use."
+    },
+    {
+      "terraform_name": "aws_account_alternate_contact",
+      "severity": "WARN",
+      "category": "Account",
+      "reason": "Singleton per contact type (BILLING/OPERATIONS/SECURITY) per account. Overwriting a contact silences account-level security or billing notifications for the entire account."
+    },
+    {
+      "terraform_name": "aws_account_region",
+      "severity": "BLOCK",
+      "category": "Account",
+      "reason": "Controls region opt-in/opt-out. Opting out of an active region terminates all workloads running there, including potentially the pipeline host itself."
+    },
+    {
+      "terraform_name": "aws_s3_account_public_access_block",
+      "severity": "WARN",
+      "category": "S3",
+      "reason": "Account-wide public access block (one per account). Disabling it would expose ALL S3 buckets in the account to public access."
+    },
+    {
+      "terraform_name": "aws_ebs_encryption_by_default",
+      "severity": "WARN",
+      "category": "EBS",
+      "reason": "Account-wide toggle (one per region). Disabling encryption-by-default removes the encryption guarantee for ALL new EBS volumes across the account."
+    },
+    {
+      "terraform_name": "aws_ebs_default_kms_key",
+      "severity": "WARN",
+      "category": "EBS",
+      "reason": "Singleton per region. Changing the account-default KMS key causes all subsequent EBS volumes to be encrypted with a different key, breaking key-management expectations account-wide."
+    },
+    {
+      "terraform_name": "aws_default_vpc",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per region \u2014 every account has exactly one default VPC. Deleting or modifying it breaks default networking for all resources that rely on it (including potentially the pipeline host)."
+    },
+    {
+      "terraform_name": "aws_default_security_group",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per VPC. Modifying the default security group rules can block or expose all instances placed in the default SG."
+    },
+    {
+      "terraform_name": "aws_default_route_table",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per VPC. Modifying the default route table breaks routing for all subnets not explicitly associated with a custom route table."
+    },
+    {
+      "terraform_name": "aws_default_subnet",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per Availability Zone within the default VPC. Deleting it removes the default launch target for that AZ account-wide."
+    },
+    {
+      "terraform_name": "aws_default_vpc_dhcp_options",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per VPC. Modifying DHCP options changes DNS server and domain settings for all instances in that VPC."
+    },
+    {
+      "terraform_name": "aws_default_network_acl",
+      "severity": "WARN",
+      "category": "VPC",
+      "reason": "Singleton per VPC. Modifying the default NACL changes traffic rules for all subnets not explicitly associated with a custom NACL."
+    },
+    {
+      "terraform_name": "aws_config_configuration_recorder",
+      "severity": "WARN",
+      "category": "Config",
+      "reason": "Singleton per account per region (AWS enforces exactly one). Re-creating it during a migration cycle drops compliance recording continuity for the entire account."
+    },
+    {
+      "terraform_name": "aws_config_configuration_recorder_status",
+      "severity": "WARN",
+      "category": "Config",
+      "reason": "Controls the singleton configuration recorder (start/stop). Stopping the recorder during migration pauses all compliance checks account-wide."
+    },
+    {
+      "terraform_name": "aws_config_delivery_channel",
+      "severity": "WARN",
+      "category": "Config",
+      "reason": "Singleton per account per region. Only one delivery channel may exist; re-creating it during migration interrupts the flow of compliance snapshots."
+    },
+    {
+      "terraform_name": "aws_guardduty_detector",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Singleton per account per region. Deleting and re-creating the detector during migration disables threat detection for the entire account and loses all existing findings."
+    },
+    {
+      "terraform_name": "aws_securityhub_account",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Account-level SecurityHub enablement (singleton). Deleting it disables SecurityHub for the whole account, removing all security findings and standards subscriptions."
+    },
+    {
+      "terraform_name": "aws_securityhub_finding_aggregator",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Singleton per account. Configures cross-region finding aggregation; re-creating it during migration causes a gap in cross-region security visibility."
+    },
+    {
+      "terraform_name": "aws_macie2_account",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Account-level Macie enablement (singleton). Deleting it disables Macie and loses all sensitive data findings for the account."
+    },
+    {
+      "terraform_name": "aws_inspector2_enabler",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Account-level Inspector v2 enablement. Disabling Inspector removes vulnerability scanning for all EC2 instances and container images in the account."
+    },
+    {
+      "terraform_name": "aws_detective_graph",
+      "severity": "WARN",
+      "category": "Security",
+      "reason": "Singleton per account per region. Deleting the graph disables Amazon Detective and destroys the behavior graph, losing all investigation history."
+    },
+    {
+      "terraform_name": "aws_ecr_registry_policy",
+      "severity": "WARN",
+      "category": "ECR",
+      "reason": "Singleton per account (imported using the registry ID = account ID). Overwriting it removes cross-account pull access for all consumers of the registry."
+    },
+    {
+      "terraform_name": "aws_ecr_registry_scanning_configuration",
+      "severity": "WARN",
+      "category": "ECR",
+      "reason": "Singleton per account per region (imported using registry ID). Re-creating resets the account-wide scanning rules and scan-on-push settings."
+    },
+    {
+      "terraform_name": "aws_ecr_replication_configuration",
+      "severity": "WARN",
+      "category": "ECR",
+      "reason": "Singleton per account per region (imported using registry ID). Only one replication configuration exists; re-creating it interrupts cross-region/cross-account image replication."
+    },
+    {
+      "terraform_name": "aws_ecs_account_setting_default",
+      "severity": "WARN",
+      "category": "ECS",
+      "reason": "Account-level ECS service settings (awsvpc trunking, container insights, etc.). Changing the default affects every ECS cluster and task in the account."
+    },
+    {
+      "terraform_name": "aws_lakeformation_data_lake_settings",
+      "severity": "WARN",
+      "category": "LakeFormation",
+      "reason": "Account-level singleton. The administrator list and cross-account settings control ALL Lake Formation access. Misconfiguration or deletion locks out the entire data lake."
+    },
+    {
+      "terraform_name": "aws_api_gateway_account",
+      "severity": "WARN",
+      "category": "APIGateway",
+      "reason": "Singleton per region. Holds the account-level CloudWatch role ARN and default throttling settings for all APIs in the region; re-creating removes logging from every API."
+    },
+    {
+      "terraform_name": "aws_xray_encryption_config",
+      "severity": "WARN",
+      "category": "XRay",
+      "reason": "Singleton per account per region. Changing encryption settings affects all X-Ray trace data storage for the account."
+    },
+    {
+      "terraform_name": "aws_backup_global_settings",
+      "severity": "WARN",
+      "category": "Backup",
+      "reason": "Account-level singleton. Controls whether cross-account backup is enabled; re-creating resets the setting for the entire account."
+    },
+    {
+      "terraform_name": "aws_backup_vault_lock_configuration",
+      "severity": "BLOCK",
+      "category": "Backup",
+      "reason": "In compliance mode, vault locks are IRREVERSIBLE \u2014 even AWS Support cannot remove them within the lock period. Accidentally locking the wrong vault with wrong retention periods is unrecoverable."
+    },
+    {
+      "terraform_name": "aws_ec2_serial_console_access",
+      "severity": "WARN",
+      "category": "EC2",
+      "reason": "Singleton per account per region. Toggling serial console access off would break emergency recovery access for ALL EC2 instances in the region."
+    },
+    {
+      "terraform_name": "aws_spot_datafeed_subscription",
+      "severity": "WARN",
+      "category": "EC2",
+      "reason": "Singleton per account per region. Only one Spot Instance data feed subscription may exist; re-creating it during migration causes a gap in spot interruption logging."
+    },
+    {
+      "terraform_name": "aws_organizations_organization",
+      "severity": "BLOCK",
+      "category": "Organizations",
+      "reason": "The AWS Organization itself \u2014 the ultimate singleton. Deleting it dissolves the organization and removes all member accounts from the org structure. Completely irreversible."
+    },
+    {
+      "terraform_name": "aws_organizations_account",
+      "severity": "BLOCK",
+      "category": "Organizations",
+      "reason": "Creates and optionally closes real AWS member accounts. Closing an account triggers a 90-day suspension period; this cannot be treated as a throwaway test resource."
+    },
+    {
+      "terraform_name": "aws_ssoadmin_instance_access_control_attributes",
+      "severity": "WARN",
+      "category": "SSO",
+      "reason": "Singleton per SSO instance (IAM Identity Center). One set of ABAC attribute mappings per instance; re-creating drops attribute-based access control for all permission sets."
+    },
+    {
+      "terraform_name": "aws_organizations_organizational_unit",
+      "severity": "WARN",
+      "category": "Organizations",
+      "reason": "Deleting or reparenting OUs breaks SCP and tag-policy inheritance chains for all accounts under them."
+    },
+    {
+      "terraform_name": "aws_organizations_policy",
+      "severity": "WARN",
+      "category": "Organizations",
+      "reason": "SCPs, tag policies, and backup policies apply across multiple accounts. A misconfigured SCP can lock every account out of critical AWS actions."
+    },
+    {
+      "terraform_name": "aws_organizations_policy_attachment",
+      "severity": "WARN",
+      "category": "Organizations",
+      "reason": "Attaching or detaching SCPs to accounts/OUs is immediately effective across all accounts in scope."
+    },
+    {
+      "terraform_name": "aws_organizations_delegated_administrator",
+      "severity": "WARN",
+      "category": "Organizations",
+      "reason": "Delegating admin access to a member account grants cross-account management privileges for an AWS service."
+    },
+    {
+      "terraform_name": "aws_ec2_transit_gateway",
+      "severity": "WARN",
+      "category": "Network",
+      "reason": "Core shared network infrastructure. Deleting a Transit Gateway disconnects all VPC attachments and on-premises connections routing through it, potentially taking down the pipeline host."
+    },
+    {
+      "terraform_name": "aws_dx_gateway",
+      "severity": "WARN",
+      "category": "Network",
+      "reason": "Direct Connect gateway is the shared network backbone for on-premises connectivity. Deleting it terminates all associated virtual interfaces."
+    },
+    {
+      "terraform_name": "aws_vpn_gateway",
+      "severity": "WARN",
+      "category": "Network",
+      "reason": "VPN gateway attached to a VPC. Detaching or deleting breaks site-to-site VPN tunnels for the VPC."
+    },
+    {
+      "terraform_name": "aws_ec2_availability_zone_group",
+      "severity": "WARN",
+      "category": "EC2",
+      "reason": "Manages AZ opt-in/opt-out. Opting out of an AZ that contains running resources (subnets, RDS, EKS nodes) will break those resources."
+    },
+    {
+      "terraform_name": "aws_route53_zone",
+      "severity": "WARN",
+      "category": "DNS",
+      "reason": "Public hosted zones: deleting a zone or replacing its NS records breaks DNS resolution for the domain globally. Can take the entire pipeline down if the domain hosts the cluster API endpoint."
+    },
+    {
+      "terraform_name": "aws_route53_hosted_zone_dnssec",
+      "severity": "WARN",
+      "category": "DNS",
+      "reason": "DNSSEC misconfiguration (e.g., removing the KSK without updating the parent DS record) causes complete DNS resolution failure for the zone."
+    },
+    {
+      "terraform_name": "aws_route53_resolver_config",
+      "severity": "WARN",
+      "category": "DNS",
+      "reason": "Modifies the VPC-level DNS resolver behavior. Misconfiguration breaks name resolution for all instances in the VPC."
+    },
+    {
+      "terraform_name": "aws_cloudtrail",
+      "severity": "WARN",
+      "category": "CloudTrail",
+      "reason": "Deleting an active trail breaks audit and compliance logging. Organization trails affect all member accounts and cannot be re-created without a gap in the audit log."
+    },
+    {
+      "terraform_name": "aws_cloudtrail_event_data_store",
+      "severity": "WARN",
+      "category": "CloudTrail",
+      "reason": "Holds persistent audit event data. Deleting an event data store is irreversible and destroys the event history."
+    },
+    {
+      "terraform_name": "aws_glue_data_catalog_encryption_settings",
+      "severity": "WARN",
+      "category": "Glue",
+      "reason": "Account/region-level Data Catalog encryption settings (one per region). Changing the encryption key affects all Glue catalog operations in the region."
+    },
+    {
+      "terraform_name": "aws_glue_resource_policy",
+      "severity": "WARN",
+      "category": "Glue",
+      "reason": "Account-level Glue catalog resource policy. Replacing it removes cross-account Glue access for all consumers."
+    },
+    {
+      "terraform_name": "aws_ssm_default_patch_baseline",
+      "severity": "WARN",
+      "category": "SSM",
+      "reason": "Account-level default patch baseline per OS type (one per OS per region). Changing it alters patch behavior for all managed instances using the default baseline."
+    },
+    {
+      "terraform_name": "aws_ssm_service_setting",
+      "severity": "WARN",
+      "category": "SSM",
+      "reason": "Account-level SSM service settings (e.g., default S3 bucket for Session Manager logs, Parameter Store throughput tier). Some settings incur costs or change security posture account-wide."
+    },
+    {
+      "terraform_name": "aws_sns_sms_preferences",
+      "severity": "WARN",
+      "category": "SNS",
+      "reason": "Account-level SNS SMS preferences (spending limit, default sender ID, report delivery). One set per account; changing the spending limit can disable SMS for the entire account."
+    },
+    {
+      "terraform_name": "aws_ses_active_receipt_rule_set",
+      "severity": "WARN",
+      "category": "SES",
+      "reason": "Singleton per account per region \u2014 only one receipt rule set can be active. Changing the active set re-routes all inbound email for the account."
+    },
+    {
+      "terraform_name": "aws_cloudwatch_log_resource_policy",
+      "severity": "WARN",
+      "category": "CloudWatch",
+      "reason": "Account-level CloudWatch Logs resource policy. Removing or overwriting it revokes cross-service write permissions (e.g., Route53 query logging, API Gateway access logs)."
+    },
+    {
+      "terraform_name": "aws_budgets_budget",
+      "severity": "WARN",
+      "category": "Billing",
+      "reason": "Cost budgets enforce spending limits. Deleting a budget removes the associated alerts and automated actions, disabling cost controls for the account."
+    },
+    {
+      "terraform_name": "aws_budgets_budget_action",
+      "severity": "WARN",
+      "category": "Billing",
+      "reason": "Automated cost control actions (e.g., stop EC2 instances when over budget). Deleting removes the guardrail; replacing with incorrect thresholds may stop production workloads."
+    },
+    {
+      "terraform_name": "aws_cur_report_definition",
+      "severity": "WARN",
+      "category": "Billing",
+      "reason": "Cost and Usage Report definition. Deleting causes a gap in billing data delivery; downstream consumers (cost analytics, FinOps tooling) will fail."
+    },
+    {
+      "terraform_name": "aws_ce_anomaly_monitor",
+      "severity": "WARN",
+      "category": "Billing",
+      "reason": "Account-level cost anomaly detection monitor. Deleting removes anomaly alerts for the account."
+    },
+    {
+      "terraform_name": "aws_iot_indexing_configuration",
+      "severity": "WARN",
+      "category": "IoT",
+      "reason": "Account-level IoT device indexing configuration. Re-creating it triggers a full device re-index for the account, which can take hours and temporarily breaks fleet indexing."
+    },
+    {
+      "terraform_name": "aws_iot_logging_options",
+      "severity": "WARN",
+      "category": "IoT",
+      "reason": "Account-level IoT Core logging configuration (one per account). Changing or deleting it alters logging verbosity and log destination for all IoT resources."
+    },
+    {
+      "terraform_name": "aws_backup_region_settings",
+      "severity": "WARN",
+      "category": "Backup",
+      "reason": "Region-level AWS Backup settings (one per region). Controls which services are opted into backup; re-creating can disable backup for entire service categories."
+    },
+    {
+      "terraform_name": "aws_servicequotas_service_quota",
+      "severity": "WARN",
+      "category": "ServiceQuotas",
+      "reason": "Account-level service quota adjustments. Reducing a quota below what currently-running resources consume will break those resources and prevent new ones from being created."
+    },
+    {
+      "terraform_name": "aws_sagemaker_servicecatalog_portfolio_status",
+      "severity": "WARN",
+      "category": "SageMaker",
+      "reason": "Account-level SageMaker ServiceCatalog portfolio status. Disabling it removes the SageMaker portfolio from AWS Service Catalog for the entire account."
+    },
+    {
+      "terraform_name": "aws_networkmanager_global_network",
+      "severity": "WARN",
+      "category": "NetworkManager",
+      "reason": "Global network topology container. Deleting it removes all registered devices, sites, links, and transit gateway registrations attached to it."
     }
   ]
 }
