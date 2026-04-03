@@ -159,13 +159,8 @@ func (e *ExternalClient) Create(ctx context.Context, cr TopicCR) (managed.Extern
 	if topicArn != "" {
 		meta.SetExternalName(cr, topicArn)
 	} else {
-		// Fallback (unexpected): store the topic name so we at least have
-		// something in the annotation.
-		name := nameFromARN(topicArn)
-		if name == "" {
-			name = topicName
-		}
-		meta.SetExternalName(cr, name)
+		// Fallback (unexpected): ARN was not returned; use the topic name.
+		meta.SetExternalName(cr, topicName)
 	}
 
 	// Store the full ARN in atProvider as well (best-effort; the reconciler

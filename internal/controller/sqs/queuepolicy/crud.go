@@ -83,8 +83,8 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueuePolicyCR) (managed
 	}
 
 	// If the Policy attribute is absent or empty, treat the policy as not existing.
-	policy, hasPolicey := resp.Attributes["Policy"]
-	if !hasPolicey || policy == "" {
+	policy, hasPolicy := resp.Attributes["Policy"]
+	if !hasPolicy || policy == "" {
 		return managed.ExternalObservation{ResourceExists: false}, nil
 	}
 
