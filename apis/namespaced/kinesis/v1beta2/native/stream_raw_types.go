@@ -200,8 +200,9 @@ func init() {
 }
 
 // ConvertTo converts StreamRAW v1beta2 to the hub version (v1beta1).
-// Since v1beta1 and v1beta2 have identical JSON schemas, the conversion is
-// done by marshalling to JSON and unmarshalling into the hub type.
+// Since v1beta1 and v1beta2 have identical spec/status schemas, the conversion
+// copies the underlying spec/status via JSON, then explicitly sets the hub's
+// TypeMeta to v1beta1 so the API server sees the correct version.
 func (src *StreamRAW) ConvertTo(dstRaw conversion.Hub) error {
 	dst, ok := dstRaw.(*v1beta1native.StreamRAW)
 	if !ok {
@@ -211,7 +212,16 @@ func (src *StreamRAW) ConvertTo(dstRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, dst)
+	if err := json.Unmarshal(data, dst); err != nil {
+		return err
+	}
+	// Explicitly set the hub's TypeMeta — the JSON from v1beta2 would carry
+	// the v1beta2 apiVersion, but the hub must identify as v1beta1.
+	dst.TypeMeta = metav1.TypeMeta{
+		APIVersion: v1beta1native.CRDGroup + "/" + v1beta1native.CRDVersion,
+		Kind:       StreamRAW_Kind,
+	}
+	return nil
 }
 
 // ConvertFrom converts from the hub version (v1beta1) to StreamRAW v1beta2.
@@ -224,5 +234,13 @@ func (dst *StreamRAW) ConvertFrom(srcRaw conversion.Hub) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, dst)
+	if err := json.Unmarshal(data, dst); err != nil {
+		return err
+	}
+	// Explicitly set the spoke's TypeMeta to v1beta2.
+	dst.TypeMeta = metav1.TypeMeta{
+		APIVersion: CRDGroup + "/" + CRDVersion,
+		Kind:       StreamRAW_Kind,
+	}
+	return nil
 }
