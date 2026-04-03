@@ -638,8 +638,21 @@ func buildBasicUpdates(spec *clusternative.TopicRAWParameters, attrs map[string]
 	maybeSetBool(updates, "ContentBasedDeduplication", spec.ContentBasedDeduplication, attrs["ContentBasedDeduplication"])
 	maybeSetFloatAsInt(updates, "SignatureVersion", spec.SignatureVersion, attrs["SignatureVersion"])
 	// Policy uses policy-equivalence comparison so must be handled separately.
-	if spec.Policy != nil && *spec.Policy != "" && nativehelper.PolicyNeedsUpdate(*spec.Policy, attrs["Policy"]) {
-		updates["Policy"] = *spec.Policy
+	// The empty-string case means the caller wants to clear the policy:
+	// include it in updates when AWS still has a non-empty policy so that
+	// Update actually issues the SetTopicAttributes call and breaks what
+	// would otherwise be an infinite reconciliation loop (policyUpToDate
+	// correctly reports drift, but the old guard "*spec.Policy != """
+	// prevented buildBasicUpdates from acting on it).
+	if spec.Policy != nil {
+		if *spec.Policy == "" {
+			// User wants to clear the policy.
+			if attrs["Policy"] != "" {
+				updates["Policy"] = ""
+			}
+		} else if nativehelper.PolicyNeedsUpdate(*spec.Policy, attrs["Policy"]) {
+			updates["Policy"] = *spec.Policy
+		}
 	}
 }
 

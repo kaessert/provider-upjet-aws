@@ -486,3 +486,85 @@ func TestDelete_ReturnsError_WhenDeleteFails(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 }
+
+// ── Policy-clear tests (infinite-reconciliation fix) ───────────────────────────
+
+// TestObserve_NotUpToDate_WhenPolicyClearNeeded verifies that Observe detects
+// drift when spec.Policy is the empty string (meaning "clear the policy") but
+// AWS still has a non-empty policy document.
+func TestObserve_NotUpToDate_WhenPolicyClearNeeded(t *testing.T) {
+	attrs := baseAttrs()
+	attrs["Policy"] = `{"Version":"2012-10-17","Statement":[]}`
+	e := &topic.ExternalClient{Client: &mockSNSClient{
+		getAttrsOut: &awssns.GetTopicAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssns.ListTagsForResourceOutput{},
+	}}
+	cr := makeCRWithARN(testTopicName, testTopicARN)
+	cr.Spec.ForProvider.Policy = ptrStr("") // user wants to clear the policy
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=false when spec.Policy is empty but AWS has a policy")
+	}
+}
+
+// TestObserve_UpToDate_WhenBothPoliciesEmpty verifies that Observe reports
+// up-to-date when spec.Policy is the empty string and AWS also has no policy.
+func TestObserve_UpToDate_WhenBothPoliciesEmpty(t *testing.T) {
+	attrs := baseAttrs()
+	// No "Policy" key in attrs — AWS has no policy
+	e := &topic.ExternalClient{Client: &mockSNSClient{
+		getAttrsOut: &awssns.GetTopicAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssns.ListTagsForResourceOutput{},
+	}}
+	cr := makeCRWithARN(testTopicName, testTopicARN)
+	cr.Spec.ForProvider.Policy = ptrStr("") // user explicitly set empty policy
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true when both spec.Policy and AWS policy are empty")
+	}
+}
+
+// TestUpdate_ClearsPolicy_WhenSpecPolicyEmpty verifies that Update sends a
+// SetTopicAttributes call with Policy="" when spec.Policy is empty string but
+// AWS currently has a non-empty policy. This exercises the fix for the infinite
+// reconciliation loop where buildBasicUpdates previously skipped the update.
+func TestUpdate_ClearsPolicy_WhenSpecPolicyEmpty(t *testing.T) {
+	mock := &mockSNSClient{
+		getAttrsOut: &awssns.GetTopicAttributesOutput{
+			Attributes: map[string]string{
+				"TopicArn": testTopicARN,
+				"Policy":   `{"Version":"2012-10-17","Statement":[]}`,
+			},
+		},
+		listTagsOut: &awssns.ListTagsForResourceOutput{},
+	}
+	e := &topic.ExternalClient{Client: mock}
+	cr := makeCRWithARN(testTopicName, testTopicARN)
+	cr.Spec.ForProvider.Policy = ptrStr("") // user wants to clear the policy
+
+	_, err := e.Update(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// SetTopicAttributes must have been called with Policy=""
+	found := false
+	for _, call := range mock.lastSetAttrs {
+		if call.AttributeName != nil && *call.AttributeName == "Policy" {
+			if call.AttributeValue != nil && *call.AttributeValue == "" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Errorf("expected SetTopicAttributes called with Policy='', got calls: %v", mock.lastSetAttrs)
+	}
+}
