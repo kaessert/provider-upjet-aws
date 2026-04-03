@@ -5,13 +5,18 @@
 package native
 
 import (
+	"encoding/json"
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 
 	clusternative "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta2/native"
+	v1beta1native "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta1/native"
 )
 
 // StreamModeDetailsRAWInitParameters defines the init parameters for stream mode details (namespaced v1beta2).
@@ -192,4 +197,32 @@ var (
 
 func init() {
 	SchemeBuilder.Register(&StreamRAW{}, &StreamRAWList{})
+}
+
+// ConvertTo converts StreamRAW v1beta2 to the hub version (v1beta1).
+// Since v1beta1 and v1beta2 have identical JSON schemas, the conversion is
+// done by marshalling to JSON and unmarshalling into the hub type.
+func (src *StreamRAW) ConvertTo(dstRaw conversion.Hub) error {
+	dst, ok := dstRaw.(*v1beta1native.StreamRAW)
+	if !ok {
+		return fmt.Errorf("expected *v1beta1native.StreamRAW, got %T", dstRaw)
+	}
+	data, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dst)
+}
+
+// ConvertFrom converts from the hub version (v1beta1) to StreamRAW v1beta2.
+func (dst *StreamRAW) ConvertFrom(srcRaw conversion.Hub) error {
+	src, ok := srcRaw.(*v1beta1native.StreamRAW)
+	if !ok {
+		return fmt.Errorf("expected *v1beta1native.StreamRAW, got %T", srcRaw)
+	}
+	data, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dst)
 }

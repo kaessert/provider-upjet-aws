@@ -199,6 +199,10 @@ func init() {
 	SchemeBuilder.Register(&StreamRAW{}, &StreamRAWList{})
 }
 
+// Hub marks StreamRAW v1beta1 as the conversion hub.
+// All other versions (e.g. v1beta2) convert to/from this type.
+func (*StreamRAW) Hub() {}
+
 // GetForProvider returns a cluster-scoped StreamRAWParameters populated from
 // this namespaced resource's ForProvider fields.
 // A field-by-field copy is necessary because the namespaced package defines its
