@@ -627,6 +627,54 @@ func TestObserve_NotUpToDate_WhenRedriveAllowPolicyDiffers(t *testing.T) {
 	}
 }
 
+// TestObserve_UpToDate_WhenRedrivePolicySemanticallySame verifies that JSON
+// representations that differ only in key ordering or whitespace are treated
+// as equivalent (no spurious drift detection).
+func TestObserve_UpToDate_WhenRedrivePolicySemanticallySame(t *testing.T) {
+	attrs := baseAttrs()
+	// AWS returns keys in a different order than the spec.
+	attrs["RedrivePolicy"] = `{"maxReceiveCount":5,"deadLetterTargetArn":"arn:aws:sqs:us-east-1:123456789012:MyDLQ"}`
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{},
+	}}
+	cr := makeCR(testQueueURL)
+	// Spec uses a different key order and extra whitespace — semantically identical.
+	cr.Spec.ForProvider.RedrivePolicy = ptrStr(`{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:123456789012:MyDLQ", "maxReceiveCount":5}`)
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true when RedrivePolicy is semantically identical (different key order)")
+	}
+}
+
+// TestObserve_UpToDate_WhenRedriveAllowPolicySemanticallySame verifies that JSON
+// representations that differ only in key ordering or whitespace are treated
+// as equivalent for RedriveAllowPolicy.
+func TestObserve_UpToDate_WhenRedriveAllowPolicySemanticallySame(t *testing.T) {
+	attrs := baseAttrs()
+	// AWS returns a compact form.
+	attrs["RedriveAllowPolicy"] = `{"redrivePermission":"byQueue","sourceQueueArns":["arn:aws:sqs:us-east-1:123456789012:SrcQ"]}`
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{},
+	}}
+	cr := makeCR(testQueueURL)
+	// Spec uses a pretty-printed version with different key ordering.
+	cr.Spec.ForProvider.RedriveAllowPolicy = ptrStr(`{"sourceQueueArns":["arn:aws:sqs:us-east-1:123456789012:SrcQ"],"redrivePermission":"byQueue"}`)
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true when RedriveAllowPolicy is semantically identical (different key order)")
+	}
+}
+
 func TestObserve_LateInitializesDeduplicationScope(t *testing.T) {
 	attrs := baseAttrs()
 	attrs["DeduplicationScope"] = "messageGroup"

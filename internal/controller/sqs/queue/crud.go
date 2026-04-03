@@ -9,7 +9,9 @@ package queue
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -415,13 +417,13 @@ func attrsPoliciesUpToDate(spec *clusternative.QueueRAWParameters, attrs map[str
 		return false, nil
 	}
 
-	// RedrivePolicy and RedriveAllowPolicy use SQS-specific JSON structures,
-	// not IAM policy format. Use direct string comparison.
-	if spec.RedrivePolicy != nil && attrs["RedrivePolicy"] != *spec.RedrivePolicy {
+	// RedrivePolicy and RedriveAllowPolicy use SQS-specific JSON structures.
+	// AWS may reorder keys or adjust whitespace, so use semantic JSON comparison.
+	if spec.RedrivePolicy != nil && !jsonEqual(*spec.RedrivePolicy, attrs["RedrivePolicy"]) {
 		return false, nil
 	}
 
-	if spec.RedriveAllowPolicy != nil && attrs["RedriveAllowPolicy"] != *spec.RedriveAllowPolicy {
+	if spec.RedriveAllowPolicy != nil && !jsonEqual(*spec.RedriveAllowPolicy, attrs["RedriveAllowPolicy"]) {
 		return false, nil
 	}
 
@@ -596,6 +598,23 @@ func awsTagsToNative(tags map[string]string) []nativehelper.Tag {
 		out = append(out, nativehelper.Tag{Key: &k, Value: &v})
 	}
 	return out
+}
+
+// jsonEqual returns true if the two JSON strings are semantically equivalent.
+// It unmarshals both into map[string]interface{} and uses reflect.DeepEqual.
+// Falls back to raw string comparison if either value fails to unmarshal.
+func jsonEqual(a, b string) bool {
+	if a == b {
+		return true
+	}
+	var aObj, bObj map[string]interface{}
+	if err := json.Unmarshal([]byte(a), &aObj); err != nil {
+		return false
+	}
+	if err := json.Unmarshal([]byte(b), &bObj); err != nil {
+		return false
+	}
+	return reflect.DeepEqual(aObj, bObj)
 }
 
 // specTagsToAWSMap converts map[string]*string spec tags to map[string]string
