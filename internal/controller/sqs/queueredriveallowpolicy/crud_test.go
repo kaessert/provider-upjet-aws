@@ -318,6 +318,40 @@ func TestCreate_Error_ReturnsError(t *testing.T) {
 	}
 }
 
+func TestCreate_NonURLQueueURL_ReturnsError(t *testing.T) {
+	// Simulate an unresolved reference: ForProvider.QueueURL holds the K8s resource
+	// name instead of a real SQS queue URL (the referenced QueueRAW is not yet Ready).
+	mock := &mockSQSClient{}
+	e := &queueredriveallowpolicy.ExternalClient{Client: mock}
+	cr := makeCR("test-queue-redrive-allow-policy")
+	cr.Spec.ForProvider.QueueURL = ptrStr("my-queue") // K8s name, not an SQS URL
+
+	_, err := e.Create(context.Background(), cr)
+	if err == nil {
+		t.Error("expected error when queue URL is not resolved (not an SQS URL), got nil")
+	}
+	// Must not call AWS when the URL is not resolved.
+	if mock.lastSetAttrs != nil {
+		t.Error("expected no SetQueueAttributes call when queue URL is not resolved")
+	}
+}
+
+func TestCreate_ValidQueueURL_Succeeds(t *testing.T) {
+	// Simulate a successfully resolved reference: ForProvider.QueueURL is a real SQS URL.
+	mock := &mockSQSClient{}
+	e := &queueredriveallowpolicy.ExternalClient{Client: mock}
+	cr := makeCR("test-queue-redrive-allow-policy")
+	cr.Spec.ForProvider.QueueURL = ptrStr(testQueueURL) // valid SQS URL
+
+	_, err := e.Create(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error for valid queue URL, got %v", err)
+	}
+	if mock.lastSetAttrs == nil {
+		t.Error("expected SetQueueAttributes to be called for valid queue URL")
+	}
+}
+
 // ── Update tests ───────────────────────────────────────────────────────────────
 
 func TestUpdate_CallsSetQueueAttributesWithUpdatedPolicy(t *testing.T) {

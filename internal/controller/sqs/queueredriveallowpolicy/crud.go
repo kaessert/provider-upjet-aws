@@ -122,6 +122,17 @@ func (e *ExternalClient) Create(ctx context.Context, cr QueueRedriveAllowPolicyC
 
 	spec := cr.GetForProvider()
 	queueURL := resolveQueueURL(cr)
+
+	// Guard: if the queue URL hasn't been resolved yet (reference to a QueueRAW
+	// that is not yet Ready), return early rather than calling AWS with an invalid
+	// address. The reconciler will retry after the poll interval.
+	if !strings.HasPrefix(queueURL, "https://sqs.") {
+		return managed.ExternalCreation{}, nativehelper.Wrap(
+			errors.New("queue URL not yet resolved; waiting for referenced QueueRAW to become ready"),
+			errCreate,
+		)
+	}
+
 	redriveAllowPolicy := ""
 	if spec.RedriveAllowPolicy != nil {
 		redriveAllowPolicy = *spec.RedriveAllowPolicy
