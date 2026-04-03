@@ -692,6 +692,30 @@ func TestIsUpToDate_DescriptionChanged(t *testing.T) {
 	}
 }
 
+func TestIsUpToDate_NilSpecFieldsAreIgnored(t *testing.T) {
+	// When spec fields are nil (not set), they should be ignored in comparison
+	// even if AWS has defaults set (e.g., description=" ", dailySnapshotTime="11:30").
+	cr := newTestCR("my-cache", testCacheName)
+	// No description, dailySnapshotTime, etc. set in spec
+
+	sc := availableServerlessCache(testCacheName, testARN)
+	space := " "
+	sc.Description = &space // AWS default
+	snapshotTime := "11:30"
+	sc.DailySnapshotTime = &snapshotTime // AWS default
+	majorVersion := "7"
+	sc.MajorEngineVersion = &majorVersion
+	defaultSg := "sg-default"
+	sc.SecurityGroupIds = []string{defaultSg} // AWS-assigned default SG
+	retention := int32(0)
+	sc.SnapshotRetentionLimit = &retention
+
+	// isUpToDate must return true (nil spec = don't care about these fields)
+	if !isUpToDate(cr, sc, nil) {
+		t.Error("expected isUpToDate=true when spec fields are nil (AWS defaults should be ignored)")
+	}
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 // keysOf returns the keys of a ConnectionDetails map for error messages.

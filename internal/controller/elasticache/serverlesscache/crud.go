@@ -556,46 +556,49 @@ func buildConnectionDetails(sc ectypes.ServerlessCache) managed.ConnectionDetail
 }
 
 // isUpToDate returns true when the CR spec matches the observed AWS state.
-// Called only when the resource is in AVAILABLE status.
+// Called only when the resource is in available status.
+// Only fields explicitly set in the spec are compared; nil/unset spec fields
+// are ignored (AWS may have defaults that differ from empty Go values).
 func isUpToDate(cr ServerlessCacheCR, sc ectypes.ServerlessCache, observedTags []ectypes.Tag) bool { //nolint:gocyclo
 	spec := cr.GetForProvider()
 
-	// Description.
-	if aws.ToString(spec.Description) != aws.ToString(sc.Description) {
+	// Description: only compare if explicitly set in spec.
+	if spec.Description != nil && aws.ToString(spec.Description) != aws.ToString(sc.Description) {
 		return false
 	}
 
-	// DailySnapshotTime.
-	if aws.ToString(spec.DailySnapshotTime) != aws.ToString(sc.DailySnapshotTime) {
+	// DailySnapshotTime: only compare if explicitly set in spec.
+	if spec.DailySnapshotTime != nil && aws.ToString(spec.DailySnapshotTime) != aws.ToString(sc.DailySnapshotTime) {
 		return false
 	}
 
-	// MajorEngineVersion.
-	if aws.ToString(spec.MajorEngineVersion) != aws.ToString(sc.MajorEngineVersion) {
+	// MajorEngineVersion: only compare if explicitly set in spec.
+	if spec.MajorEngineVersion != nil && aws.ToString(spec.MajorEngineVersion) != aws.ToString(sc.MajorEngineVersion) {
 		return false
 	}
 
-	// SnapshotRetentionLimit.
-	specRetention := int32(0)
+	// SnapshotRetentionLimit: only compare if explicitly set in spec.
 	if spec.SnapshotRetentionLimit != nil {
-		specRetention = int32(*spec.SnapshotRetentionLimit)
+		specRetention := int32(*spec.SnapshotRetentionLimit)
+		observedRetention := int32(0)
+		if sc.SnapshotRetentionLimit != nil {
+			observedRetention = *sc.SnapshotRetentionLimit
+		}
+		if specRetention != observedRetention {
+			return false
+		}
 	}
-	observedRetention := int32(0)
-	if sc.SnapshotRetentionLimit != nil {
-		observedRetention = *sc.SnapshotRetentionLimit
-	}
-	if specRetention != observedRetention {
+
+	// UserGroupID: only compare if explicitly set in spec.
+	if spec.UserGroupID != nil && aws.ToString(spec.UserGroupID) != aws.ToString(sc.UserGroupId) {
 		return false
 	}
 
-	// UserGroupID.
-	if aws.ToString(spec.UserGroupID) != aws.ToString(sc.UserGroupId) {
-		return false
-	}
-
-	// SecurityGroupIds (order-independent — both are +listType=set).
-	if !sortedStringSliceEqual(derefStringSlice(spec.SecurityGroupIds), sc.SecurityGroupIds) {
-		return false
+	// SecurityGroupIds: only compare if explicitly set in spec.
+	if len(spec.SecurityGroupIds) > 0 {
+		if !sortedStringSliceEqual(derefStringSlice(spec.SecurityGroupIds), sc.SecurityGroupIds) {
+			return false
+		}
 	}
 
 	// CacheUsageLimits.
