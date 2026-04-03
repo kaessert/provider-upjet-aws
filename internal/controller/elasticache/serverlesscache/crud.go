@@ -153,6 +153,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 	// Check whether the resource matches the desired spec.
 	upToDate := isUpToDate(cr, sc, observedTags)
 
+	// Set the Test condition for uptest compatibility (mirrors upjet behaviour).
+	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
+
 	return managed.ExternalObservation{
 		ResourceExists:    true,
 		ResourceUpToDate:  upToDate,
