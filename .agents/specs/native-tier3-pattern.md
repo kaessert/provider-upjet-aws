@@ -44,19 +44,26 @@ func (e *ExternalClient) Create(ctx context.Context, cr ReplicationGroupCR) (man
     
     var authToken string
     if spec.AutoGenerateAuthToken != nil && *spec.AutoGenerateAuthToken {
-        // Step 1: Generate a secure random token
-        token, err := password.Generate() // crossplane-runtime/pkg/password
-        if err != nil {
-            return managed.ExternalCreation{}, errors.Wrap(err, "cannot generate auth token")
+        // Step 0: Check if Secret already has a value — reuse if so (idempotent retry)
+        // This matches common.PasswordGenerator behavior: common.go:98-101
+        existing, _ := e.readSecretValue(ctx, spec.AuthTokenSecretRef)
+        if existing != "" {
+            authToken = existing
+        } else {
+            // Step 1: Generate a secure random token
+            token, err := password.Generate() // crossplane-runtime/pkg/password
+            if err != nil {
+                return managed.ExternalCreation{}, errors.Wrap(err, "cannot generate auth token")
+            }
+            
+            // Step 2: Write the token to the K8s Secret at authTokenSecretRef
+            // Set OwnerReference so Secret is GC'd when the MR is deleted (common.go:121-122)
+            if err := e.writeAuthTokenToSecret(ctx, cr, token); err != nil {
+                return managed.ExternalCreation{}, errors.Wrap(err, "cannot write auth token to secret")
+            }
+            
+            authToken = token
         }
-        
-        // Step 2: Write the token to the K8s Secret at authTokenSecretRef
-        // This ensures the token survives pod restarts and is recoverable.
-        if err := e.writeAuthTokenToSecret(ctx, cr, token); err != nil {
-            return managed.ExternalCreation{}, errors.Wrap(err, "cannot write auth token to secret")
-        }
-        
-        authToken = token
     } else if spec.AuthTokenSecretRef != nil {
         // User provided an explicit auth token via secretRef — read it
         token, err := e.readSecretValue(ctx, spec.AuthTokenSecretRef)
@@ -83,7 +90,12 @@ func (e *ExternalClient) Create(ctx context.Context, cr ReplicationGroupCR) (man
 }
 ```
 
-**Key invariant**: The token MUST be persisted to the K8s Secret before the AWS call. If Create succeeds at AWS but the pod crashes before the connection detail is saved, the token can be recovered from the Secret. If Create fails, the Secret has a token that can be reused on retry. This matches the TF `PasswordGenerator` contract.
+**Key invariants** (must match `config/cluster/common/common.go` PasswordGenerator behavior):
+- The token MUST be persisted to the K8s Secret before the AWS call
+- If the Secret already has data at the key, skip generation and reuse the existing value (`common.go:98-101`)
+- Set `OwnerReference` on the Secret so it is garbage-collected when the MR is deleted (`common.go:121-122`)
+- If Create succeeds at AWS but the pod crashes, the token is recoverable from the Secret
+- Observe must re-read `auth_token` from `authTokenSecretRef` and include in connection details (TF sensitive mechanism re-publishes on every reconcile)
 
 **Auth token rotation** (`auth_token_update_strategy`): The Update path must handle auth token changes using the `AuthToken` and `AuthTokenUpdateStrategy` fields together in `ModifyReplicationGroup`. Valid strategies are `SET` (replace token), `ROTATE` (add new while keeping old temporarily), and `DELETE` (remove auth). The Update logic must check if the auth token changed and include `AuthTokenUpdateStrategy` in the input when it does.
 
@@ -222,15 +234,22 @@ func (e *ExternalClient) Delete(ctx context.Context, cr CR) (managed.ExternalDel
 
 ### 3. Transitional State Handling for Non-Async Resources
 
-**Cluster** and **GlobalReplicationGroup** are NOT marked `UseAsync` in the TF config, but AWS operations are still async at the API level (creating a cluster takes minutes). The TF provider uses synchronous waiters internally.
+**Cluster**, **GlobalReplicationGroup**, **User**, and **UserGroup** are NOT marked `UseAsync` in the TF config, but AWS operations are still async at the API level (creating a cluster/user takes seconds to minutes). The TF provider uses synchronous waiters internally.
 
-In the native controller, handle transitional states in Observe exactly like Kinesis Stream:
+In the native controller, handle transitional states in Observe exactly like Kinesis Stream. All four resources have a `Status` field with transitional values:
+
+| Resource | Status Field | Active | Transitional |
+|---|---|---|---|
+| Cluster | `CacheClusterStatus` | `available` | `creating`, `modifying`, `rebooting cluster nodes`, `snapshotting`, `deleting` |
+| GlobalReplicationGroup | `Status` | `available` | `creating`, `modifying`, `deleting` |
+| User | `Status` | `active` | `modifying`, `deleting` |
+| UserGroup | `Status` | `active` | `creating`, `modifying`, `deleting` |
 
 ```go
-// In Observe for Cluster/GlobalReplicationGroup:
-status := aws.ToString(cluster.CacheClusterStatus) // or globalRG.Status
+// In Observe for Cluster/GlobalReplicationGroup/User/UserGroup:
+status := aws.ToString(resource.Status) // or CacheClusterStatus for Cluster
 switch status {
-case "available":
+case "available", "active":
     cr.SetConditions(xpv1.Available())
     // proceed to isUpToDate
 case "creating", "modifying", "rebooting cluster nodes", "snapshotting":
@@ -243,7 +262,7 @@ case "deleting":
 }
 ```
 
-**Without this**, Observe calls `isUpToDate()` on a "creating" resource where AWS defaults aren't applied yet → returns `false` → triggers `Update()` → AWS returns `InvalidCacheClusterState`.
+**Without this**, Observe calls `isUpToDate()` on a "creating" resource where AWS defaults aren't applied yet → returns `false` → triggers `Update()` → AWS returns `InvalidCacheClusterState` / `InvalidUserState` / `InvalidUserGroupState`.
 
 ### 4. Schema Target & Multi-Version
 
@@ -305,10 +324,10 @@ The TF config deletes `security_group_names.#` from the diff because this is an 
 Three resources publish connection details:
 
 **Cluster** (Memcached):
-| Key | SDK Path |
-|-----|----------|
-| `cluster_address` | `CacheCluster.ConfigurationEndpoint.Address` |
-| `port` | `CacheCluster.ConfigurationEndpoint.Port` |
+| Key | SDK Path | Condition |
+|-----|----------|----------|
+| `cluster_address` | `CacheCluster.ConfigurationEndpoint.Address` | Memcached only (ConfigurationEndpoint is nil for Redis) |
+| `port` | `CacheCluster.ConfigurationEndpoint.Port` (Memcached) or `CacheCluster.CacheNodes[0].Endpoint.Port` (Redis) | **All engines** |
 
 **ReplicationGroup**:
 | Key | SDK Path | Condition |
@@ -317,8 +336,9 @@ Three resources publish connection details:
 | `primary_endpoint_address` | `ReplicationGroup.NodeGroups[0].PrimaryEndpoint.Address` | Cluster mode disabled |
 | `reader_endpoint_address` | `ReplicationGroup.NodeGroups[0].ReaderEndpoint.Address` | Cluster mode disabled |
 | `port` | `ReplicationGroup.NodeGroups[0].PrimaryEndpoint.Port` | Always |
+| `auth_token` | Re-read from `authTokenSecretRef` Secret | When auth is enabled |
 
-Source: `.agents/specs/connection-details-catalog.json`
+Source: `.agents/specs/connection-details-catalog.json`. Note: `auth_token` must be re-published on every Observe (TF sensitive mechanism re-publishes automatically; native must do it explicitly).
 
 **ServerlessCache**:
 | Key | SDK Path |
@@ -349,13 +369,24 @@ Option (a) is simpler and recommended for initial implementation. The reconciler
 
 ### 9. References
 
-| Resource | Field | References |
-|---|---|---|
-| Cluster | `parameter_group_name` | `aws_elasticache_parameter_group` |
-| ReplicationGroup | `subnet_group_name` | `aws_elasticache_subnet_group` |
-| ReplicationGroup | `kms_key_id` | `aws_kms_key` |
-| ServerlessCache | `kms_key_id` | `aws_kms_key` |
-| UserGroup | `user_ids` | `aws_elasticache_user` (list ref, custom field names: `UserIDRefs`, `UserIDSelector`) |
+Includes references from `config.go` configurators AND `overrides.go` KnownReferencers (auto-applied to `subnet_ids`, `security_group_ids`, `kms_key_id`, `vpc_id`, `*_role_arn`).
+
+| Resource | Field | References | Source |
+|---|---|---|---|
+| SubnetGroup | `subnet_ids` | `aws_subnet` (SubnetIDRefs/Selector) | KnownReferencers |
+| Cluster | `parameter_group_name` | `aws_elasticache_parameter_group` | config.go |
+| Cluster | `subnet_group_name` | `aws_elasticache_subnet_group` | auto-ref |
+| Cluster | `replication_group_id` | `aws_elasticache_replication_group` | auto-ref |
+| Cluster | `security_group_ids` | `aws_security_group` (SecurityGroupIDRefs/Selector) | KnownReferencers |
+| GlobalReplicationGroup | `primary_replication_group_id` | `aws_elasticache_replication_group` | auto-ref |
+| ReplicationGroup | `subnet_group_name` | `aws_elasticache_subnet_group` | config.go |
+| ReplicationGroup | `kms_key_id` | `aws_kms_key` | config.go |
+| ReplicationGroup | `security_group_ids` | `aws_security_group` (SecurityGroupIDRefs/Selector) | KnownReferencers |
+| ReplicationGroup | `global_replication_group_id` | `aws_elasticache_global_replication_group` | auto-ref |
+| ServerlessCache | `kms_key_id` | `aws_kms_key` | config.go |
+| ServerlessCache | `security_group_ids` | `aws_security_group` (SecurityGroupIDRefs/Selector) | KnownReferencers |
+| ServerlessCache | `subnet_ids` | `aws_subnet` (SubnetIDRefs/Selector) | KnownReferencers |
+| UserGroup | `user_ids` | `aws_elasticache_user` (list ref, custom field names: `UserIDRefs`, `UserIDSelector`) | config.go |
 
 Note: `log_delivery_configuration.destination` has its auto-ref **deleted** in both Cluster and ReplicationGroup because it can point to either CloudWatch Logs or Kinesis Firehose — TF can't auto-ref polymorphic targets.
 
@@ -370,7 +401,13 @@ func init() {
 }
 ```
 
-### 11. GlobalReplicationGroup External Name
+### 11. IdentifierFromProvider External Name Handling
+
+Two resources use `IdentifierFromProvider` — their AWS-assigned ID must be stored as the external name in Create. Without this, `status.atProvider` is lost before the next Observe (pattern spec §17).
+
+**ParameterGroup**: `meta.SetExternalName(cr, aws.ToString(resp.CacheParameterGroup.CacheParameterGroupName))`
+
+### 11b. GlobalReplicationGroup External Name
 
 `GlobalReplicationGroup` uses `IdentifierFromProvider` — the AWS-assigned ID must be stored as the external name in Create:
 
@@ -386,7 +423,31 @@ func (e *ExternalClient) Create(ctx context.Context, cr CR) (managed.ExternalCre
 }
 ```
 
-### 12. MoveToStatus Field Audit
+### 12. User Sensitive Field Handling
+
+User has two password paths that must both be supported:
+
+1. **Top-level** `spec.forProvider.passwordsSecretRef` (`*[]v1.SecretKeySelector`) — legacy API path
+2. **Nested** `spec.forProvider.authenticationMode.passwordsSecretRef` (`*[]v1.SecretKeySelector`) — new API path
+
+Both fields reference K8s Secrets containing password values. The native controller must:
+- Read secret values from whichever path is populated
+- Pass them to `CreateUser` / `ModifyUser` AWS API calls
+- Never expose password values in `status.atProvider` (sensitive)
+- Publish password hashes as connection details (matching TF sensitive field mechanism)
+
+### 13. Type Mismatch Fields
+
+Some ReplicationGroup fields use `*string` in the TF types where the AWS SDK uses `*bool`. RAW types MUST use the same Go type as the TF types for CRD schema parity:
+
+| Field | TF Type | AWS SDK Type | RAW Type Must Use |
+|---|---|---|---|
+| `AtRestEncryptionEnabled` | `*string` | `*bool` | `*string` — convert to `*bool` when calling AWS SDK |
+| `AutoMinorVersionUpgrade` | `*string` | `*bool` | `*string` — convert to `*bool` when calling AWS SDK |
+
+If RAW uses `*bool`, existing YAML with `atRestEncryptionEnabled: "true"` (string) would fail CRD validation.
+
+### 14. MoveToStatus Field Audit
 
 **Audit result**: No ElastiCache resources have fields that need relegation to `status.atProvider`-only beyond what's already computed-only in the schema. The following fields are computed-only and belong in `Observation` only:
 
@@ -409,6 +470,7 @@ Single scaffold ticket covering all 8 resources, following the existing `plan-na
 - `make generate.native` for CRDs
 - Scheme registration in `native_register.go` (both scopes)
 - `NativeSetupHook_elasticache` assignment in wrapper `init()`
+- Namespaced extractor annotations point to `config/namespaced/common.*` (NOT `config/cluster/common.*`)
 
 ## Risk Assessment
 
