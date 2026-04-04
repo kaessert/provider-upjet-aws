@@ -158,14 +158,15 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ReplicationGroupCR) (ma
 	}
 
 	// Late-initialize AWS-defaulted fields (spec §8).
-	// Returns early with ResourceLateInitialized=true so the reconciler saves the
-	// spec before calling isUpToDate. The next Observe will find all fields set and
-	// isUpToDate=true, breaking any potential infinite-update loop.
+	// The late-initialized values (NodeType, SnapshotWindow, SnapshotRetentionLimit,
+	// ClusterMode) are AWS-assigned defaults already present in AWS. We copy them into
+	// spec for future isUpToDate comparisons but do NOT need to push them back to AWS.
+	// ResourceUpToDate=true prevents a spurious Update triggered by the reconciler.
 	if lateInitializeRG(cr.GetForProvider(), rg) {
 		connDetails := e.buildConnectionDetails(ctx, cr, rg)
 		return managed.ExternalObservation{
 			ResourceExists:          true,
-			ResourceUpToDate:        false,
+			ResourceUpToDate:        true,
 			ResourceLateInitialized: true,
 			ConnectionDetails:       connDetails,
 		}, nil

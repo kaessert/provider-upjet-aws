@@ -1207,3 +1207,39 @@ func TestBuildModifyInput_UserGroupIds_Populated(t *testing.T) {
 
 // Ensure managed.ConnectionDetails is used correctly.
 var _ managed.ConnectionDetails = managed.ConnectionDetails{}
+
+// TestObserve_LateInit_ResourceUpToDate_RG verifies that when late initialization
+// fires (NodeType nil), ResourceUpToDate=true is returned (not false).
+// AWS-defaulted fields are already present in AWS — no Update needed.
+func TestObserve_LateInit_ResourceUpToDate_RG(t *testing.T) {
+	cr := buildTestCR()
+	cr.Spec.ForProvider.NodeType = nil // intentionally nil
+
+	fakeAWS := &fakeRGClient{
+		describeResp: &awselasticache.DescribeReplicationGroupsOutput{
+			ReplicationGroups: []ectypes.ReplicationGroup{
+				{
+					ReplicationGroupId: aws.String("test-rg"),
+					Status:             aws.String("available"),
+					Description:        aws.String("test description"),
+					CacheNodeType:      aws.String("cache.r7g.medium"),
+				},
+			},
+		},
+		listTagsResp: &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}},
+	}
+
+	ec := &ExternalClient{Client: fakeAWS, Kube: buildFakeKubeClient()}
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when NodeType is nil")
+	}
+	// Must be TRUE — AWS already has the value, no Update needed
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true during late init — Update must NOT be triggered for AWS-defaulted fields")
+	}
+}

@@ -1335,3 +1335,39 @@ func TestObserve_NilGuard_ConfigEndpoint(t *testing.T) {
 		t.Error("expected ResourceExists=true")
 	}
 }
+
+// TestObserve_LateInit_ResourceUpToDate_Cluster verifies that when late init fires,
+// ResourceUpToDate=true is returned — no Update should be triggered.
+func TestObserve_LateInit_ResourceUpToDate_Cluster(t *testing.T) {
+	cr := newTestCR("my-cluster", testClusterID)
+	cr.Spec.ForProvider.NodeType = nil // nil → late init will fire
+
+	e := &ExternalClient{Client: &mockClusterClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheClustersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheClustersOutput, error) {
+			return &awselasticache.DescribeCacheClustersOutput{
+				CacheClusters: []ectypes.CacheCluster{
+					{
+						CacheClusterId:     aws.String(testClusterID),
+						ARN:                aws.String(testClusterARN),
+						CacheClusterStatus: aws.String("available"),
+						Engine:             aws.String("redis"),
+						CacheNodeType:      aws.String("cache.r7g.medium"),
+						NumCacheNodes:      aws.Int32(1),
+					},
+				},
+			}, nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true")
+	}
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true during late init — Update must NOT be triggered")
+	}
+}

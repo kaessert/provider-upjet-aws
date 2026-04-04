@@ -65,6 +65,8 @@ type ExternalClient struct {
 }
 
 // Observe checks whether the external SubnetGroupRAW resource exists and is up-to-date.
+//
+//nolint:gocyclo
 func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed.ExternalObservation, error) {
 	extName := nativehelper.GetExternalName(cr)
 	if extName == "" {
@@ -125,10 +127,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed
 	awsDescTrimmed := strings.TrimSpace(aws.ToString(sg.CacheSubnetGroupDescription))
 	if awsDescTrimmed != "" && cr.GetForProvider().Description == nil {
 		// AWS has a non-empty description but spec doesn't — late-init it.
+		// ResourceUpToDate=true: AWS already has the correct value; no Update needed.
 		if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Description, sg.CacheSubnetGroupDescription) {
 			return managed.ExternalObservation{
 				ResourceExists:          true,
-				ResourceUpToDate:        false,
+				ResourceUpToDate:        true,
 				ResourceLateInitialized: true,
 			}, nil
 		}
