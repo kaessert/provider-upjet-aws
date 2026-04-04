@@ -582,11 +582,20 @@ func (e *external) Observe(ctx context.Context, cr *MyResourceRAW) (managed.Exte
     cr.Status.AtProvider.ARN = resp.Resource.Arn
     cr.Status.AtProvider.State = aws.ToString(resp.Resource.State)
 
-    // 4. Late initialization — fill nil spec fields from AWS response
+    // 4. Late initialization — fill nil spec fields from AWS response.
+    //    ⚠️  Always use GetForProvider() + SetForProvider() — do NOT mutate
+    //    cr.Spec.ForProvider directly. On namespaced types, GetForProvider()
+    //    returns a copy; without SetForProvider() the changes are lost,
+    //    causing an infinite late-init loop (ResourceLateInitialized: true
+    //    every reconcile, Ready condition never becomes Available).
+    spec := cr.GetForProvider()
     lateInit := false
     lateInit = native.LateInitializeStringPtr(
-        &cr.Spec.ForProvider.Description, resp.Resource.Description,
+        &spec.Description, resp.Resource.Description,
     ) || lateInit
+    if lateInit {
+        cr.SetForProvider(*spec) // Write back — required for namespaced types
+    }
 
     // 5. Set availability condition
     if aws.ToString(resp.Resource.State) == "ACTIVE" {
@@ -616,6 +625,14 @@ func (e *external) Observe(ctx context.Context, cr *MyResourceRAW) (managed.Exte
 | Resource exists, in sync | `ResourceUpToDate: true` | No action, re-polls |
 | Late-init populated a field | `ResourceLateInitialized: true` | Reconciler writes spec back |
 | Other AWS error | Return the error | Reconciler retries |
+
+> **⚠️ SetForProvider is mandatory for late init**: When `ResourceLateInitialized: true` is
+> returned, the reconciler writes the CR spec back to the API server. However, this only works
+> if `SetForProvider()` was called first — `GetForProvider()` on namespaced types returns a
+> **copy** (to convert reference fields). Mutating the copy without calling `SetForProvider()`
+> means the late-initialized fields are never stored in the CR. The result is an infinite
+> reconcile loop where `ResourceLateInitialized: true` is returned every reconcile and the
+> `Ready` condition never becomes `Available`.
 
 ### 5.3 Create
 
@@ -803,15 +820,32 @@ if native.AreSame(desired, actual) { ... }
 
 Called in Observe to populate nil spec fields from the AWS response:
 
+> **⚠️ Never mutate `cr.Spec.ForProvider` directly** during late initialization.
+> `GetForProvider()` on namespaced types returns a **copy** (the conversion from namespaced
+> reference fields to cluster-scoped fields produces a new value). Changes to the copy are
+> silently discarded unless written back with `SetForProvider()`. Forgetting this causes an
+> infinite late-init loop: `ResourceLateInitialized: true` is returned every reconcile, the
+> spec is never updated, and the `Ready` condition never becomes `Available`.
+
 ```go
+// CORRECT — use GetForProvider / SetForProvider pattern
+spec := cr.GetForProvider()
 lateInit := false
-lateInit = native.LateInitializeStringPtr(&cr.Spec.ForProvider.Description, resp.Description) || lateInit
-lateInit = native.LateInitializeBoolPtr(&cr.Spec.ForProvider.EnableDNS, resp.EnableDns) || lateInit
-lateInit = native.LateInitializeInt64Ptr(&cr.Spec.ForProvider.Timeout, resp.TimeoutSeconds) || lateInit
-lateInit = native.LateInitializeMapStringPtr(&cr.Spec.ForProvider.Tags, convertTags(resp.Tags)) || lateInit
+lateInit = native.LateInitializeStringPtr(&spec.Description, resp.Description) || lateInit
+lateInit = native.LateInitializeBoolPtr(&spec.EnableDNS, resp.EnableDns) || lateInit
+lateInit = native.LateInitializeInt64Ptr(&spec.Timeout, resp.TimeoutSeconds) || lateInit
+lateInit = native.LateInitializeMapStringPtr(&spec.Tags, convertTags(resp.Tags)) || lateInit
+if lateInit {
+    cr.SetForProvider(*spec) // Write back — required for namespaced types
+}
 ```
 
 Each helper returns `true` if the field was populated (destination was nil, source was non-nil).
+
+```go
+// WRONG — do NOT do this (changes are lost on namespaced types)
+lateInit = native.LateInitializeStringPtr(&cr.Spec.ForProvider.Description, resp.Description) || lateInit
+```
 
 ### 6.5 Async Operations (`native/async.go`)
 
@@ -1167,6 +1201,7 @@ func s3TagsToMap(tags []awss3types.Tag) map[string]*string {
 | Calling `SetExternalName` in Observe | Only call in Create (after successful provider response) |
 | Using upjet imports | Avoid — native controllers should have zero upjet dependencies |
 | Missing build tag | Add `//go:build <service> || all` to match service partitioning |
+| Mutating `cr.Spec.ForProvider` directly in late init | Use `spec := cr.GetForProvider()`, mutate `spec`, then `cr.SetForProvider(*spec)` |
 
 ---
 
@@ -1186,6 +1221,7 @@ func s3TagsToMap(tags []awss3types.Tag) map[string]*string {
 - [ ] `TerraformID()` extractor NOT used anywhere
 - [ ] Build tag matches service name (`//go:build s3 || all`)
 - [ ] No upjet imports in controller or type files
+- [ ] Late init uses `spec := cr.GetForProvider()` + `cr.SetForProvider(*spec)` (not `cr.Spec.ForProvider` direct mutation)
 
 ---
 
