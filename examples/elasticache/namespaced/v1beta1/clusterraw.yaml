@@ -16,6 +16,6 @@ spec:
     engine: memcached
     nodeType: cache.m4.large
     numCacheNodes: 1
-    parameterGroupName: default.memcached1.4
+    parameterGroupName: default.memcached1.6
     port: 11211
-    region: us-east-2
+    region: us-west-2

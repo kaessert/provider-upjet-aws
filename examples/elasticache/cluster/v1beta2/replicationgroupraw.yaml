@@ -13,7 +13,7 @@ metadata:
 spec:
   forProvider:
     description: "example replication group"
-    nodeType: cache.m4.large
+    nodeType: cache.m6g.large
     numCacheClusters: 2
     parameterGroupName: default.redis7
     port: 6379

@@ -10,7 +10,8 @@ metadata:
   name: example
 spec:
   forProvider:
-    accessString: "on ~app::* -@all +@read +@hash +@bitmap +@geo -SETBIT -BITFIELD -HSET -HSETNX -HMSET -HINCRBY -HINCRBYFLOAT -HDEL -BITOP -LMOVE -BLMOVE -RPOPLPUSH -BRPOPLPUSH -BLPOPLPUSH -LPUSH -LPUSHX -RPUSH -RPUSHX -LINSERT -LSET -LREM -LTRIM -ZINCRBY -ZINTERSTORE -ZUNIONSTORE -ZDIFFSTORE -ZADD -ZREM -ZRANGESTORE -GEOADD -GEORADIUS -GEORADIUSBYMEMBER +GET +MGET +SMEMBERS +SINTERCARD"
+    accessString: "on ~app::* -@all +@read"
     engine: redis
+    noPasswordRequired: true
     region: us-east-1
     userName: exampleuser

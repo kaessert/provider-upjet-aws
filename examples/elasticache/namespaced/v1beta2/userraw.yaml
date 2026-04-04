@@ -13,5 +13,6 @@ spec:
   forProvider:
     accessString: "on ~app::* -@all +@read"
     engine: redis
+    noPasswordRequired: true
     region: us-east-1
     userName: exampleuser
