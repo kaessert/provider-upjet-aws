@@ -5,7 +5,6 @@
 package native
 
 import (
-	"encoding/json"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,12 +81,12 @@ type UserRAWParameters struct {
 
 // UserRAWInitParameters defines the v1beta1 spoke init parameters.
 type UserRAWInitParameters struct {
-	AccessString       *string                        `json:"accessString,omitempty"`
+	AccessString       *string                               `json:"accessString,omitempty"`
 	AuthenticationMode []AuthenticationModeRAWInitParameters `json:"authenticationMode,omitempty"`
-	Engine             *string                        `json:"engine,omitempty"`
-	NoPasswordRequired *bool                          `json:"noPasswordRequired,omitempty"`
-	Tags               map[string]*string             `json:"tags,omitempty"`
-	UserName           *string                        `json:"userName,omitempty"`
+	Engine             *string                               `json:"engine,omitempty"`
+	NoPasswordRequired *bool                                 `json:"noPasswordRequired,omitempty"`
+	Tags               map[string]*string                    `json:"tags,omitempty"`
+	UserName           *string                               `json:"userName,omitempty"`
 }
 
 // UserRAWObservation defines the observed state for the v1beta1 spoke.
@@ -166,20 +165,36 @@ func init() {
 
 // ConvertTo converts UserRAW v1beta1 to the hub UserRAW v1beta2.
 // The key structural change: AuthenticationMode []slice → *pointer.
+//
+// Uses explicit field copies (no ujconversion.RoundTrip) because JSON
+// round-tripping fails: v1beta1 marshals AuthenticationMode as an array "[...]"
+// while v1beta2 expects an object "{...}".
 func (src *UserRAW) ConvertTo(dstRaw conversion.Hub) error {
 	dst, ok := dstRaw.(*v1beta2native.UserRAW)
 	if !ok {
 		return fmt.Errorf("expected *v1beta2native.UserRAW, got %T", dstRaw)
 	}
-	data, err := json.Marshal(src)
-	if err != nil {
-		return err
+
+	// Copy ObjectMeta and TypeMeta.
+	dst.ObjectMeta = src.ObjectMeta
+	dst.TypeMeta = metav1.TypeMeta{
+		APIVersion: v1beta2native.CRDGroup + "/" + v1beta2native.CRDVersion,
+		Kind:       "UserRAW",
 	}
-	if err := json.Unmarshal(data, dst); err != nil {
-		return err
-	}
-	// Convert AuthenticationMode from slice to pointer.
-	// v1beta1 has []AuthenticationModeRAWParameters, v1beta2 has *AuthenticationModeRAWParameters.
+
+	// Copy ManagedResourceSpec (all non-AuthenticationMode fields).
+	dst.Spec.ManagedResourceSpec = src.Spec.ManagedResourceSpec
+
+	// Copy ForProvider fields explicitly.
+	dst.Spec.ForProvider.AccessString = src.Spec.ForProvider.AccessString
+	dst.Spec.ForProvider.Engine = src.Spec.ForProvider.Engine
+	dst.Spec.ForProvider.NoPasswordRequired = src.Spec.ForProvider.NoPasswordRequired
+	dst.Spec.ForProvider.PasswordsSecretRef = src.Spec.ForProvider.PasswordsSecretRef
+	dst.Spec.ForProvider.Region = src.Spec.ForProvider.Region
+	dst.Spec.ForProvider.Tags = src.Spec.ForProvider.Tags
+	dst.Spec.ForProvider.UserName = src.Spec.ForProvider.UserName
+
+	// Convert AuthenticationMode: slice (v1beta1) → pointer (v1beta2).
 	if len(src.Spec.ForProvider.AuthenticationMode) > 0 {
 		am := src.Spec.ForProvider.AuthenticationMode[0]
 		dst.Spec.ForProvider.AuthenticationMode = &v1beta2native.AuthenticationModeRAWParameters{
@@ -189,28 +204,76 @@ func (src *UserRAW) ConvertTo(dstRaw conversion.Hub) error {
 	} else {
 		dst.Spec.ForProvider.AuthenticationMode = nil
 	}
-	// Explicitly set the hub's TypeMeta.
-	dst.TypeMeta = metav1.TypeMeta{
-		APIVersion: v1beta2native.CRDGroup + "/" + v1beta2native.CRDVersion,
-		Kind:       "UserRAW",
+
+	// Copy InitProvider fields explicitly.
+	dst.Spec.InitProvider.AccessString = src.Spec.InitProvider.AccessString
+	dst.Spec.InitProvider.Engine = src.Spec.InitProvider.Engine
+	dst.Spec.InitProvider.NoPasswordRequired = src.Spec.InitProvider.NoPasswordRequired
+	dst.Spec.InitProvider.Tags = src.Spec.InitProvider.Tags
+	dst.Spec.InitProvider.UserName = src.Spec.InitProvider.UserName
+	if len(src.Spec.InitProvider.AuthenticationMode) > 0 {
+		am := src.Spec.InitProvider.AuthenticationMode[0]
+		dst.Spec.InitProvider.AuthenticationMode = &v1beta2native.AuthenticationModeRAWInitParameters{
+			Type: am.Type,
+		}
+	} else {
+		dst.Spec.InitProvider.AuthenticationMode = nil
 	}
+
+	// Copy Status.
+	dst.Status.ResourceStatus = src.Status.ResourceStatus
+	dst.Status.AtProvider.AccessString = src.Status.AtProvider.AccessString
+	dst.Status.AtProvider.Arn = src.Status.AtProvider.Arn
+	dst.Status.AtProvider.Engine = src.Status.AtProvider.Engine
+	dst.Status.AtProvider.ID = src.Status.AtProvider.ID
+	dst.Status.AtProvider.NoPasswordRequired = src.Status.AtProvider.NoPasswordRequired
+	dst.Status.AtProvider.Status = src.Status.AtProvider.Status
+	dst.Status.AtProvider.Tags = src.Status.AtProvider.Tags
+	dst.Status.AtProvider.UserName = src.Status.AtProvider.UserName
+	if len(src.Status.AtProvider.AuthenticationMode) > 0 {
+		am := src.Status.AtProvider.AuthenticationMode[0]
+		dst.Status.AtProvider.AuthenticationMode = &v1beta2native.AuthenticationModeRAWObservation{
+			PasswordCount: am.PasswordCount,
+			Type:          am.Type,
+		}
+	} else {
+		dst.Status.AtProvider.AuthenticationMode = nil
+	}
+
 	return nil
 }
 
 // ConvertFrom converts from the hub UserRAW v1beta2 to UserRAW v1beta1.
+//
+// Uses explicit field copies (no ujconversion.RoundTrip) because JSON
+// round-tripping fails: v1beta2 marshals AuthenticationMode as an object "{...}"
+// while v1beta1 expects an array "[...]".
 func (dst *UserRAW) ConvertFrom(srcRaw conversion.Hub) error {
 	src, ok := srcRaw.(*v1beta2native.UserRAW)
 	if !ok {
 		return fmt.Errorf("expected *v1beta2native.UserRAW, got %T", srcRaw)
 	}
-	data, err := json.Marshal(src)
-	if err != nil {
-		return err
+
+	// Copy ObjectMeta and TypeMeta.
+	dst.ObjectMeta = src.ObjectMeta
+	dst.TypeMeta = metav1.TypeMeta{
+		APIVersion: CRDGroup + "/" + CRDVersion,
+		Kind:       "UserRAW",
 	}
-	if err := json.Unmarshal(data, dst); err != nil {
-		return err
-	}
-	// Convert AuthenticationMode from pointer to slice.
+
+	// Copy ManagedResourceSpec.
+	dst.Spec.ManagedResourceSpec = src.Spec.ManagedResourceSpec
+
+	// Copy ForProvider fields explicitly.
+	dst.Spec.ForProvider.AccessString = src.Spec.ForProvider.AccessString
+	dst.Spec.ForProvider.Engine = src.Spec.ForProvider.Engine
+	dst.Spec.ForProvider.NoPasswordRequired = src.Spec.ForProvider.NoPasswordRequired
+	dst.Spec.ForProvider.PasswordsSecretRef = src.Spec.ForProvider.PasswordsSecretRef
+	dst.Spec.ForProvider.Region = src.Spec.ForProvider.Region
+	dst.Spec.ForProvider.Tags = src.Spec.ForProvider.Tags
+	dst.Spec.ForProvider.UserName = src.Spec.ForProvider.UserName
+
+	// Convert AuthenticationMode: pointer (v1beta2) → slice (v1beta1).
 	if src.Spec.ForProvider.AuthenticationMode != nil {
 		am := src.Spec.ForProvider.AuthenticationMode
 		dst.Spec.ForProvider.AuthenticationMode = []AuthenticationModeRAWParameters{
@@ -222,11 +285,44 @@ func (dst *UserRAW) ConvertFrom(srcRaw conversion.Hub) error {
 	} else {
 		dst.Spec.ForProvider.AuthenticationMode = nil
 	}
-	// Explicitly set the spoke's TypeMeta to v1beta1.
-	dst.TypeMeta = metav1.TypeMeta{
-		APIVersion: CRDGroup + "/" + CRDVersion,
-		Kind:       "UserRAW",
+
+	// Copy InitProvider fields explicitly.
+	dst.Spec.InitProvider.AccessString = src.Spec.InitProvider.AccessString
+	dst.Spec.InitProvider.Engine = src.Spec.InitProvider.Engine
+	dst.Spec.InitProvider.NoPasswordRequired = src.Spec.InitProvider.NoPasswordRequired
+	dst.Spec.InitProvider.Tags = src.Spec.InitProvider.Tags
+	dst.Spec.InitProvider.UserName = src.Spec.InitProvider.UserName
+	if src.Spec.InitProvider.AuthenticationMode != nil {
+		am := src.Spec.InitProvider.AuthenticationMode
+		dst.Spec.InitProvider.AuthenticationMode = []AuthenticationModeRAWInitParameters{
+			{Type: am.Type},
+		}
+	} else {
+		dst.Spec.InitProvider.AuthenticationMode = nil
 	}
+
+	// Copy Status.
+	dst.Status.ResourceStatus = src.Status.ResourceStatus
+	dst.Status.AtProvider.AccessString = src.Status.AtProvider.AccessString
+	dst.Status.AtProvider.Arn = src.Status.AtProvider.Arn
+	dst.Status.AtProvider.Engine = src.Status.AtProvider.Engine
+	dst.Status.AtProvider.ID = src.Status.AtProvider.ID
+	dst.Status.AtProvider.NoPasswordRequired = src.Status.AtProvider.NoPasswordRequired
+	dst.Status.AtProvider.Status = src.Status.AtProvider.Status
+	dst.Status.AtProvider.Tags = src.Status.AtProvider.Tags
+	dst.Status.AtProvider.UserName = src.Status.AtProvider.UserName
+	if src.Status.AtProvider.AuthenticationMode != nil {
+		am := src.Status.AtProvider.AuthenticationMode
+		dst.Status.AtProvider.AuthenticationMode = []AuthenticationModeRAWObservation{
+			{
+				PasswordCount: am.PasswordCount,
+				Type:          am.Type,
+			},
+		}
+	} else {
+		dst.Status.AtProvider.AuthenticationMode = nil
+	}
+
 	return nil
 }
 
