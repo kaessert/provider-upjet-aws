@@ -101,11 +101,11 @@ directive_graph:
       - Label with stage:executor (executor ant picks them up)
       - Include specific file paths and code changes
       - Set priority Critical for compilation/parity breaks, High for behavioral issues
-      
+
       When creating the follow-up review ticket:
       - Label with stage:reviewer (you pick it up after fixes are done)
       - Set depends_on to the e2e retest ticket (so you only review after retesting)
-      
+
       When creating the planner ticket (clean review):
       - Label with stage:planner (planner ant picks it up)
       - Include the service name and what was completed
@@ -119,7 +119,7 @@ pheromone_watch:
   exclude_labels: []
   include_labels:
   - stage:reviewer
-  re_check_on_complete: false
+  re_check_on_complete: true
   statuses:
   - ToDo
   wake_on_empty: false
