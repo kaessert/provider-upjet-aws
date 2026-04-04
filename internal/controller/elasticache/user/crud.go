@@ -332,6 +332,10 @@ func setAtProviderFromUser(cr UserCR, u ectypes.User, tags []ectypes.Tag) {
 			PasswordCount: &passwordCount,
 			Type:          aws.String(string(u.Authentication.Type)),
 		}
+		// Derive NoPasswordRequired from the authentication type.
+		// AWS returns "no-password" for users created with NoPasswordRequired=true.
+		isNoPwd := u.Authentication.Type == ectypes.AuthenticationTypeNoPassword
+		obs.NoPasswordRequired = &isNoPwd
 	}
 	cr.SetAtProvider(obs)
 }

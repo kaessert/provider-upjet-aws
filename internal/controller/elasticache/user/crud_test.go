@@ -840,3 +840,95 @@ func TestObserve_LateInit_SetForProvider_Called(t *testing.T) {
 		t.Errorf("spec.Engine: got %q, want %q", got, want)
 	}
 }
+
+// ── setAtProviderFromUser — NoPasswordRequired tests ──────────────────────────
+
+// TestSetAtProviderFromUser_NoPasswordRequired_True verifies that when AWS
+// returns AuthenticationType "no-password", obs.NoPasswordRequired is set to true.
+func TestSetAtProviderFromUser_NoPasswordRequired_True(t *testing.T) {
+	cr := newTestCR("my-user", testUserID)
+	u := ectypes.User{
+		UserId: aws.String(testUserID),
+		ARN:    aws.String(testUserARN),
+		Authentication: &ectypes.Authentication{
+			Type:          ectypes.AuthenticationTypeNoPassword,
+			PasswordCount: aws.Int32(0),
+		},
+	}
+
+	setAtProviderFromUser(cr, u, nil)
+
+	obs := cr.Status.AtProvider
+	if obs.NoPasswordRequired == nil {
+		t.Fatal("expected obs.NoPasswordRequired to be non-nil when authentication type is no-password")
+	}
+	if !*obs.NoPasswordRequired {
+		t.Errorf("expected obs.NoPasswordRequired=true, got false")
+	}
+}
+
+// TestSetAtProviderFromUser_NoPasswordRequired_False verifies that when AWS
+// returns AuthenticationType "password", obs.NoPasswordRequired is set to false.
+func TestSetAtProviderFromUser_NoPasswordRequired_False(t *testing.T) {
+	cr := newTestCR("my-user", testUserID)
+	u := ectypes.User{
+		UserId: aws.String(testUserID),
+		ARN:    aws.String(testUserARN),
+		Authentication: &ectypes.Authentication{
+			Type:          ectypes.AuthenticationTypePassword,
+			PasswordCount: aws.Int32(1),
+		},
+	}
+
+	setAtProviderFromUser(cr, u, nil)
+
+	obs := cr.Status.AtProvider
+	if obs.NoPasswordRequired == nil {
+		t.Fatal("expected obs.NoPasswordRequired to be non-nil when authentication type is password")
+	}
+	if *obs.NoPasswordRequired {
+		t.Errorf("expected obs.NoPasswordRequired=false for password authentication type")
+	}
+}
+
+// TestSetAtProviderFromUser_NoPasswordRequired_IAM verifies that when AWS
+// returns AuthenticationType "iam", obs.NoPasswordRequired is set to false.
+func TestSetAtProviderFromUser_NoPasswordRequired_IAM(t *testing.T) {
+	cr := newTestCR("my-user", testUserID)
+	u := ectypes.User{
+		UserId: aws.String(testUserID),
+		ARN:    aws.String(testUserARN),
+		Authentication: &ectypes.Authentication{
+			Type:          ectypes.AuthenticationTypeIam,
+			PasswordCount: aws.Int32(0),
+		},
+	}
+
+	setAtProviderFromUser(cr, u, nil)
+
+	obs := cr.Status.AtProvider
+	if obs.NoPasswordRequired == nil {
+		t.Fatal("expected obs.NoPasswordRequired to be non-nil when authentication type is iam")
+	}
+	if *obs.NoPasswordRequired {
+		t.Errorf("expected obs.NoPasswordRequired=false for iam authentication type")
+	}
+}
+
+// TestSetAtProviderFromUser_NoPasswordRequired_NilAuth verifies that when AWS
+// returns nil Authentication, obs.NoPasswordRequired is not set (nil).
+func TestSetAtProviderFromUser_NoPasswordRequired_NilAuth(t *testing.T) {
+	cr := newTestCR("my-user", testUserID)
+	u := ectypes.User{
+		UserId:         aws.String(testUserID),
+		ARN:            aws.String(testUserARN),
+		Authentication: nil,
+	}
+
+	setAtProviderFromUser(cr, u, nil)
+
+	obs := cr.Status.AtProvider
+	if obs.NoPasswordRequired != nil {
+		t.Errorf("expected obs.NoPasswordRequired=nil when authentication is nil, got %v", *obs.NoPasswordRequired)
+	}
+}
