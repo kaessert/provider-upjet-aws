@@ -765,3 +765,80 @@ func TestObserve_LateInit_NilMajorEngineVersion(t *testing.T) {
 		t.Errorf("spec.MajorEngineVersion: got %q, want %q", got, want)
 	}
 }
+
+// TestObserve_LateInit_ResourceUpToDate verifies that when late initialization fires,
+// ResourceUpToDate is set to true (not false). This ensures the managed reconciler does
+// NOT call Update for AWS-defaulted fields that don't need to be pushed back to AWS.
+// Calling Update with MajorEngineVersion = current version triggers an AWS error.
+func TestObserve_LateInit_ResourceUpToDate(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	cr.Spec.ForProvider.MajorEngineVersion = nil // intentionally nil → late init will fire
+	cr.Spec.ForProvider.DailySnapshotTime = nil  // intentionally nil → late init will fire
+
+	sc := availableServerlessCache(testCacheName, testARN)
+	sc.MajorEngineVersion = aws.String("7")
+	sc.DailySnapshotTime = aws.String("08:00")
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{sc},
+			}, nil
+		},
+		listTagsForResourceFn: func(_ context.Context, _ *awselasticache.ListTagsForResourceInput, _ ...func(*awselasticache.Options)) (*awselasticache.ListTagsForResourceOutput, error) {
+			return &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when spec fields are nil and AWS returns values")
+	}
+	// ResourceUpToDate must be TRUE so the reconciler does NOT call Update.
+	// MajorEngineVersion updates are rejected by AWS when the version hasn't changed.
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true during late initialization — Update must NOT be triggered for AWS-defaulted fields")
+	}
+}
+
+// TestBuildModifyInput_SkipMajorEngineVersionWhenUnchanged verifies that buildModifyInput
+// does NOT include MajorEngineVersion when spec and atProvider have the same value.
+// AWS rejects ModifyServerlessCache if MajorEngineVersion == current version.
+func TestBuildModifyInput_SkipMajorEngineVersionWhenUnchanged(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	cr.Spec.ForProvider.MajorEngineVersion = aws.String("7")
+	// Set atProvider to the same version (simulates post-creation state).
+	obs := cr.GetAtProvider()
+	obs.MajorEngineVersion = aws.String("7")
+	cr.SetAtProvider(obs)
+
+	input := buildModifyInput(cr)
+
+	if input.MajorEngineVersion != nil {
+		t.Errorf("expected MajorEngineVersion to be nil in modify input when spec==atProvider, got %q", *input.MajorEngineVersion)
+	}
+}
+
+// TestBuildModifyInput_IncludeMajorEngineVersionWhenChanging verifies that buildModifyInput
+// DOES include MajorEngineVersion when spec has a different (newer) version than atProvider.
+func TestBuildModifyInput_IncludeMajorEngineVersionWhenChanging(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	cr.Spec.ForProvider.MajorEngineVersion = aws.String("8") // user wants to upgrade
+	// Set atProvider to the old version.
+	obs := cr.GetAtProvider()
+	obs.MajorEngineVersion = aws.String("7")
+	cr.SetAtProvider(obs)
+
+	input := buildModifyInput(cr)
+
+	if input.MajorEngineVersion == nil {
+		t.Fatal("expected MajorEngineVersion to be included when spec differs from atProvider")
+	}
+	if got, want := *input.MajorEngineVersion, "8"; got != want {
+		t.Errorf("MajorEngineVersion: got %q, want %q", got, want)
+	}
+}

@@ -179,8 +179,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 	}
 
 	// Late-initialize AWS-defaulted fields (spec §8).
-	// Returns early with ResourceLateInitialized=true so the reconciler saves the
-	// spec before calling isUpToDate. The next Observe will find all fields set.
+	// Both MajorEngineVersion and DailySnapshotTime are AWS-assigned defaults;
+	// we copy them into spec so future isUpToDate comparisons work correctly.
+	// Since these values are already present in AWS, ResourceUpToDate is set to
+	// true — we do NOT need to call Update (AWS already has these values).
+	// The reconciler saves the late-initialized spec via ResourceLateInitialized.
 	lateInit := false
 	spec := cr.GetForProvider()
 	lateInit = nativehelper.LateInitializeStringPtr(&spec.MajorEngineVersion, sc.MajorEngineVersion) || lateInit
@@ -189,7 +192,7 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 		connDetails := buildConnectionDetails(sc)
 		return managed.ExternalObservation{
 			ResourceExists:          true,
-			ResourceUpToDate:        false,
+			ResourceUpToDate:        true,
 			ResourceLateInitialized: true,
 			ConnectionDetails:       connDetails,
 		}, nil
@@ -349,9 +352,20 @@ func buildModifyInput(cr ServerlessCacheCR) *awselasticache.ModifyServerlessCach
 		ServerlessCacheName: aws.String(extName),
 		Description:         spec.Description,
 		DailySnapshotTime:   spec.DailySnapshotTime,
-		MajorEngineVersion:  spec.MajorEngineVersion,
 		UserGroupId:         spec.UserGroupID,
 		SecurityGroupIds:    derefStringSlice(spec.SecurityGroupIds),
+	}
+
+	// Only include MajorEngineVersion when it is actually changing.
+	// AWS rejects ModifyServerlessCache requests that set MajorEngineVersion
+	// to the current version ("only oss major engine version upgrades are
+	// supported"). We skip it when the spec value matches the observed (atProvider)
+	// value so that routine late-init updates don't trigger spurious errors.
+	obs := cr.GetAtProvider()
+	specVersion := aws.ToString(spec.MajorEngineVersion)
+	obsVersion := aws.ToString(obs.MajorEngineVersion)
+	if specVersion != "" && specVersion != obsVersion {
+		input.MajorEngineVersion = spec.MajorEngineVersion
 	}
 
 	if spec.SnapshotRetentionLimit != nil {
