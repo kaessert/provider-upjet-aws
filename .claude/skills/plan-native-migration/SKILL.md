@@ -74,8 +74,20 @@ Expected: config/cluster/<service>/config.go
 
 ## Step 2: Discover Resources
 
-Read `config/cluster/<service>/config.go` and extract every `AddResourceConfigurator("aws_...")` call.
-Each call represents one TF resource to migrate.
+**Primary source**: `config/externalname.go` — this file lists EVERY registered TF resource.
+Extract all resources for this service:
+
+```bash
+SERVICE="<service>"  # e.g., "secretsmanager"
+
+# Get all resources from externalname.go (authoritative list)
+grep '"aws_'"${SERVICE}"'_' config/externalname.go \
+  | grep -o '"aws_[^"]*"' \
+  | tr -d '"'
+```
+
+**Secondary source**: `config/cluster/<service>/config.go` — extract `AddResourceConfigurator` calls
+to gather metadata (MoveToStatus fields, TerraformConfigurationInjector, etc.):
 
 ```bash
 grep -o 'AddResourceConfigurator("[^"]*"' config/cluster/$SERVICE/config.go \
@@ -83,16 +95,22 @@ grep -o 'AddResourceConfigurator("[^"]*"' config/cluster/$SERVICE/config.go \
   | tr -d '"'
 ```
 
+The `externalname.go` list is the authoritative resource list. Resources that have no
+`AddResourceConfigurator` entry (common for simple resources using only default config) are
+still valid migration targets — they just have no special TF configuration to port.
+
+Apply blacklist filtering (Step 3 below) to the externalname.go list.
+
 This produces a list of TF resource names, one per line, e.g.:
 ```
 aws_sfn_state_machine
 aws_sfn_activity
 ```
 
-Store this list. If empty, stop and print:
+Store this combined list. If empty, stop and print:
 ```
-ERROR: No AddResourceConfigurator calls found in config/cluster/<service>/config.go
-This service may already be migrated or may not use standard configuration.
+ERROR: No resources found in config/externalname.go for service '<service>'.
+Check that the service name is correct (e.g., 'secretsmanager' not 'secrets_manager').
 ```
 
 ---
