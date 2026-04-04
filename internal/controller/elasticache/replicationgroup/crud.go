@@ -157,6 +157,20 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ReplicationGroupCR) (ma
 		cr.SetAtProvider(o)
 	}
 
+	// Late-initialize AWS-defaulted fields (spec §8).
+	// Returns early with ResourceLateInitialized=true so the reconciler saves the
+	// spec before calling isUpToDate. The next Observe will find all fields set and
+	// isUpToDate=true, breaking any potential infinite-update loop.
+	if lateInitializeRG(cr.GetForProvider(), rg) {
+		connDetails := e.buildConnectionDetails(ctx, cr, rg)
+		return managed.ExternalObservation{
+			ResourceExists:          true,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: true,
+			ConnectionDetails:       connDetails,
+		}, nil
+	}
+
 	// Build connection details — includes auth_token re-read from Secret.
 	connDetails := e.buildConnectionDetails(ctx, cr, rg)
 
@@ -680,6 +694,32 @@ func buildModifyInput(spec *clusternativev2.ReplicationGroupRAWParameters, extNa
 	return input
 }
 
+// lateInitializeRG copies AWS-defaulted fields from the observed ReplicationGroup
+// into spec when the spec fields are nil. Returns true if any field was changed.
+//
+// This prevents infinite reconciliation loops when optional fields (such as NodeType)
+// are omitted from the user manifest and AWS has them set (e.g. an RG created as part
+// of a global replication group inherits NodeType). Without late-init, isUpToDate
+// would compare "" (nil spec) vs "cache.r7g.medium" (AWS) every cycle and always
+// return false, triggering Update on every reconcile iteration (spec §8, §17).
+func lateInitializeRG(spec *clusternativev2.ReplicationGroupRAWParameters, rg ectypes.ReplicationGroup) bool {
+	changed := false
+	changed = nativehelper.LateInitializeStringPtr(&spec.NodeType, rg.CacheNodeType) || changed
+	changed = nativehelper.LateInitializeStringPtr(&spec.SnapshotWindow, rg.SnapshotWindow) || changed
+	if spec.SnapshotRetentionLimit == nil && rg.SnapshotRetentionLimit != nil {
+		v := float64(*rg.SnapshotRetentionLimit)
+		spec.SnapshotRetentionLimit = &v
+		changed = true
+	}
+	// ClusterMode: AWS enum string (non-empty) → *string.
+	if spec.ClusterMode == nil && rg.ClusterMode != "" {
+		cm := string(rg.ClusterMode)
+		spec.ClusterMode = &cm
+		changed = true
+	}
+	return changed
+}
+
 // fieldChangesUpToDate returns true when the non-shard, non-auth-token, non-tag fields
 // match between spec and the observed AWS state. SecurityGroupNames is intentionally
 // never compared (EC2-Classic legacy field — spec §6).
@@ -691,8 +731,11 @@ func fieldChangesUpToDate(spec *clusternativev2.ReplicationGroupRAWParameters, r
 		return false
 	}
 
-	// NodeType (CacheNodeType in SDK).
-	if aws.ToString(spec.NodeType) != aws.ToString(rg.CacheNodeType) {
+	// NodeType (CacheNodeType in SDK): guard against nil — RGs created from global
+	// replication groups may not have NodeType in spec (it is inherited from the GRG).
+	// After late-initialization the spec will be populated; this nil check prevents
+	// a transient spurious update.
+	if spec.NodeType != nil && aws.ToString(spec.NodeType) != aws.ToString(rg.CacheNodeType) {
 		return false
 	}
 

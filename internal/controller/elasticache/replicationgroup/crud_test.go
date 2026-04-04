@@ -1084,5 +1084,63 @@ func setAsyncStateForTest(cr *clusternativev2.ReplicationGroupRAW, operation str
 // Ensure fakeRGClient implements ElastiCacheRGClient at compile time.
 var _ ElastiCacheRGClient = (*fakeRGClient)(nil)
 
+// ── Test: Late Initialization ─────────────────────────────────────────────────
+
+// TestObserve_LateInit_NilNodeType verifies that when spec.NodeType is nil and
+// AWS returns a CacheNodeType, Observe returns ResourceLateInitialized=true and
+// populates the spec field — preventing the infinite reconciliation loop.
+func TestObserve_LateInit_NilNodeType_RG(t *testing.T) {
+	cr := buildTestCR()
+	cr.Spec.ForProvider.NodeType = nil // intentionally nil
+
+	fakeAWS := &fakeRGClient{
+		describeResp: &awselasticache.DescribeReplicationGroupsOutput{
+			ReplicationGroups: []ectypes.ReplicationGroup{
+				{
+					ReplicationGroupId: aws.String("test-rg"),
+					Status:             aws.String("available"),
+					Description:        aws.String("test description"),
+					CacheNodeType:      aws.String("cache.r7g.medium"),
+				},
+			},
+		},
+		listTagsResp: &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}},
+	}
+
+	ec := &ExternalClient{Client: fakeAWS, Kube: buildFakeKubeClient()}
+	obs, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when NodeType is nil and AWS returns a value")
+	}
+	if cr.Spec.ForProvider.NodeType == nil {
+		t.Fatal("expected spec.NodeType to be populated after late initialization")
+	}
+	if got, want := *cr.Spec.ForProvider.NodeType, "cache.r7g.medium"; got != want {
+		t.Errorf("spec.NodeType: got %q, want %q", got, want)
+	}
+}
+
+// TestFieldChangesUpToDate_NilNodeType_NoLoop verifies that fieldChangesUpToDate
+// returns true when spec.NodeType is nil — no spurious update should be triggered.
+func TestFieldChangesUpToDate_NilNodeType_NoLoop(t *testing.T) {
+	spec := &clusternativev2.ReplicationGroupRAWParameters{
+		Description: aws.String("test"),
+		Region:      aws.String("us-east-1"),
+		NodeType:    nil, // intentionally nil
+	}
+	rg := ectypes.ReplicationGroup{
+		Description:   aws.String("test"),
+		CacheNodeType: aws.String("cache.r7g.medium"),
+	}
+
+	if !fieldChangesUpToDate(spec, rg) {
+		t.Error("fieldChangesUpToDate should return true when spec.NodeType is nil — no spurious update")
+	}
+}
+
 // Ensure managed.ConnectionDetails is used correctly.
 var _ managed.ConnectionDetails = managed.ConnectionDetails{}

@@ -78,6 +78,8 @@ type ExternalClient struct {
 // Without this, Observe calls isUpToDate on a "modifying" User where AWS
 // changes haven't settled yet → may return false → triggers Update → AWS
 // returns InvalidUserState.
+//
+//nolint:gocyclo
 func (e *ExternalClient) Observe(ctx context.Context, cr UserCR) (managed.ExternalObservation, error) {
 	extName := nativehelper.GetExternalName(cr)
 	if extName == "" {
@@ -128,6 +130,17 @@ func (e *ExternalClient) Observe(ctx context.Context, cr UserCR) (managed.Extern
 	}
 
 	setAtProviderFromUser(cr, u, observedTags)
+
+	// Late-initialize AWS-defaulted fields (spec §8).
+	// Engine is set by AWS when a user is created — spec may omit it.
+	// Without late-init, isUpToDate would compare "" (nil) vs "redis" every cycle.
+	if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Engine, u.Engine) {
+		return managed.ExternalObservation{
+			ResourceExists:          true,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: true,
+		}, nil
+	}
 
 	upToDate := isUpToDate(cr.GetForProvider(), u, observedTags)
 	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
@@ -326,8 +339,10 @@ func isUpToDate(spec *clusternativev2.UserRAWParameters, u ectypes.User, observe
 		return false
 	}
 
-	// Check Engine.
-	if aws.ToString(spec.Engine) != aws.ToString(u.Engine) {
+	// Check Engine: guard against nil — AWS may default the engine value.
+	// After late-initialization the spec will be populated; this nil check prevents
+	// a transient spurious update before late-init has run.
+	if spec.Engine != nil && aws.ToString(spec.Engine) != aws.ToString(u.Engine) {
 		return false
 	}
 

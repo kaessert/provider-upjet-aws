@@ -178,6 +178,23 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 		cr.SetAtProvider(obs)
 	}
 
+	// Late-initialize AWS-defaulted fields (spec §8).
+	// Returns early with ResourceLateInitialized=true so the reconciler saves the
+	// spec before calling isUpToDate. The next Observe will find all fields set.
+	lateInit := false
+	spec := cr.GetForProvider()
+	lateInit = nativehelper.LateInitializeStringPtr(&spec.MajorEngineVersion, sc.MajorEngineVersion) || lateInit
+	lateInit = nativehelper.LateInitializeStringPtr(&spec.DailySnapshotTime, sc.DailySnapshotTime) || lateInit
+	if lateInit {
+		connDetails := buildConnectionDetails(sc)
+		return managed.ExternalObservation{
+			ResourceExists:          true,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: true,
+			ConnectionDetails:       connDetails,
+		}, nil
+	}
+
 	// Build connection details.
 	connDetails := buildConnectionDetails(sc)
 

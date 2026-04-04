@@ -426,3 +426,39 @@ func TestCreate_UsesExternalNameAsGroupName(t *testing.T) {
 		t.Errorf("expected create to use external name %s as group name, got %s", testSGName, gotName)
 	}
 }
+
+// ── Late-initialization tests ──────────────────────────────────────────────────
+
+// TestObserve_LateInit_NilDescription verifies that when spec.Description is nil
+// and AWS returns a non-empty description, Observe returns ResourceLateInitialized=true
+// and populates the spec field.
+func TestObserve_LateInit_NilDescription(t *testing.T) {
+	cr := newTestCR("my-sg", testSGName)
+	cr.Spec.ForProvider.Description = nil // intentionally nil
+	cr.Spec.ForProvider.SubnetIds = []*string{aws.String(testSubnetID1)}
+
+	e := &ExternalClient{Client: &mockElastiCacheSGClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheSubnetGroupsInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheSubnetGroupsOutput, error) {
+			return subnetGroupResponse(testSGName, testSGARN, testDescription, []string{testSubnetID1}), nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Must signal late initialization so the controller saves the spec.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when Description is nil and AWS returns a value")
+	}
+
+	// spec.Description must be populated from the AWS response.
+	if cr.Spec.ForProvider.Description == nil {
+		t.Fatal("expected spec.Description to be populated after late initialization")
+	}
+	if got, want := *cr.Spec.ForProvider.Description, testDescription; got != want {
+		t.Errorf("spec.Description: got %q, want %q", got, want)
+	}
+}

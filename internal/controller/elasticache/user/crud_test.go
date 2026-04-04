@@ -683,3 +683,69 @@ func TestConversion_v1beta1_NoAuthMode(t *testing.T) {
 		t.Errorf("expected empty AuthenticationMode slice, got %v", dst2.Spec.ForProvider.AuthenticationMode)
 	}
 }
+
+// ── Late-initialization tests ──────────────────────────────────────────────────
+
+// TestObserve_LateInit_NilEngine verifies that when spec.Engine is nil and
+// AWS returns an Engine value, Observe returns ResourceLateInitialized=true and
+// populates the spec field — preventing infinite reconciliation from the Engine
+// comparison in isUpToDate.
+func TestObserve_LateInit_NilEngine(t *testing.T) {
+	cr := newTestCR("my-user", testUserID)
+	cr.Spec.ForProvider.Engine = nil // intentionally nil
+
+	e := &ExternalClient{Client: &mockUserClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeUsersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeUsersOutput, error) {
+			return &awselasticache.DescribeUsersOutput{
+				Users: []ectypes.User{
+					{
+						UserId:       aws.String(testUserID),
+						ARN:          aws.String(testUserARN),
+						Status:       aws.String("active"),
+						Engine:       aws.String("redis"),
+						AccessString: aws.String("on ~* +@all"),
+						UserName:     aws.String("testuser"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Must signal late initialization so the controller saves the spec.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when Engine is nil and AWS returns a value")
+	}
+
+	// spec.Engine must be populated from the AWS response.
+	if cr.Spec.ForProvider.Engine == nil {
+		t.Fatal("expected spec.Engine to be populated after late initialization")
+	}
+	if got, want := *cr.Spec.ForProvider.Engine, "redis"; got != want {
+		t.Errorf("spec.Engine: got %q, want %q", got, want)
+	}
+}
+
+// TestIsUpToDate_NilEngine_NoLoop verifies that when spec.Engine is nil,
+// isUpToDate does not return false for the Engine field — preventing an
+// infinite reconciliation loop.
+func TestIsUpToDate_NilEngine_NoLoop(t *testing.T) {
+	spec := &clusternativev2.UserRAWParameters{
+		Region:       aws.String("us-east-1"),
+		Engine:       nil, // intentionally nil
+		AccessString: aws.String("on ~* +@all"),
+		UserName:     aws.String("testuser"),
+	}
+	u := ectypes.User{
+		Engine:       aws.String("redis"),
+		AccessString: aws.String("on ~* +@all"),
+	}
+
+	if !isUpToDate(spec, u, nil) {
+		t.Error("isUpToDate should return true when spec.Engine is nil — no spurious update")
+	}
+}

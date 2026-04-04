@@ -749,6 +749,121 @@ func TestObserve_Valkey_Engine_ConnectionDetails(t *testing.T) {
 	}
 }
 
+// ── Late-initialization tests ──────────────────────────────────────────────────
+
+// TestObserve_LateInit_NilNodeType verifies that when spec.NodeType is nil and
+// AWS returns a CacheNodeType, Observe returns ResourceLateInitialized=true and
+// populates the spec field — preventing the infinite reconciliation loop that
+// would occur when a cluster is linked to a replication group (inheriting the node type).
+func TestObserve_LateInit_NilNodeType(t *testing.T) {
+	cr := newTestCR("my-cluster", testClusterID)
+	// Simulate a cluster linked to a replication group: no NodeType in spec.
+	cr.Spec.ForProvider.NodeType = nil
+
+	e := &ExternalClient{Client: &mockClusterClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheClustersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheClustersOutput, error) {
+			return &awselasticache.DescribeCacheClustersOutput{
+				CacheClusters: []ectypes.CacheCluster{
+					{
+						CacheClusterId:     aws.String(testClusterID),
+						ARN:                aws.String(testClusterARN),
+						CacheClusterStatus: aws.String("available"),
+						Engine:             aws.String("redis"),
+						CacheNodeType:      aws.String("cache.r7g.medium"),
+						NumCacheNodes:      aws.Int32(1),
+					},
+				},
+			}, nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Must signal late initialization so the controller saves the spec.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when NodeType is nil and AWS returns a value")
+	}
+
+	// spec.NodeType must be populated from the AWS response.
+	if cr.Spec.ForProvider.NodeType == nil {
+		t.Fatal("expected spec.NodeType to be populated after late initialization")
+	}
+	if got, want := *cr.Spec.ForProvider.NodeType, "cache.r7g.medium"; got != want {
+		t.Errorf("spec.NodeType: got %q, want %q", got, want)
+	}
+}
+
+// TestObserve_NoLateInit_NodeTypeAlreadySet verifies that when all AWS-defaulted
+// spec fields are already populated, Observe does NOT return ResourceLateInitialized=true.
+func TestObserve_NoLateInit_NodeTypeAlreadySet(t *testing.T) {
+	cr := newTestCR("my-cluster", testClusterID)
+	// Fully populate all fields that lateInitializeCluster would fill in.
+	cr.Spec.ForProvider.NodeType = aws.String("cache.t3.micro")
+	cr.Spec.ForProvider.EngineVersion = aws.String("7.0.7")
+	cr.Spec.ForProvider.MaintenanceWindow = aws.String("sun:05:00-sun:06:00")
+	cr.Spec.ForProvider.SnapshotWindow = aws.String("03:00-04:00")
+	snapshotLimit := float64(1)
+	cr.Spec.ForProvider.SnapshotRetentionLimit = &snapshotLimit
+	numNodes := float64(1)
+	cr.Spec.ForProvider.NumCacheNodes = &numNodes
+
+	e := &ExternalClient{Client: &mockClusterClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheClustersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheClustersOutput, error) {
+			return &awselasticache.DescribeCacheClustersOutput{
+				CacheClusters: []ectypes.CacheCluster{
+					{
+						CacheClusterId:             aws.String(testClusterID),
+						ARN:                        aws.String(testClusterARN),
+						CacheClusterStatus:         aws.String("available"),
+						Engine:                     aws.String("redis"),
+						CacheNodeType:              aws.String("cache.t3.micro"),
+						EngineVersion:              aws.String("7.0.7"),
+						PreferredMaintenanceWindow: aws.String("sun:05:00-sun:06:00"),
+						SnapshotWindow:             aws.String("03:00-04:00"),
+						SnapshotRetentionLimit:     aws.Int32(1),
+						NumCacheNodes:              aws.Int32(1),
+					},
+				},
+			}, nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Must NOT trigger late initialization when all fields are already set.
+	if obs.ResourceLateInitialized {
+		t.Error("unexpected ResourceLateInitialized=true when all spec fields are already populated")
+	}
+}
+
+// TestIsUpToDate_NilNodeType_DoesNotTriggerUpdate verifies that when
+// spec.NodeType is nil (cluster linked to a replication group), isUpToDate
+// does not return false for the NodeType field — preventing the infinite
+// reconciliation loop described in the ticket.
+func TestIsUpToDate_NilNodeType_DoesNotTriggerUpdate(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:   aws.String("us-east-1"),
+		Engine:   aws.String("redis"),
+		NodeType: nil, // intentionally nil
+	}
+	cc := ectypes.CacheCluster{
+		CacheNodeType: aws.String("cache.r7g.medium"),
+		NumCacheNodes: aws.Int32(1),
+	}
+
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when spec.NodeType is nil — no spurious update")
+	}
+}
+
 // TestObserve_NilGuard_ConfigEndpoint verifies nil-safety when ConfigurationEndpoint
 // is nil (as it is for Redis/Valkey).
 func TestObserve_NilGuard_ConfigEndpoint(t *testing.T) {

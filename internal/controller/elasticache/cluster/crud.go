@@ -78,6 +78,8 @@ type ExternalClient struct {
 // Without this, Observe calls isUpToDate on a "creating" cluster where AWS
 // defaults aren't applied yet → returns false → triggers Update() → AWS returns
 // InvalidCacheClusterState.
+//
+//nolint:gocyclo
 func (e *ExternalClient) Observe(ctx context.Context, cr ClusterCR) (managed.ExternalObservation, error) {
 	extName := nativehelper.GetExternalName(cr)
 	if extName == "" {
@@ -130,6 +132,20 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ClusterCR) (managed.Ext
 	}
 
 	setAtProviderFromCluster(cr, cc, observedTags)
+
+	// Late-initialize AWS-defaulted fields (spec §8).
+	// Returns early with ResourceLateInitialized=true so the reconciler saves the
+	// spec before calling isUpToDate. The next Observe will find all fields set and
+	// isUpToDate=true, breaking any potential infinite-update loop.
+	if lateInitializeCluster(cr.GetForProvider(), cc) {
+		connDetails := buildConnectionDetails(cc)
+		return managed.ExternalObservation{
+			ResourceExists:          true,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: true,
+			ConnectionDetails:       connDetails,
+		}, nil
+	}
 
 	// Build connection details from observed cluster (spec §7).
 	connDetails := buildConnectionDetails(cc)
@@ -515,10 +531,44 @@ func setAtProviderFromCluster(cr ClusterCR, cc ectypes.CacheCluster, tags []ecty
 	cr.SetAtProvider(o)
 }
 
+// lateInitializeCluster copies AWS-defaulted fields from the observed CacheCluster
+// into spec when the spec fields are nil. Returns true if any field was changed.
+//
+// This prevents infinite reconciliation loops when optional fields (such as NodeType)
+// are omitted from the user manifest and AWS has them set (e.g. a cluster linked to a
+// replication group inherits NodeType from the group). Without late-init, isUpToDate
+// would compare "" (nil spec) vs "cache.r7g.medium" (AWS) every cycle and always
+// return false, triggering Update on every reconcile iteration (spec §8, §17).
+//
+//nolint:gocyclo
+func lateInitializeCluster(spec *clusternative.ClusterRAWParameters, cc ectypes.CacheCluster) bool {
+	changed := false
+	changed = nativehelper.LateInitializeStringPtr(&spec.NodeType, cc.CacheNodeType) || changed
+	changed = nativehelper.LateInitializeStringPtr(&spec.EngineVersion, cc.EngineVersion) || changed
+	changed = nativehelper.LateInitializeStringPtr(&spec.MaintenanceWindow, cc.PreferredMaintenanceWindow) || changed
+	changed = nativehelper.LateInitializeStringPtr(&spec.SnapshotWindow, cc.SnapshotWindow) || changed
+	if spec.SnapshotRetentionLimit == nil && cc.SnapshotRetentionLimit != nil {
+		v := float64(*cc.SnapshotRetentionLimit)
+		spec.SnapshotRetentionLimit = &v
+		changed = true
+	}
+	if cc.CacheParameterGroup != nil {
+		changed = nativehelper.LateInitializeStringPtr(&spec.ParameterGroupName, cc.CacheParameterGroup.CacheParameterGroupName) || changed
+	}
+	if spec.NumCacheNodes == nil && cc.NumCacheNodes != nil {
+		v := float64(*cc.NumCacheNodes)
+		spec.NumCacheNodes = &v
+		changed = true
+	}
+	return changed
+}
+
 // isUpToDate returns true when the spec is in sync with the observed AWS state.
 func isUpToDate(spec *clusternative.ClusterRAWParameters, cc ectypes.CacheCluster, observedTags []ectypes.Tag) bool {
-	// NodeType.
-	if aws.ToString(spec.NodeType) != aws.ToString(cc.CacheNodeType) {
+	// NodeType: guard against nil — clusters linked to a replication group may not
+	// have NodeType in spec (it is inherited from the RG). After late-initialization
+	// the spec will be populated, but a nil check prevents a transient update call.
+	if spec.NodeType != nil && aws.ToString(spec.NodeType) != aws.ToString(cc.CacheNodeType) {
 		return false
 	}
 

@@ -726,3 +726,42 @@ func keysOf(m map[string][]byte) []string {
 	}
 	return keys
 }
+
+// ── Late-initialization tests ──────────────────────────────────────────────────
+
+// TestObserve_LateInit_NilMajorEngineVersion verifies that when spec.MajorEngineVersion
+// is nil and AWS returns a value, Observe returns ResourceLateInitialized=true and
+// populates the spec field.
+func TestObserve_LateInit_NilMajorEngineVersion(t *testing.T) {
+	cr := newTestCR("my-cache", testCacheName)
+	cr.Spec.ForProvider.MajorEngineVersion = nil // intentionally nil
+
+	sc := availableServerlessCache(testCacheName, testARN)
+	sc.MajorEngineVersion = aws.String("7")
+
+	e := &ExternalClient{Client: &mockElastiCacheClient{
+		describeServerlessCachesFn: func(_ context.Context, _ *awselasticache.DescribeServerlessCachesInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeServerlessCachesOutput, error) {
+			return &awselasticache.DescribeServerlessCachesOutput{
+				ServerlessCaches: []ectypes.ServerlessCache{sc},
+			}, nil
+		},
+		listTagsForResourceFn: func(_ context.Context, _ *awselasticache.ListTagsForResourceInput, _ ...func(*awselasticache.Options)) (*awselasticache.ListTagsForResourceOutput, error) {
+			return &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true when MajorEngineVersion is nil and AWS returns a value")
+	}
+	if cr.Spec.ForProvider.MajorEngineVersion == nil {
+		t.Fatal("expected spec.MajorEngineVersion to be populated after late initialization")
+	}
+	if got, want := *cr.Spec.ForProvider.MajorEngineVersion, "7"; got != want {
+		t.Errorf("spec.MajorEngineVersion: got %q, want %q", got, want)
+	}
+}

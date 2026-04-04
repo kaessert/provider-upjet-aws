@@ -108,6 +108,18 @@ func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed
 	}
 	cr.SetAtProvider(o)
 
+	// Late-initialize Description from the AWS response (spec §8).
+	// AWS stores and returns a (possibly normalized) description. Without late-init,
+	// a nil spec.Description would produce "" vs "some desc" in isUpToDate, causing
+	// a spurious update that clears the description.
+	if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Description, sg.CacheSubnetGroupDescription) {
+		return managed.ExternalObservation{
+			ResourceExists:          true,
+			ResourceUpToDate:        false,
+			ResourceLateInitialized: true,
+		}, nil
+	}
+
 	upToDate := isUpToDate(cr.GetForProvider(), sg, observedTags)
 	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
 
