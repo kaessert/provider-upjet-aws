@@ -27,6 +27,7 @@ import (
 	nativeelasticache2 "github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta2/native"
 	nativekinesis "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta1/native"
 	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta2/native"
+	nativesecretsmanager "github.com/upbound/provider-aws/v2/apis/namespaced/secretsmanager/v1beta1/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
 	nativesns "github.com/upbound/provider-aws/v2/apis/namespaced/sns/v1beta1/native"
 	nativesqs "github.com/upbound/provider-aws/v2/apis/namespaced/sqs/v1beta1/native"
@@ -53,6 +54,10 @@ func init() {
 	// Register native sns types (TopicRAW, TopicSubscriptionRAW and their list
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativesns.SchemeBuilder.AddToScheme)
+
+	// Register native secretsmanager types (SecretRAW and SecretRAWList)
+	// so that the controller manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativesecretsmanager.SchemeBuilder.AddToScheme)
 
 	// Register native sqs types (QueueRAW, QueuePolicyRAW, QueueRedrivePolicyRAW,
 	// QueueRedriveAllowPolicyRAW and their list types) so that the controller
