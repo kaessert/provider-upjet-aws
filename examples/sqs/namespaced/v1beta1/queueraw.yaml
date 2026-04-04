@@ -11,7 +11,7 @@ metadata:
   namespace: upbound-system
 spec:
   forProvider:
-    name: upbound-sqs
+    name: upbound-sqs-ns
     delaySeconds: 90
     maxMessageSize: 2048
     messageRetentionSeconds: 86400

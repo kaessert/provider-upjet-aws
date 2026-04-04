@@ -28,7 +28,7 @@ spec:
               "Service": "s3.amazonaws.com"
             },
             "Action": "sqs:SendMessage",
-            "Resource": "arn:aws:sqs:us-west-1:*:queue-policy"
+            "Resource": "arn:aws:sqs:us-west-1:*:queue-policy-ns"
           }
         ]
       }
@@ -45,4 +45,4 @@ metadata:
 spec:
   forProvider:
     region: us-west-1
-    name: queue-policy
+    name: queue-policy-ns
