@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
-	xpv2 "github.com/crossplane/crossplane-runtime/v2/apis/common/v2"
 )
 
 // QueueRedrivePolicyRAWParameters defines the configuration parameters for a native SQS Queue Redrive Policy.
@@ -73,8 +72,40 @@ type QueueRedrivePolicyRAWObservation struct {
 }
 
 // QueueRedrivePolicyRAWSpec defines the desired state of QueueRedrivePolicyRAW.
+//
+// NOTE: cluster-scoped QueueRedrivePolicyRAW implements LegacyManaged (not ModernManaged)
+// because the TF QueueRedrivePolicy CRD uses SecretReference (with namespace) and
+// Reference (without kind) for providerConfigRef, matching the TF counterpart.
 type QueueRedrivePolicyRAWSpec struct {
-	xpv2.ManagedResourceSpec `json:",inline"`
+	// DeletionPolicy specifies what will happen to the underlying external
+	// when this managed resource is deleted - either "Delete" or "Orphan" the
+	// external resource. This field is planned to be deprecated in favour of
+	// the ManagementPolicies field in a future release. Currently, both could be
+	// set independently and non-default values would be honored if the feature
+	// flag is enabled. See the design doc for more information:
+	// https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+	// +optional
+	// +kubebuilder:default=Delete
+	DeletionPolicy *xpv1.DeletionPolicy `json:"deletionPolicy,omitempty"`
+
+	// WriteConnectionSecretToReference specifies the namespace and name of a
+	// Secret to which any connection details for this managed resource should
+	// be written. Connection details frequently include the endpoint, username,
+	// and password required to connect to the managed resource.
+	// +optional
+	WriteConnectionSecretToReference *xpv1.SecretReference `json:"writeConnectionSecretToRef,omitempty"`
+
+	// ProviderConfigReference specifies how the provider that will be used to
+	// create, observe, update, and delete this managed resource should be
+	// configured.
+	// +kubebuilder:default={"name": "default"}
+	ProviderConfigReference *xpv1.Reference `json:"providerConfigRef,omitempty"`
+
+	// ManagementPolicies specify the array of actions Crossplane is allowed to
+	// take on the managed and external resources.
+	// +optional
+	// +kubebuilder:default={"*"}
+	ManagementPolicies xpv1.ManagementPolicies `json:"managementPolicies,omitempty"`
 
 	// ForProvider holds the provider-specific configuration for the resource.
 	ForProvider QueueRedrivePolicyRAWParameters `json:"forProvider"`
