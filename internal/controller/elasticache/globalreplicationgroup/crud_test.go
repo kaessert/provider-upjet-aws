@@ -521,3 +521,18 @@ func TestIsUpToDate_DescriptionDrift(t *testing.T) {
 		t.Error("expected isUpToDate=false when description differs")
 	}
 }
+
+// TestIsUpToDate_NilDescriptionVsAWSSpace verifies that when spec has no description
+// (nil) and AWS stores an empty description as a single space (" "), isUpToDate
+// returns true (no spurious Update triggered).
+func TestIsUpToDate_NilDescriptionVsAWSSpace(t *testing.T) {
+	spec := &clusternative.GlobalReplicationGroupRAWParameters{
+		GlobalReplicationGroupDescription: nil, // no description specified
+	}
+	grg := ectypes.GlobalReplicationGroup{
+		GlobalReplicationGroupDescription: aws.String(" "), // AWS stores empty as " "
+	}
+	if !isUpToDate(spec, grg) {
+		t.Error("expected isUpToDate=true when spec nil-description matches AWS single-space description after trimming")
+	}
+}

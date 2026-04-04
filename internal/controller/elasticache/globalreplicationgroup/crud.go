@@ -9,6 +9,7 @@ package globalreplicationgroup
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
@@ -231,8 +232,12 @@ func setAtProviderFromGRG(cr GlobalReplicationGroupCR, grg ectypes.GlobalReplica
 //   - GlobalReplicationGroupIDSuffix (immutable after create)
 //   - PrimaryReplicationGroupID (immutable after create)
 func isUpToDate(spec *clusternative.GlobalReplicationGroupRAWParameters, grg ectypes.GlobalReplicationGroup) bool {
-	// Description
-	if aws.ToString(spec.GlobalReplicationGroupDescription) != aws.ToString(grg.GlobalReplicationGroupDescription) {
+	// Description: trim whitespace before comparison.
+	// AWS stores empty description as a single space (" "); normalise to ""
+	// so nil-spec won't trigger a spurious Update on every reconcile.
+	specDesc := strings.TrimSpace(aws.ToString(spec.GlobalReplicationGroupDescription))
+	awsDesc := strings.TrimSpace(aws.ToString(grg.GlobalReplicationGroupDescription))
+	if specDesc != awsDesc {
 		return false
 	}
 
