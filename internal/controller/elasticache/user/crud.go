@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
@@ -133,11 +134,12 @@ func (e *ExternalClient) Observe(ctx context.Context, cr UserCR) (managed.Extern
 
 	// Late-initialize AWS-defaulted fields (spec §8).
 	// Engine is set by AWS when a user is created — spec may omit it.
-	// Without late-init, isUpToDate would compare "" (nil) vs "redis" every cycle.
+	// AWS stores engine as lowercase ("redis"); we copy that to spec when nil.
+	// ResourceUpToDate=true: the AWS value is already correct; no Update needed.
 	if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Engine, u.Engine) {
 		return managed.ExternalObservation{
 			ResourceExists:          true,
-			ResourceUpToDate:        false,
+			ResourceUpToDate:        true,
 			ResourceLateInitialized: true,
 		}, nil
 	}
@@ -342,7 +344,8 @@ func isUpToDate(spec *clusternativev2.UserRAWParameters, u ectypes.User, observe
 	// Check Engine: guard against nil — AWS may default the engine value.
 	// After late-initialization the spec will be populated; this nil check prevents
 	// a transient spurious update before late-init has run.
-	if spec.Engine != nil && aws.ToString(spec.Engine) != aws.ToString(u.Engine) {
+	// Use case-insensitive comparison: spec may say "REDIS" while AWS returns "redis".
+	if spec.Engine != nil && !strings.EqualFold(aws.ToString(spec.Engine), aws.ToString(u.Engine)) {
 		return false
 	}
 

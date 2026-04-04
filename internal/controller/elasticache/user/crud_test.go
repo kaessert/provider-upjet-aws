@@ -749,3 +749,23 @@ func TestIsUpToDate_NilEngine_NoLoop(t *testing.T) {
 		t.Error("isUpToDate should return true when spec.Engine is nil — no spurious update")
 	}
 }
+
+// TestIsUpToDate_EngineCase_NoLoop verifies case-insensitive Engine comparison.
+// Spec may say "REDIS" (uppercase) while AWS returns "redis" (lowercase).
+// Without this, isUpToDate returns false every cycle causing infinite updates.
+func TestIsUpToDate_EngineCase_NoLoop(t *testing.T) {
+	spec := &clusternativev2.UserRAWParameters{
+		Region:       aws.String("us-east-1"),
+		Engine:       aws.String("REDIS"), // uppercase
+		AccessString: aws.String("on ~* +@all"),
+		UserName:     aws.String("testuser"),
+	}
+	u := ectypes.User{
+		Engine:       aws.String("redis"), // AWS returns lowercase
+		AccessString: aws.String("on ~* +@all"),
+	}
+
+	if !isUpToDate(spec, u, nil) {
+		t.Error("isUpToDate should return true when spec Engine 'REDIS' matches AWS 'redis' case-insensitively")
+	}
+}
