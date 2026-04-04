@@ -6,10 +6,15 @@ apiVersion: elasticache.aws.upbound.io/v1beta1
 kind: ParameterGroupRAW
 metadata:
   labels:
-    testing.upbound.io/example-name: bar
-  name: bar
+    testing.upbound.io/example-name: default
+  name: default
 spec:
   forProvider:
-    family: memcached1.4
-    name: bar
+    name: cache-params
+    family: redis2.8
+    parameter:
+    - name: activerehashing
+      value: "yes"
+    - name: min-slaves-to-write
+      value: "2"
     region: us-west-1

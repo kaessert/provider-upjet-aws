@@ -5,13 +5,13 @@
 apiVersion: elasticache.aws.m.upbound.io/v1beta1
 kind: UserGroupRAW
 metadata:
-  labels:
-    testing.upbound.io/example-name: bar
-  name: bar
+  annotations:
+    upjet.upbound.io/manual-intervention: "This resource needs a User resource and this User resource needs secrets that must contain valid credentials."
+  name: test
   namespace: default
 spec:
   forProvider:
-    engine: redis
+    engine: REDIS
     region: us-west-1
     userIdRefs:
-      - name: user-example
+      - name: test

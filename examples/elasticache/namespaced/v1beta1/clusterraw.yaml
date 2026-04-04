@@ -8,14 +8,76 @@ metadata:
   annotations:
     uptest.upbound.io/timeout: "3600"
   labels:
-    testing.upbound.io/example-name: foo
-  name: foo
+    testing.upbound.io/example-name: example
+  name: sample-cluster
   namespace: default
 spec:
   forProvider:
+    region: us-west-1
     engine: memcached
-    nodeType: cache.m4.large
+    maintenanceWindow: sun:05:00-sun:09:00
+    nodeType: cache.t2.micro
     numCacheNodes: 1
     parameterGroupName: default.memcached1.6
     port: 11211
-    region: us-west-2
+    securityGroupIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+    subnetGroupNameSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: SecurityGroup
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1
+    vpcIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: elasticache.aws.m.upbound.io/v1beta1
+kind: SubnetGroupRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1
+    subnetIdRefs:
+      - name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    availabilityZone: us-west-1b
+    cidrBlock: 10.0.0.0/16
+    region: us-west-1
+    vpcIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: VPC
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    cidrBlock: 10.0.0.0/16
+    region: us-west-1
