@@ -1142,5 +1142,68 @@ func TestFieldChangesUpToDate_NilNodeType_NoLoop(t *testing.T) {
 	}
 }
 
+// ── Test: buildModifyInput — UserGroupIds nil/empty/populated ─────────────────
+
+// TestBuildModifyInput_UserGroupIds_Nil verifies that when spec.UserGroupIds is nil
+// (field not specified by user), buildModifyInput does NOT set RemoveUserGroups or
+// UserGroupIdsToAdd. This prevents accidental removal of existing user groups when
+// the user never set the field in their manifest.
+func TestBuildModifyInput_UserGroupIds_Nil(t *testing.T) {
+	spec := &clusternativev2.ReplicationGroupRAWParameters{
+		Description:  aws.String("test"),
+		Region:       aws.String("us-east-1"),
+		UserGroupIds: nil, // intentionally nil — user did not set this field
+	}
+
+	input := buildModifyInput(spec, "test-rg")
+
+	if input.RemoveUserGroups != nil {
+		t.Errorf("RemoveUserGroups should be nil when spec.UserGroupIds is nil, got %v", *input.RemoveUserGroups)
+	}
+	if len(input.UserGroupIdsToAdd) > 0 {
+		t.Errorf("UserGroupIdsToAdd should be empty when spec.UserGroupIds is nil, got %v", input.UserGroupIdsToAdd)
+	}
+}
+
+// TestBuildModifyInput_UserGroupIds_ExplicitlyEmpty verifies that when spec.UserGroupIds
+// is a non-nil but empty slice (user explicitly set it to []), buildModifyInput sends
+// RemoveUserGroups=true to remove all user groups.
+func TestBuildModifyInput_UserGroupIds_ExplicitlyEmpty(t *testing.T) {
+	spec := &clusternativev2.ReplicationGroupRAWParameters{
+		Description:  aws.String("test"),
+		Region:       aws.String("us-east-1"),
+		UserGroupIds: []*string{}, // explicitly empty — user wants no user groups
+	}
+
+	input := buildModifyInput(spec, "test-rg")
+
+	if input.RemoveUserGroups == nil || !*input.RemoveUserGroups {
+		t.Error("RemoveUserGroups should be true when spec.UserGroupIds is non-nil and empty")
+	}
+	if len(input.UserGroupIdsToAdd) > 0 {
+		t.Errorf("UserGroupIdsToAdd should be empty when spec.UserGroupIds is empty, got %v", input.UserGroupIdsToAdd)
+	}
+}
+
+// TestBuildModifyInput_UserGroupIds_Populated verifies that when spec.UserGroupIds
+// has values, buildModifyInput sets UserGroupIdsToAdd accordingly and does not set
+// RemoveUserGroups.
+func TestBuildModifyInput_UserGroupIds_Populated(t *testing.T) {
+	spec := &clusternativev2.ReplicationGroupRAWParameters{
+		Description:  aws.String("test"),
+		Region:       aws.String("us-east-1"),
+		UserGroupIds: []*string{aws.String("ug-1"), aws.String("ug-2")},
+	}
+
+	input := buildModifyInput(spec, "test-rg")
+
+	if input.RemoveUserGroups != nil {
+		t.Errorf("RemoveUserGroups should be nil when spec.UserGroupIds has values, got %v", *input.RemoveUserGroups)
+	}
+	if len(input.UserGroupIdsToAdd) != 2 {
+		t.Errorf("UserGroupIdsToAdd should have 2 entries, got %v", input.UserGroupIdsToAdd)
+	}
+}
+
 // Ensure managed.ConnectionDetails is used correctly.
 var _ managed.ConnectionDetails = managed.ConnectionDetails{}

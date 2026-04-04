@@ -675,12 +675,16 @@ func buildModifyInput(spec *clusternativev2.ReplicationGroupRAWParameters, extNa
 		input.TransitEncryptionMode = ectypes.TransitEncryptionMode(*spec.TransitEncryptionMode)
 	}
 
-	// UserGroup: determine adds and removes based on current UserGroupIds vs spec.
-	// We send all desired user group IDs as UserGroupIdsToAdd.
-	if len(spec.UserGroupIds) > 0 {
-		input.UserGroupIdsToAdd = derefStringSlice(spec.UserGroupIds)
-	} else {
-		input.RemoveUserGroups = aws.Bool(true)
+	// UserGroup: only modify if explicitly set in spec.
+	// nil means "not specified by user" → don't touch UserGroupIds.
+	// non-nil empty slice means "user wants no user groups" → send RemoveUserGroups.
+	if spec.UserGroupIds != nil {
+		if len(spec.UserGroupIds) > 0 {
+			input.UserGroupIdsToAdd = derefStringSlice(spec.UserGroupIds)
+		} else {
+			// Explicitly empty → user wants to remove all user groups.
+			input.RemoveUserGroups = aws.Bool(true)
+		}
 	}
 
 	// LogDeliveryConfigurations.
