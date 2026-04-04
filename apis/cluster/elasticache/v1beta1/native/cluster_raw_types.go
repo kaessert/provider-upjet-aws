@@ -408,8 +408,15 @@ type ClusterRAWObservation struct {
 	// The running version of the cache engine.
 	EngineVersionActual *string `json:"engineVersionActual,omitempty"`
 
+	// Name of final cluster snapshot taken before deletion. Write-only; echoed
+	// from spec since AWS does not return this field in DescribeCacheClusters.
+	FinalSnapshotIdentifier *string `json:"finalSnapshotIdentifier,omitempty"`
+
 	// ID of the cache cluster.
 	ID *string `json:"id,omitempty"`
+
+	// The IP version advertised in the discovery protocol. Values: ipv4, ipv6.
+	IPDiscovery *string `json:"ipDiscovery,omitempty"`
 
 	// Log delivery configuration.
 	LogDeliveryConfiguration []ClusterLogDeliveryConfigurationRAWObservation `json:"logDeliveryConfiguration,omitempty"`
@@ -417,14 +424,34 @@ type ClusterRAWObservation struct {
 	// The weekly time range for maintenance.
 	MaintenanceWindow *string `json:"maintenanceWindow,omitempty"`
 
+	// The IP versions for cache cluster connections. Values: ipv4, ipv6, dual_stack.
+	NetworkType *string `json:"networkType,omitempty"`
+
 	// The instance class used.
 	NodeType *string `json:"nodeType,omitempty"`
+
+	// ARN of the SNS notification topic.
+	NotificationTopicArn *string `json:"notificationTopicArn,omitempty"`
 
 	// Number of cache nodes.
 	NumCacheNodes *float64 `json:"numCacheNodes,omitempty"`
 
+	// Outpost mode. Write-only; echoed from spec since AWS does not return this
+	// field in DescribeCacheClusters.
+	OutpostMode *string `json:"outpostMode,omitempty"`
+
+	// The name of the parameter group associated with this cache cluster.
+	ParameterGroupName *string `json:"parameterGroupName,omitempty"`
+
 	// The port number.
 	Port *float64 `json:"port,omitempty"`
+
+	// List of Availability Zones in which cache nodes were created, derived from
+	// the per-node CustomerAvailabilityZone fields.
+	PreferredAvailabilityZones []*string `json:"preferredAvailabilityZones,omitempty"`
+
+	// The outpost ARN in which the cache cluster was created.
+	PreferredOutpostArn *string `json:"preferredOutpostArn,omitempty"`
 
 	// Replication group ID.
 	ReplicationGroupID *string `json:"replicationGroupId,omitempty"`
@@ -432,6 +459,10 @@ type ClusterRAWObservation struct {
 	// Security group IDs.
 	// +listType=set
 	SecurityGroupIds []*string `json:"securityGroupIds,omitempty"`
+
+	// Single-element list with ARN of the S3 RDB snapshot used to seed the cluster.
+	// Write-only; echoed from spec since AWS does not return this field.
+	SnapshotArns []*string `json:"snapshotArns,omitempty"`
 
 	// Name of the snapshot.
 	SnapshotName *string `json:"snapshotName,omitempty"`

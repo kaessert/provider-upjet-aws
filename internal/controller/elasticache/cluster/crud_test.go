@@ -1393,6 +1393,133 @@ func (c *copyClusterCR) SetForProvider(p clusternative.ClusterRAWParameters) {
 	c.Spec.ForProvider = p
 }
 
+// TestSetAtProvider_ParityFields verifies that the 9 observation fields present in
+// ClusterObservation (TF) but previously missing from ClusterRAWObservation are
+// now populated correctly.
+func TestSetAtProvider_ParityFields(t *testing.T) {
+	cr := newTestCR("parity-cluster", testClusterID)
+	// Set write-only spec fields that must be echoed into atProvider.
+	cr.Spec.ForProvider.FinalSnapshotIdentifier = aws.String("my-final-snap")
+	cr.Spec.ForProvider.SnapshotArns = []*string{aws.String("arn:aws:s3:::my-bucket/backup.rdb")}
+	cr.Spec.ForProvider.OutpostMode = aws.String("single-outpost")
+
+	cc := ectypes.CacheCluster{
+		CacheClusterId:     aws.String(testClusterID),
+		ARN:                aws.String(testClusterARN),
+		CacheClusterStatus: aws.String("available"),
+		Engine:             aws.String("redis"),
+		// IpDiscovery (enum → string)
+		IpDiscovery: ectypes.IpDiscoveryIpv6,
+		// NetworkType (enum → string)
+		NetworkType: ectypes.NetworkTypeIpv6,
+		// NotificationConfiguration → TopicArn
+		NotificationConfiguration: &ectypes.NotificationConfiguration{
+			TopicArn: aws.String("arn:aws:sns:us-east-1:123456789012:my-topic"),
+		},
+		// CacheParameterGroup → CacheParameterGroupName
+		CacheParameterGroup: &ectypes.CacheParameterGroupStatus{
+			CacheParameterGroupName: aws.String("default.redis7"),
+		},
+		// PreferredOutpostArn
+		PreferredOutpostArn: aws.String("arn:aws:outposts:us-east-1:123:outpost/op-abc123"),
+		// CacheNodes with CustomerAvailabilityZone (for PreferredAvailabilityZones)
+		CacheNodes: []ectypes.CacheNode{
+			{CustomerAvailabilityZone: aws.String("us-east-1a")},
+			{CustomerAvailabilityZone: aws.String("us-east-1b")},
+		},
+	}
+
+	setAtProviderFromCluster(cr, cc, nil)
+	obs := cr.GetAtProvider()
+
+	// FinalSnapshotIdentifier: echoed from spec.
+	if obs.FinalSnapshotIdentifier == nil || *obs.FinalSnapshotIdentifier != "my-final-snap" {
+		t.Errorf("FinalSnapshotIdentifier: got %v, want 'my-final-snap'", obs.FinalSnapshotIdentifier)
+	}
+	// SnapshotArns: echoed from spec.
+	if len(obs.SnapshotArns) != 1 || *obs.SnapshotArns[0] != "arn:aws:s3:::my-bucket/backup.rdb" {
+		t.Errorf("SnapshotArns: got %v, want [arn:aws:s3:::my-bucket/backup.rdb]", obs.SnapshotArns)
+	}
+	// OutpostMode: echoed from spec (not in CacheCluster response).
+	if obs.OutpostMode == nil || *obs.OutpostMode != "single-outpost" {
+		t.Errorf("OutpostMode: got %v, want 'single-outpost'", obs.OutpostMode)
+	}
+	// IPDiscovery: cast from enum.
+	if obs.IPDiscovery == nil || *obs.IPDiscovery != "ipv6" {
+		t.Errorf("IPDiscovery: got %v, want 'ipv6'", obs.IPDiscovery)
+	}
+	// NetworkType: cast from enum.
+	if obs.NetworkType == nil || *obs.NetworkType != "ipv6" {
+		t.Errorf("NetworkType: got %v, want 'ipv6'", obs.NetworkType)
+	}
+	// NotificationTopicArn: from NotificationConfiguration.TopicArn.
+	if obs.NotificationTopicArn == nil || *obs.NotificationTopicArn != "arn:aws:sns:us-east-1:123456789012:my-topic" {
+		t.Errorf("NotificationTopicArn: got %v, want SNS ARN", obs.NotificationTopicArn)
+	}
+	// ParameterGroupName: from CacheParameterGroup.CacheParameterGroupName.
+	if obs.ParameterGroupName == nil || *obs.ParameterGroupName != "default.redis7" {
+		t.Errorf("ParameterGroupName: got %v, want 'default.redis7'", obs.ParameterGroupName)
+	}
+	// PreferredOutpostArn: direct field.
+	if obs.PreferredOutpostArn == nil || *obs.PreferredOutpostArn != "arn:aws:outposts:us-east-1:123:outpost/op-abc123" {
+		t.Errorf("PreferredOutpostArn: got %v, want outpost ARN", obs.PreferredOutpostArn)
+	}
+	// PreferredAvailabilityZones: collected from CacheNodes[*].CustomerAvailabilityZone.
+	if len(obs.PreferredAvailabilityZones) != 2 {
+		t.Fatalf("PreferredAvailabilityZones: got %d entries, want 2", len(obs.PreferredAvailabilityZones))
+	}
+	if *obs.PreferredAvailabilityZones[0] != "us-east-1a" || *obs.PreferredAvailabilityZones[1] != "us-east-1b" {
+		t.Errorf("PreferredAvailabilityZones: got %v, want [us-east-1a, us-east-1b]", obs.PreferredAvailabilityZones)
+	}
+}
+
+// TestSetAtProvider_ParityFields_NilGuards verifies that nil NotificationConfiguration
+// and nil CacheParameterGroup do not panic, and produce nil observation fields.
+func TestSetAtProvider_ParityFields_NilGuards(t *testing.T) {
+	cr := newTestCR("nil-guard-cluster", testClusterID)
+
+	cc := ectypes.CacheCluster{
+		CacheClusterId:            aws.String(testClusterID),
+		ARN:                       aws.String(testClusterARN),
+		CacheClusterStatus:        aws.String("available"),
+		NotificationConfiguration: nil, // must not panic
+		CacheParameterGroup:       nil, // must not panic
+		IpDiscovery:               "",  // empty enum: must produce nil
+		NetworkType:               "",  // empty enum: must produce nil
+		PreferredOutpostArn:       nil,
+	}
+
+	// Must not panic.
+	setAtProviderFromCluster(cr, cc, nil)
+	obs := cr.GetAtProvider()
+
+	if obs.NotificationTopicArn != nil {
+		t.Errorf("expected nil NotificationTopicArn when NotificationConfiguration is nil, got %v", obs.NotificationTopicArn)
+	}
+	if obs.ParameterGroupName != nil {
+		t.Errorf("expected nil ParameterGroupName when CacheParameterGroup is nil, got %v", obs.ParameterGroupName)
+	}
+	if obs.IPDiscovery != nil {
+		t.Errorf("expected nil IPDiscovery when enum is empty, got %v", obs.IPDiscovery)
+	}
+	if obs.NetworkType != nil {
+		t.Errorf("expected nil NetworkType when enum is empty, got %v", obs.NetworkType)
+	}
+	if obs.PreferredOutpostArn != nil {
+		t.Errorf("expected nil PreferredOutpostArn, got %v", obs.PreferredOutpostArn)
+	}
+	// Write-only fields with nil spec values.
+	if obs.FinalSnapshotIdentifier != nil {
+		t.Errorf("expected nil FinalSnapshotIdentifier when spec is nil, got %v", obs.FinalSnapshotIdentifier)
+	}
+	if obs.SnapshotArns != nil {
+		t.Errorf("expected nil SnapshotArns when spec is nil, got %v", obs.SnapshotArns)
+	}
+	if obs.OutpostMode != nil {
+		t.Errorf("expected nil OutpostMode when spec is nil, got %v", obs.OutpostMode)
+	}
+}
+
 // TestObserve_LateInit_SetForProvider_Called verifies that when late-init fires,
 // SetForProvider is called and the spec is updated — even when GetForProvider
 // returns a copy (as namespaced types do).

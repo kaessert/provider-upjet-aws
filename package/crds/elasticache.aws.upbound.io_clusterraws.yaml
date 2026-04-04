@@ -1015,8 +1015,17 @@ spec:
                   engineVersionActual:
                     description: The running version of the cache engine.
                     type: string
+                  finalSnapshotIdentifier:
+                    description: |-
+                      Name of final cluster snapshot taken before deletion. Write-only; echoed
+                      from spec since AWS does not return this field in DescribeCacheClusters.
+                    type: string
                   id:
                     description: ID of the cache cluster.
+                    type: string
+                  ipDiscovery:
+                    description: 'The IP version advertised in the discovery protocol.
+                      Values: ipv4, ipv6.'
                     type: string
                   logDeliveryConfiguration:
                     description: Log delivery configuration.
@@ -1037,15 +1046,41 @@ spec:
                   maintenanceWindow:
                     description: The weekly time range for maintenance.
                     type: string
+                  networkType:
+                    description: 'The IP versions for cache cluster connections. Values:
+                      ipv4, ipv6, dual_stack.'
+                    type: string
                   nodeType:
                     description: The instance class used.
+                    type: string
+                  notificationTopicArn:
+                    description: ARN of the SNS notification topic.
                     type: string
                   numCacheNodes:
                     description: Number of cache nodes.
                     type: number
+                  outpostMode:
+                    description: |-
+                      Outpost mode. Write-only; echoed from spec since AWS does not return this
+                      field in DescribeCacheClusters.
+                    type: string
+                  parameterGroupName:
+                    description: The name of the parameter group associated with this
+                      cache cluster.
+                    type: string
                   port:
                     description: The port number.
                     type: number
+                  preferredAvailabilityZones:
+                    description: |-
+                      List of Availability Zones in which cache nodes were created, derived from
+                      the per-node CustomerAvailabilityZone fields.
+                    items:
+                      type: string
+                    type: array
+                  preferredOutpostArn:
+                    description: The outpost ARN in which the cache cluster was created.
+                    type: string
                   replicationGroupId:
                     description: Replication group ID.
                     type: string
@@ -1055,6 +1090,13 @@ spec:
                       type: string
                     type: array
                     x-kubernetes-list-type: set
+                  snapshotArns:
+                    description: |-
+                      Single-element list with ARN of the S3 RDB snapshot used to seed the cluster.
+                      Write-only; echoed from spec since AWS does not return this field.
+                    items:
+                      type: string
+                    type: array
                   snapshotName:
                     description: Name of the snapshot.
                     type: string

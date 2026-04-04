@@ -576,6 +576,57 @@ func setAtProviderFromCluster(cr ClusterCR, cc ectypes.CacheCluster, tags []ecty
 		o.Port = &f
 	}
 
+	// ── Parity fields (present in TF ClusterObservation but previously missing) ──
+
+	// Write-only fields: AWS does not return these in DescribeCacheClusters;
+	// echo the values from spec so that atProvider remains stable.
+	spec := cr.GetForProvider()
+	o.FinalSnapshotIdentifier = spec.FinalSnapshotIdentifier
+	o.SnapshotArns = spec.SnapshotArns
+	// OutpostMode is only sent on CreateCacheCluster and is not reflected back
+	// by DescribeCacheClusters, so echo from spec.
+	o.OutpostMode = spec.OutpostMode
+
+	// IPDiscovery: AWS SDK enum → *string (nil when empty / not set).
+	if cc.IpDiscovery != "" {
+		s := string(cc.IpDiscovery)
+		o.IPDiscovery = &s
+	}
+
+	// NetworkType: AWS SDK enum → *string (nil when empty / not set).
+	if cc.NetworkType != "" {
+		s := string(cc.NetworkType)
+		o.NetworkType = &s
+	}
+
+	// NotificationTopicArn: from NotificationConfiguration.TopicArn.
+	if cc.NotificationConfiguration != nil {
+		o.NotificationTopicArn = cc.NotificationConfiguration.TopicArn
+	}
+
+	// ParameterGroupName: from CacheParameterGroup.CacheParameterGroupName.
+	if cc.CacheParameterGroup != nil {
+		o.ParameterGroupName = cc.CacheParameterGroup.CacheParameterGroupName
+	}
+
+	// PreferredOutpostArn: direct field on CacheCluster.
+	o.PreferredOutpostArn = cc.PreferredOutpostArn
+
+	// PreferredAvailabilityZones: collect CustomerAvailabilityZone from every
+	// cache node. This mirrors the TF behavior of deriving the list from nodes.
+	if len(cc.CacheNodes) > 0 {
+		azs := make([]*string, 0, len(cc.CacheNodes))
+		for i := range cc.CacheNodes {
+			if cc.CacheNodes[i].CustomerAvailabilityZone != nil {
+				az := cc.CacheNodes[i].CustomerAvailabilityZone
+				azs = append(azs, az)
+			}
+		}
+		if len(azs) > 0 {
+			o.PreferredAvailabilityZones = azs
+		}
+	}
+
 	cr.SetAtProvider(o)
 }
 

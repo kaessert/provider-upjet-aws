@@ -731,8 +731,18 @@ func (in *ClusterRAWObservation) DeepCopyInto(out *ClusterRAWObservation) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.FinalSnapshotIdentifier != nil {
+		in, out := &in.FinalSnapshotIdentifier, &out.FinalSnapshotIdentifier
+		*out = new(string)
+		**out = **in
+	}
 	if in.ID != nil {
 		in, out := &in.ID, &out.ID
+		*out = new(string)
+		**out = **in
+	}
+	if in.IPDiscovery != nil {
+		in, out := &in.IPDiscovery, &out.IPDiscovery
 		*out = new(string)
 		**out = **in
 	}
@@ -748,8 +758,18 @@ func (in *ClusterRAWObservation) DeepCopyInto(out *ClusterRAWObservation) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.NetworkType != nil {
+		in, out := &in.NetworkType, &out.NetworkType
+		*out = new(string)
+		**out = **in
+	}
 	if in.NodeType != nil {
 		in, out := &in.NodeType, &out.NodeType
+		*out = new(string)
+		**out = **in
+	}
+	if in.NotificationTopicArn != nil {
+		in, out := &in.NotificationTopicArn, &out.NotificationTopicArn
 		*out = new(string)
 		**out = **in
 	}
@@ -758,9 +778,35 @@ func (in *ClusterRAWObservation) DeepCopyInto(out *ClusterRAWObservation) {
 		*out = new(float64)
 		**out = **in
 	}
+	if in.OutpostMode != nil {
+		in, out := &in.OutpostMode, &out.OutpostMode
+		*out = new(string)
+		**out = **in
+	}
+	if in.ParameterGroupName != nil {
+		in, out := &in.ParameterGroupName, &out.ParameterGroupName
+		*out = new(string)
+		**out = **in
+	}
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
 		*out = new(float64)
+		**out = **in
+	}
+	if in.PreferredAvailabilityZones != nil {
+		in, out := &in.PreferredAvailabilityZones, &out.PreferredAvailabilityZones
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.PreferredOutpostArn != nil {
+		in, out := &in.PreferredOutpostArn, &out.PreferredOutpostArn
+		*out = new(string)
 		**out = **in
 	}
 	if in.ReplicationGroupID != nil {
@@ -770,6 +816,17 @@ func (in *ClusterRAWObservation) DeepCopyInto(out *ClusterRAWObservation) {
 	}
 	if in.SecurityGroupIds != nil {
 		in, out := &in.SecurityGroupIds, &out.SecurityGroupIds
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.SnapshotArns != nil {
+		in, out := &in.SnapshotArns, &out.SnapshotArns
 		*out = make([]*string, len(*in))
 		for i := range *in {
 			if (*in)[i] != nil {
