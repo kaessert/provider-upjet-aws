@@ -213,10 +213,16 @@ import (
 type <Resource>CR interface {
     resource.Managed
     GetForProvider() *<Resource>Parameters
+    SetForProvider(<Resource>Parameters)       // required — see WARNING below
     GetInitProvider() *<Resource>InitParameters
     GetAtProvider() *<Resource>Observation
     SetAtProvider(<Resource>Observation)
 }
+
+// ⚠️  SetForProvider is mandatory — namespaced types return a *copy* from
+// GetForProvider() (to convert reference types to cluster-scoped equivalents).
+// Without SetForProvider(), late-initialized fields are lost, causing an infinite
+// reconcile loop where the Ready condition never transitions to Available.
 
 // ExternalClient implements the shared CRUD logic, scope-agnostic.
 type ExternalClient struct {
@@ -270,9 +276,19 @@ parameter.
 Each scope's `<resource>_raw_types.go` must implement the `<Resource>CR` interface.
 Add these methods (they are hand-written, not generated):
 
+> **⚠️ SetForProvider is mandatory**: Namespaced types return a *copy* from `GetForProvider()`
+> (to convert reference types). Without `SetForProvider()`, late-initialized fields are lost,
+> causing an infinite reconcile loop where `Ready` never becomes `True`.
+
+**Cluster-scoped** (`apis/cluster/<service>/<version>/native/<resource>_raw_types.go`):
+
 ```go
 // GetForProvider returns the ForProvider parameters.
 func (b *<Resource>RAW) GetForProvider() *<Resource>Parameters { return &b.Spec.ForProvider }
+
+// SetForProvider sets the ForProvider parameters.
+// For cluster-scoped types this is a direct assignment (no reference conversion).
+func (b *<Resource>RAW) SetForProvider(p <Resource>Parameters) { b.Spec.ForProvider = p }
 
 // GetInitProvider returns the InitProvider parameters.
 func (b *<Resource>RAW) GetInitProvider() *<Resource>InitParameters { return &b.Spec.InitProvider }
@@ -282,6 +298,42 @@ func (b *<Resource>RAW) GetAtProvider() *<Resource>Observation { return &b.Statu
 
 // SetAtProvider sets the observed state.
 func (b *<Resource>RAW) SetAtProvider(o <Resource>Observation) { b.Status.AtProvider = o }
+```
+
+**Namespaced** (`apis/namespaced/<service>/<version>/native/<resource>_raw_types.go`):
+
+`GetForProvider()` converts reference fields to cluster-scoped equivalents and returns a
+copy — so `SetForProvider()` must copy the (possibly late-initialized) cluster-scoped fields
+back into the namespaced struct:
+
+```go
+// GetForProvider returns a copy of ForProvider with reference fields resolved to plain
+// cluster-scoped types. Because this is a copy, callers MUST use SetForProvider() to
+// write back any modifications (e.g. late-initialized fields).
+func (b *<Resource>RAW) GetForProvider() *clusternative.<Resource>Parameters {
+    p := clusternative.<Resource>Parameters{
+        Field1: b.Spec.ForProvider.Field1,
+        // ... resolve Ref/Selector fields → plain *string
+    }
+    return &p
+}
+
+// SetForProvider writes back the (possibly late-initialized) cluster-scoped parameters
+// into the namespaced spec, reversing the GetForProvider conversion.
+func (b *<Resource>RAW) SetForProvider(p clusternative.<Resource>Parameters) {
+    b.Spec.ForProvider.Field1 = p.Field1
+    // ... all fields that can be late-initialized
+    // Note: do NOT overwrite Ref/Selector fields — those live only in the namespaced type.
+}
+
+// GetInitProvider returns the InitProvider parameters.
+func (b *<Resource>RAW) GetInitProvider() *clusternative.<Resource>InitParameters { ... }
+
+// GetAtProvider returns the current observed state.
+func (b *<Resource>RAW) GetAtProvider() *clusternative.<Resource>Observation { return &b.Status.AtProvider }
+
+// SetAtProvider sets the observed state.
+func (b *<Resource>RAW) SetAtProvider(o clusternative.<Resource>Observation) { b.Status.AtProvider = o }
 ```
 
 Add these to **both** the cluster-scoped and namespaced `_raw_types.go` files.
@@ -935,18 +987,31 @@ Call late initialization in `Observe` **after** successfully describing the reso
 Return `ResourceLateInitialized: true` if any field was populated.
 
 ```go
+// GetForProvider() returns a copy for namespaced types — always use SetForProvider()
+// to write back modified fields, otherwise late-initialized changes are lost.
+spec := cr.GetForProvider()
+
 // Each helper returns true if the field was populated (dst was nil and src was non-nil).
 lateInit := false
-lateInit = native.LateInitializeStringPtr(&cr.Spec.ForProvider.Description, resp.Description) || lateInit
-lateInit = native.LateInitializeBoolPtr(&cr.Spec.ForProvider.EnableDNS, resp.EnableDns) || lateInit
-lateInit = native.LateInitializeInt64Ptr(&cr.Spec.ForProvider.Timeout, resp.TimeoutSeconds) || lateInit
-lateInit = native.LateInitializeMapStringPtr(&cr.Spec.ForProvider.Tags, convertTags(resp.Tags)) || lateInit
+lateInit = native.LateInitializeStringPtr(&spec.Description, resp.Description) || lateInit
+lateInit = native.LateInitializeBoolPtr(&spec.EnableDNS, resp.EnableDns) || lateInit
+lateInit = native.LateInitializeInt64Ptr(&spec.Timeout, resp.TimeoutSeconds) || lateInit
+lateInit = native.LateInitializeMapStringPtr(&spec.Tags, convertTags(resp.Tags)) || lateInit
+
+if lateInit {
+    cr.SetForProvider(*spec)  // write back late-initialized fields
+}
 
 return managed.ExternalObservation{
     ...
     ResourceLateInitialized: lateInit,
 }, nil
 ```
+
+> **⚠️ Always call `SetForProvider` after modifying the result of `GetForProvider`.**
+> For cluster-scoped types the copy is redundant but harmless. For namespaced types it is
+> the **only** way to persist late-initialized fields back to the CR spec — skipping it
+> causes `ResourceLateInitialized: true` every reconcile, which blocks the `Ready` condition.
 
 ### 9.1 Ignored fields
 
@@ -1606,7 +1671,7 @@ RAW example manifests must follow these rules:
 - [ ] `TerraformID()` extractor NOT used anywhere in native types
 - [ ] Shared CRUD in `internal/controller/<service>/<resource>/crud.go` compiles
 - [ ] Both cluster and namespaced wrappers compile and delegate to shared CRUD
-- [ ] Interface methods (`GetForProvider`, `GetAtProvider`, `SetAtProvider`) implemented on both scope types
+- [ ] Interface methods (`GetForProvider`, `SetForProvider`, `GetAtProvider`, `SetAtProvider`) implemented on both scope types
 - [ ] Late initialization implemented for AWS-defaulted fields (returns `ResourceLateInitialized: true`)
 - [ ] `Unavailable()` condition set for non-ACTIVE resource states (DELETING, PENDING, etc.)
 - [ ] ALL mutable fields in EVERY sub-struct are compared in `isUpToDate` (no silent drift gaps)
