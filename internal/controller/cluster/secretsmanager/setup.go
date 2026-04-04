@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clustercontroller "github.com/upbound/provider-aws/v2/internal/controller/cluster"
+	"github.com/upbound/provider-aws/v2/internal/controller/cluster/secretsmanager/secretpolicyraw"
 	"github.com/upbound/provider-aws/v2/internal/controller/cluster/secretsmanager/secretraw"
 )
 
@@ -24,6 +25,7 @@ func init() {
 // SetupAll registers all native cluster-scoped secretsmanager controllers.
 func SetupAll(mgr ctrl.Manager, o xpcontroller.Options) error {
 	for _, setup := range []func(ctrl.Manager, xpcontroller.Options) error{
+		secretpolicyraw.Setup,
 		secretraw.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {

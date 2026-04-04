@@ -13,6 +13,50 @@ import (
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ResolveReferences of this SecretPolicyRAW.
+func (mg *SecretPolicyRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPINamespacedResolver(c, mg)
+
+	var rsp reference.NamespacedResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.SecretArn),
+		Extract:      reference.ExternalName(),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.ForProvider.SecretArnRef,
+		Selector:     mg.Spec.ForProvider.SecretArnSelector,
+		To: reference.To{
+			List:    &SecretRAWList{},
+			Managed: &SecretRAW{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.SecretArn")
+	}
+	mg.Spec.ForProvider.SecretArn = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.ForProvider.SecretArnRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.SecretArn),
+		Extract:      reference.ExternalName(),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.InitProvider.SecretArnRef,
+		Selector:     mg.Spec.InitProvider.SecretArnSelector,
+		To: reference.To{
+			List:    &SecretRAWList{},
+			Managed: &SecretRAW{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.InitProvider.SecretArn")
+	}
+	mg.Spec.InitProvider.SecretArn = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.InitProvider.SecretArnRef = rsp.ResolvedReference
+
+	return nil
+}
+
 // ResolveReferences of this SecretRAW.
 func (mg *SecretRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
 	r := reference.NewAPINamespacedResolver(c, mg)
