@@ -140,7 +140,7 @@ type ReplicationGroupRAWParameters struct {
 	FinalSnapshotIdentifier *string `json:"finalSnapshotIdentifier,omitempty"`
 
 	// The ID of the global replication group.
-	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta1.GlobalReplicationGroup
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta1/native.GlobalReplicationGroupRAW
 	// +crossplane:generate:reference:extractor=github.com/upbound/provider-aws/v2/internal/native.ExtractAtProviderField("globalReplicationGroupId")
 	// +kubebuilder:validation:Optional
 	GlobalReplicationGroupID *string `json:"globalReplicationGroupId,omitempty"`
@@ -266,7 +266,7 @@ type ReplicationGroupRAWParameters struct {
 	SnapshotWindow *string `json:"snapshotWindow,omitempty"`
 
 	// Name of the cache subnet group.
-	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta1.SubnetGroup
+	// +crossplane:generate:reference:type=github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta1/native.SubnetGroupRAW
 	// +kubebuilder:validation:Optional
 	SubnetGroupName *string `json:"subnetGroupName,omitempty"`
 
