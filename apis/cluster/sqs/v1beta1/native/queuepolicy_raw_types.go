@@ -27,11 +27,11 @@ type QueuePolicyRAWParameters struct {
 
 	// Reference to a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+	QueueURLRef *xpv1.Reference `json:"queueUrlRef,omitempty"`
 
 	// Selector for a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+	QueueURLSelector *xpv1.Selector `json:"queueUrlSelector,omitempty"`
 
 	// Region where this resource will be managed. Required for credential resolution.
 	// +kubebuilder:validation:Required
@@ -52,11 +52,11 @@ type QueuePolicyRAWInitParameters struct {
 
 	// Reference to a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+	QueueURLRef *xpv1.Reference `json:"queueUrlRef,omitempty"`
 
 	// Selector for a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+	QueueURLSelector *xpv1.Selector `json:"queueUrlSelector,omitempty"`
 }
 
 // QueuePolicyRAWObservation defines the observed state of a native SQS Queue Policy.

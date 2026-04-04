@@ -22,11 +22,11 @@ type QueueRedriveAllowPolicyRAWParameters struct {
 
 	// Reference to a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+	QueueURLRef *xpv1.Reference `json:"queueUrlRef,omitempty"`
 
 	// Selector for a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+	QueueURLSelector *xpv1.Selector `json:"queueUrlSelector,omitempty"`
 
 	// The JSON redrive allow policy for the SQS queue. Learn more in the
 	// Amazon SQS dead-letter queues documentation.
@@ -48,11 +48,11 @@ type QueueRedriveAllowPolicyRAWInitParameters struct {
 
 	// Reference to a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLRef *xpv1.NamespacedReference `json:"queueUrlRef,omitempty"`
+	QueueURLRef *xpv1.Reference `json:"queueUrlRef,omitempty"`
 
 	// Selector for a QueueRAW to populate queueUrl.
 	// +kubebuilder:validation:Optional
-	QueueURLSelector *xpv1.NamespacedSelector `json:"queueUrlSelector,omitempty"`
+	QueueURLSelector *xpv1.Selector `json:"queueUrlSelector,omitempty"`
 
 	// The JSON redrive allow policy for the SQS queue.
 	// +kubebuilder:validation:Optional

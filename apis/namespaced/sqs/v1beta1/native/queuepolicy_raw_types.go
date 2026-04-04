@@ -136,23 +136,33 @@ func init() {
 // only reads from the returned value (no late-init writes), so returning a
 // freshly allocated cluster struct is safe.
 func (q *QueuePolicyRAW) GetForProvider() *clusternative.QueuePolicyRAWParameters {
-	return &clusternative.QueuePolicyRAWParameters{
-		Policy:           q.Spec.ForProvider.Policy,
-		QueueURL:         q.Spec.ForProvider.QueueURL,
-		QueueURLRef:      q.Spec.ForProvider.QueueURLRef,
-		QueueURLSelector: q.Spec.ForProvider.QueueURLSelector,
-		Region:           q.Spec.ForProvider.Region,
+	p := &clusternative.QueuePolicyRAWParameters{
+		Policy:   q.Spec.ForProvider.Policy,
+		QueueURL: q.Spec.ForProvider.QueueURL,
+		Region:   q.Spec.ForProvider.Region,
 	}
+	if q.Spec.ForProvider.QueueURLRef != nil {
+		p.QueueURLRef = namespacedRefToRef(q.Spec.ForProvider.QueueURLRef)
+	}
+	if q.Spec.ForProvider.QueueURLSelector != nil {
+		p.QueueURLSelector = namespacedSelectorToSelector(q.Spec.ForProvider.QueueURLSelector)
+	}
+	return p
 }
 
 // GetInitProvider converts the namespaced InitProvider params to the cluster type.
 func (q *QueuePolicyRAW) GetInitProvider() *clusternative.QueuePolicyRAWInitParameters {
-	return &clusternative.QueuePolicyRAWInitParameters{
-		Policy:           q.Spec.InitProvider.Policy,
-		QueueURL:         q.Spec.InitProvider.QueueURL,
-		QueueURLRef:      q.Spec.InitProvider.QueueURLRef,
-		QueueURLSelector: q.Spec.InitProvider.QueueURLSelector,
+	p := &clusternative.QueuePolicyRAWInitParameters{
+		Policy:   q.Spec.InitProvider.Policy,
+		QueueURL: q.Spec.InitProvider.QueueURL,
 	}
+	if q.Spec.InitProvider.QueueURLRef != nil {
+		p.QueueURLRef = namespacedRefToRef(q.Spec.InitProvider.QueueURLRef)
+	}
+	if q.Spec.InitProvider.QueueURLSelector != nil {
+		p.QueueURLSelector = namespacedSelectorToSelector(q.Spec.InitProvider.QueueURLSelector)
+	}
+	return p
 }
 
 // GetAtProvider returns the current observed state.
@@ -170,7 +180,7 @@ func (q *QueuePolicyRAW) SetAtProvider(o clusternative.QueuePolicyRAWObservation
 func (q *QueuePolicyRAW) SetForProvider(p clusternative.QueuePolicyRAWParameters) {
 	q.Spec.ForProvider.Policy = p.Policy
 	q.Spec.ForProvider.QueueURL = p.QueueURL
-	q.Spec.ForProvider.QueueURLRef = p.QueueURLRef
-	q.Spec.ForProvider.QueueURLSelector = p.QueueURLSelector
+	q.Spec.ForProvider.QueueURLRef = refToNamespacedRef(p.QueueURLRef)
+	q.Spec.ForProvider.QueueURLSelector = selectorToNamespacedSelector(p.QueueURLSelector)
 	q.Spec.ForProvider.Region = p.Region
 }

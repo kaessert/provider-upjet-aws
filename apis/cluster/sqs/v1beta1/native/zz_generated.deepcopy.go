@@ -55,12 +55,12 @@ func (in *QueuePolicyRAWInitParameters) DeepCopyInto(out *QueuePolicyRAWInitPara
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -147,12 +147,12 @@ func (in *QueuePolicyRAWParameters) DeepCopyInto(out *QueuePolicyRAWParameters) 
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Region != nil {
@@ -649,12 +649,12 @@ func (in *QueueRedriveAllowPolicyRAWInitParameters) DeepCopyInto(out *QueueRedri
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.RedriveAllowPolicy != nil {
@@ -746,12 +746,12 @@ func (in *QueueRedriveAllowPolicyRAWParameters) DeepCopyInto(out *QueueRedriveAl
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.RedriveAllowPolicy != nil {
@@ -867,12 +867,12 @@ func (in *QueueRedrivePolicyRAWInitParameters) DeepCopyInto(out *QueueRedrivePol
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.RedrivePolicy != nil {
@@ -964,12 +964,12 @@ func (in *QueueRedrivePolicyRAWParameters) DeepCopyInto(out *QueueRedrivePolicyR
 	}
 	if in.QueueURLRef != nil {
 		in, out := &in.QueueURLRef, &out.QueueURLRef
-		*out = new(v1.NamespacedReference)
+		*out = new(v1.Reference)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.QueueURLSelector != nil {
 		in, out := &in.QueueURLSelector, &out.QueueURLSelector
-		*out = new(v1.NamespacedSelector)
+		*out = new(v1.Selector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.RedrivePolicy != nil {

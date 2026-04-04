@@ -15,12 +15,12 @@ import (
 
 // ResolveReferences of this QueuePolicyRAW.
 func (mg *QueuePolicyRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
-	r := reference.NewAPINamespacedResolver(c, mg)
+	r := reference.NewAPIResolver(c, mg)
 
-	var rsp reference.NamespacedResolutionResponse
+	var rsp reference.ResolutionResponse
 	var err error
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -37,7 +37,7 @@ func (mg *QueuePolicyRAW) ResolveReferences(ctx context.Context, c client.Reader
 	mg.Spec.ForProvider.QueueURL = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.ForProvider.QueueURLRef = rsp.ResolvedReference
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -59,12 +59,12 @@ func (mg *QueuePolicyRAW) ResolveReferences(ctx context.Context, c client.Reader
 
 // ResolveReferences of this QueueRedriveAllowPolicyRAW.
 func (mg *QueueRedriveAllowPolicyRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
-	r := reference.NewAPINamespacedResolver(c, mg)
+	r := reference.NewAPIResolver(c, mg)
 
-	var rsp reference.NamespacedResolutionResponse
+	var rsp reference.ResolutionResponse
 	var err error
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -81,7 +81,7 @@ func (mg *QueueRedriveAllowPolicyRAW) ResolveReferences(ctx context.Context, c c
 	mg.Spec.ForProvider.QueueURL = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.ForProvider.QueueURLRef = rsp.ResolvedReference
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -103,12 +103,12 @@ func (mg *QueueRedriveAllowPolicyRAW) ResolveReferences(ctx context.Context, c c
 
 // ResolveReferences of this QueueRedrivePolicyRAW.
 func (mg *QueueRedrivePolicyRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
-	r := reference.NewAPINamespacedResolver(c, mg)
+	r := reference.NewAPIResolver(c, mg)
 
-	var rsp reference.NamespacedResolutionResponse
+	var rsp reference.ResolutionResponse
 	var err error
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),
@@ -125,7 +125,7 @@ func (mg *QueueRedrivePolicyRAW) ResolveReferences(ctx context.Context, c client
 	mg.Spec.ForProvider.QueueURL = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.ForProvider.QueueURLRef = rsp.ResolvedReference
 
-	rsp, err = r.Resolve(ctx, reference.NamespacedResolutionRequest{
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
 		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.QueueURL),
 		Extract:      native.ExtractResourceID(),
 		Namespace:    mg.GetNamespace(),

@@ -136,23 +136,33 @@ func init() {
 // code only reads from the returned value (no late-init writes), so returning a
 // freshly allocated cluster struct is safe.
 func (q *QueueRedrivePolicyRAW) GetForProvider() *clusternative.QueueRedrivePolicyRAWParameters {
-	return &clusternative.QueueRedrivePolicyRAWParameters{
-		QueueURL:         q.Spec.ForProvider.QueueURL,
-		QueueURLRef:      q.Spec.ForProvider.QueueURLRef,
-		QueueURLSelector: q.Spec.ForProvider.QueueURLSelector,
-		RedrivePolicy:    q.Spec.ForProvider.RedrivePolicy,
-		Region:           q.Spec.ForProvider.Region,
+	p := &clusternative.QueueRedrivePolicyRAWParameters{
+		QueueURL:      q.Spec.ForProvider.QueueURL,
+		RedrivePolicy: q.Spec.ForProvider.RedrivePolicy,
+		Region:        q.Spec.ForProvider.Region,
 	}
+	if q.Spec.ForProvider.QueueURLRef != nil {
+		p.QueueURLRef = namespacedRefToRef(q.Spec.ForProvider.QueueURLRef)
+	}
+	if q.Spec.ForProvider.QueueURLSelector != nil {
+		p.QueueURLSelector = namespacedSelectorToSelector(q.Spec.ForProvider.QueueURLSelector)
+	}
+	return p
 }
 
 // GetInitProvider converts the namespaced InitProvider params to the cluster type.
 func (q *QueueRedrivePolicyRAW) GetInitProvider() *clusternative.QueueRedrivePolicyRAWInitParameters {
-	return &clusternative.QueueRedrivePolicyRAWInitParameters{
-		QueueURL:         q.Spec.InitProvider.QueueURL,
-		QueueURLRef:      q.Spec.InitProvider.QueueURLRef,
-		QueueURLSelector: q.Spec.InitProvider.QueueURLSelector,
-		RedrivePolicy:    q.Spec.InitProvider.RedrivePolicy,
+	p := &clusternative.QueueRedrivePolicyRAWInitParameters{
+		QueueURL:      q.Spec.InitProvider.QueueURL,
+		RedrivePolicy: q.Spec.InitProvider.RedrivePolicy,
 	}
+	if q.Spec.InitProvider.QueueURLRef != nil {
+		p.QueueURLRef = namespacedRefToRef(q.Spec.InitProvider.QueueURLRef)
+	}
+	if q.Spec.InitProvider.QueueURLSelector != nil {
+		p.QueueURLSelector = namespacedSelectorToSelector(q.Spec.InitProvider.QueueURLSelector)
+	}
+	return p
 }
 
 // GetAtProvider returns the current observed state.
@@ -169,8 +179,8 @@ func (q *QueueRedrivePolicyRAW) SetAtProvider(o clusternative.QueueRedrivePolicy
 // to the namespaced spec. Added for interface consistency.
 func (q *QueueRedrivePolicyRAW) SetForProvider(p clusternative.QueueRedrivePolicyRAWParameters) {
 	q.Spec.ForProvider.QueueURL = p.QueueURL
-	q.Spec.ForProvider.QueueURLRef = p.QueueURLRef
-	q.Spec.ForProvider.QueueURLSelector = p.QueueURLSelector
+	q.Spec.ForProvider.QueueURLRef = refToNamespacedRef(p.QueueURLRef)
+	q.Spec.ForProvider.QueueURLSelector = selectorToNamespacedSelector(p.QueueURLSelector)
 	q.Spec.ForProvider.RedrivePolicy = p.RedrivePolicy
 	q.Spec.ForProvider.Region = p.Region
 }
