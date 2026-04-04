@@ -18,7 +18,7 @@ spec:
     region: us-east-1
     queueUrlSelector:
       matchLabels:
-        testing.upbound.io/example-name: example
+        testing.upbound.io/example-name: qrp-main-queue
 ---
 apiVersion: sqs.aws.m.upbound.io/v1beta1
 kind: QueueRAW
@@ -41,7 +41,7 @@ metadata:
   annotations:
     meta.upbound.io/example-id: sqs/v1beta1/queueredrivepolicyraw
   labels:
-    testing.upbound.io/example-name: example
+    testing.upbound.io/example-name: qrp-main-queue
   name: qrpexample
   namespace: upbound-system
 spec:

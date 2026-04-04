@@ -20,4 +20,4 @@ spec:
     tags:
       Environment: production
   writeConnectionSecretToRef:
-    name: "sqs-example"
+    name: "sqs-example-ns"
