@@ -583,16 +583,26 @@ examples/<SERVICE>/cluster/<version>/<resource_file>raw.yaml
     - `kind: <resource_go>` → `kind: <resource_go>RAW`
     - Dependency resources in the same service: change their `kind` to RAW too
     - Account ID in hardcoded ARNs: replace with test account `609897127049`
+    - Remove `meta.upbound.io/example-id` annotation (RAW resources don't have these)
+    - Remove `writeConnectionSecretToRef` if present
   - Do NOT add fields, remove fields, restructure the YAML, or change field values.
     The RAW example must be identical to the TF example in structure and content.
     This is the gold standard for parity testing — any divergence masks real bugs.
+  - **Verification**: `metadata.name`, `testing.upbound.io/example-name`, `region`,
+    all `spec.forProvider` field values, and all inline dependency resources MUST be
+    identical between TF and RAW files. If the TF example includes VPC/Subnet/SecurityGroup
+    dependencies, the RAW file must include them too (with their original non-RAW kinds).
+    The ONLY source of truth is the TF file — do NOT write RAW examples from scratch.
   - Do NOT add `uptest.upbound.io/conditions` annotations. Native controllers must
     call `SetTestConditionIfAnnotated()` to set the Test condition (see implement ticket).
 
 ```
 examples/<SERVICE>/namespaced/<version>/<resource_file>raw.yaml
 ```
-  - Namespaced scope variant, same rules as above
+  - Namespaced scope variant, same rules as above plus:
+    - `apiVersion: <SERVICE>.aws.upbound.io/` → `apiVersion: <SERVICE>.aws.m.upbound.io/`
+    - Add `metadata.namespace: default` to ALL resources in the file
+    - EC2 dependency API groups also change: `ec2.aws.upbound.io` → `ec2.aws.m.upbound.io`
 
 ---
 
