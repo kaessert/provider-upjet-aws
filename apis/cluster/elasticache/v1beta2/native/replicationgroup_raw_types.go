@@ -406,6 +406,8 @@ type ReplicationGroupRAWObservation struct {
 	ReplicasPerNodeGroup         *float64                                   `json:"replicasPerNodeGroup,omitempty"`
 	SecurityGroupIds             []*string                                  `json:"securityGroupIds,omitempty"`
 	SecurityGroupNames           []*string                                  `json:"securityGroupNames,omitempty"`
+	SnapshotArns                 []*string                                  `json:"snapshotArns,omitempty"`
+	SnapshotName                 *string                                    `json:"snapshotName,omitempty"`
 	SnapshotRetentionLimit       *float64                                   `json:"snapshotRetentionLimit,omitempty"`
 	SnapshotWindow               *string                                    `json:"snapshotWindow,omitempty"`
 	SubnetGroupName              *string                                    `json:"subnetGroupName,omitempty"`

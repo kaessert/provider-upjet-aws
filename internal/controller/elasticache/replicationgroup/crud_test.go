@@ -1205,6 +1205,55 @@ func TestBuildModifyInput_UserGroupIds_Populated(t *testing.T) {
 	}
 }
 
+// ── Test: SnapshotArns/SnapshotName echoed into atProvider ───────────────────
+
+// TestObserve_EchosWriteOnlySnapshotFields verifies that SnapshotArns and
+// SnapshotName (write-only AWS fields that cannot be read back from the AWS API)
+// are echoed from spec.forProvider into status.atProvider during Observe so that
+// users who read the observation see the expected values (TF parity §6, §17).
+func TestObserve_EchosWriteOnlySnapshotFields(t *testing.T) {
+	cr := buildTestCR()
+	cr.Spec.ForProvider.SnapshotArns = []*string{aws.String("arn:aws:s3:::my-bucket/snap")}
+	cr.Spec.ForProvider.SnapshotName = aws.String("my-snapshot")
+
+	fakeAWS := &fakeRGClient{
+		describeResp: &awselasticache.DescribeReplicationGroupsOutput{
+			ReplicationGroups: []ectypes.ReplicationGroup{
+				{
+					ReplicationGroupId: aws.String("test-rg"),
+					Status:             aws.String("available"),
+					Description:        aws.String("test description"),
+				},
+			},
+		},
+		listTagsResp: &awselasticache.ListTagsForResourceOutput{TagList: []ectypes.Tag{}},
+	}
+
+	ec := &ExternalClient{Client: fakeAWS, Kube: buildFakeKubeClient()}
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	atProvider := cr.GetAtProvider()
+
+	// SnapshotArns should be echoed from spec.
+	if len(atProvider.SnapshotArns) != 1 {
+		t.Fatalf("expected 1 SnapshotArns in atProvider, got %d", len(atProvider.SnapshotArns))
+	}
+	if got := *atProvider.SnapshotArns[0]; got != "arn:aws:s3:::my-bucket/snap" {
+		t.Errorf("SnapshotArns[0] = %q, want %q", got, "arn:aws:s3:::my-bucket/snap")
+	}
+
+	// SnapshotName should be echoed from spec.
+	if atProvider.SnapshotName == nil {
+		t.Fatal("expected SnapshotName in atProvider, got nil")
+	}
+	if got := *atProvider.SnapshotName; got != "my-snapshot" {
+		t.Errorf("SnapshotName = %q, want %q", got, "my-snapshot")
+	}
+}
+
 // Ensure managed.ConnectionDetails is used correctly.
 var _ managed.ConnectionDetails = managed.ConnectionDetails{}
 

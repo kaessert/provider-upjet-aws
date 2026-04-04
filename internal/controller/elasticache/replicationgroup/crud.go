@@ -116,6 +116,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ReplicationGroupCR) (ma
 	// Preserve auth_token_update_strategy: AWS doesn't return it; we track it internally
 	// to detect when auth token rotation has been applied (idempotency).
 	obs.AuthTokenUpdateStrategy = existing.AuthTokenUpdateStrategy
+	// Echo write-only fields from spec — AWS never returns SnapshotArns or SnapshotName.
+	// TF stores them from state; native controllers must mirror them into atProvider for parity.
+	specFP := cr.GetForProvider()
+	obs.SnapshotArns = specFP.SnapshotArns
+	obs.SnapshotName = specFP.SnapshotName
 	cr.SetAtProvider(obs)
 
 	// Handle transitional and terminal states (lowercase for ReplicationGroup).
