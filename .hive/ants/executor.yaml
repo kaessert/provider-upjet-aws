@@ -302,6 +302,18 @@ directive_graph:
       - Always read the spec referenced in the ticket description before implementing
       - External name strategy MUST match config/externalname.go for the resource
       - No upjet imports in native controller or type files
+      - CR interface MUST include SetForProvider() symmetric with GetForProvider():
+          type <Resource>CR interface {
+              resource.Managed
+              GetForProvider() *<Resource>Parameters
+              SetForProvider(<Resource>Parameters)   // ⚠️ MANDATORY — namespaced returns a copy
+              GetAtProvider() <Resource>Observation
+              SetAtProvider(<Resource>Observation)
+          }
+        Namespaced types return a *copy* from GetForProvider() (to convert reference types).
+        Without SetForProvider(), late-init fields are silently discarded every reconcile,
+        causing an infinite ResourceLateInitialized loop where Ready never becomes True.
+        Always call: spec := cr.GetForProvider(); lateInit(spec, resp); cr.SetForProvider(*spec)
       - NEVER modify committed example manifests to fix schema errors. If an example fails
         strict decoding (e.g., "unknown field"), the RAW TYPE DEFINITION is wrong, not the
         example. Examples mirror TF examples — they are the source of truth for YAML

@@ -172,6 +172,7 @@ After each monitoring iteration, evaluate these conditions:
 | Reference not resolved | Ref field populated but target field empty | Reference resolver not working |
 | No external-name | SYNCED=True but no external-name annotation | Create succeeded but ID not captured |
 | Missing `Test` condition | All resources SYNCED+READY but chainsaw still on `00-apply` for >5min | Native controllers don't set the uptest `Test` condition (`type: Test, status: True`). Upjet resources get it from the `upjet.upbound.io/test` annotation handler; native resources only produce `Synced` and `Ready`. Check with `kubectl get <resource> -o jsonpath='{.status.conditions}'`. Chainsaw will timeout waiting for a condition that never appears. |
+| Infinite late-init loop | Namespaced resource SYNCED=True but READY never True; `resourceVersion` increments every ~10s; controller logs show `ResourceLateInitialized: true` on each reconcile | Missing `SetForProvider()` — `GetForProvider()` returns a copy on namespaced types; late-init modifies the copy but changes are lost without `SetForProvider(*spec)` write-back. See Common Failure Pattern #6. |
 
 ---
 
@@ -280,3 +281,26 @@ slower when waiting for AWS operations.
 - **Symptom**: SYNCED=False with error in events/conditions
 - **Cause**: Invalid parameters, missing required fields, wrong region
 - **Fix**: Check AWS API docs, compare with TF provider implementation
+
+### 6. Missing SetForProvider (Infinite Late-Init Loop)
+- **Symptom**: Namespaced resource stays SYNCED=True but READY never becomes True;
+  `resourceVersion` increments on every reconcile; controller logs show
+  `ResourceLateInitialized: true` repeatedly with no other errors
+- **Cause**: `GetForProvider()` on namespaced types returns a *copy* (to convert reference
+  types from namespaced to cluster-scoped). If the controller late-initializes this copy
+  but never calls `SetForProvider(*spec)` to write it back, the fields are silently
+  discarded. The next reconcile sees the same missing fields and repeats the late-init,
+  causing an infinite loop. The `Ready` condition never advances because the reconciler
+  re-queues before setting it.
+- **Detection**:
+  ```bash
+  # Check if resourceVersion is changing every ~10s with no Ready condition
+  kubectl get <kind>.<group>/<name> -o jsonpath='{.metadata.resourceVersion}' --watch
+  # Check conditions — if only Synced=True but no Ready=True after >2min:
+  kubectl get <kind>.<group>/<name> -o jsonpath='{.status.conditions}'
+  # Confirm SetForProvider exists in the namespaced type
+  grep -n "SetForProvider" apis/namespaced/$SERVICE/*/native/*_raw_types.go
+  grep -n "SetForProvider" internal/controller/$SERVICE/*/crud.go
+  ```
+- **Fix**: Add `SetForProvider()` to the namespaced type definition (reverse mapping of
+  `GetForProvider`) and call `cr.SetForProvider(*spec)` in `Observe()` after late-init.

@@ -74,6 +74,15 @@ Check specifically:
 12. **No extra fields** in RAW types that don't exist in TF types (YAML compatibility)
 13. **Example manifests** are exact copies of TF examples (only `kind` changed)
 14. **Test account ID `609897127049`** used consistently for all ARNs embedded in opaque JSON strings (policies, state machine definitions, redrive policies)
+15. **SetForProvider()** exists on **both** scope types AND is called after late-init in shared CRUD:
+    ```bash
+    grep -n "SetForProvider" apis/cluster/$ARGUMENTS/*/native/*_raw_types.go
+    grep -n "SetForProvider" apis/namespaced/$ARGUMENTS/*/native/*_raw_types.go
+    grep -n "SetForProvider" internal/controller/$ARGUMENTS/*/crud.go
+    ```
+    All three must have results. Missing `SetForProvider` on the namespaced type, or calling
+    `GetForProvider()` in late-init without a matching `SetForProvider(*spec)` write-back,
+    causes an infinite reconcile loop (ResourceLateInitialized: true every cycle, Ready never True).
 
 ### 1e. Spec & Skill Alignment
 

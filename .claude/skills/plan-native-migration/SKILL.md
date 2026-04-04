@@ -530,7 +530,8 @@ apis/cluster/<SERVICE>/<version>/native/<resource_file>_raw_types.go
   - Embed: `v1.ResourceSpec` in Spec, `v1.ResourceStatus` in Status (crossplane-runtime — NOT ConditionedStatus; angryjet requires ResourceStatus by type name)
   - `<resource_go>RAW` must have markers: `+kubebuilder:object:root=true`,
     `+kubebuilder:subresource:status`, `+kubebuilder:resource:scope=Cluster`
-  - Implement the `<resource_go>CR` interface declared in crud.go (compiler-verified)
+  - Implement the `<resource_go>CR` interface declared in crud.go (compiler-verified),
+    including `SetForProvider(p <resource_go>RAWParameters) { b.Spec.ForProvider = p }`
   - Include `spec.forProvider.region *string \`json:"region"\`` in Parameters
 
 ```
@@ -541,6 +542,9 @@ apis/namespaced/<SERVICE>/<version>/native/<resource_file>_raw_types.go
   - Define **own** `Parameters`/`InitParameters` structs (do NOT import from cluster) with scope-appropriate reference annotations pointing to `apis/namespaced/...` types
   - Embed `v2.ManagedResourceSpec` in Spec, `v1.ResourceStatus` in Status (NOT ConditionedStatus)
   - Same field layout as cluster params (names, types, json tags must match exactly)
+  - Implement `SetForProvider(p <resource_go>RAWParameters)` — copies fields from cluster-scoped
+    Parameters back to namespaced Parameters (reverse of GetForProvider conversion).
+    ⚠️ This MUST be symmetric with GetForProvider or late-init fields will be silently dropped.
 
 ```
 internal/controller/<SERVICE>/<resource_file>/crud.go
@@ -551,12 +555,16 @@ internal/controller/<SERVICE>/<resource_file>/crud.go
     type <resource_go>CR interface {
         resource.Managed
         GetForProvider() *v1beta1native.<resource_go>RAWParameters
+        SetForProvider(v1beta1native.<resource_go>RAWParameters)       // ⚠️ mandatory — namespaced returns a copy
         GetInitProvider() *v1beta1native.<resource_go>RAWInitParameters
         GetAtProvider() v1beta1native.<resource_go>RAWObservation
         SetAtProvider(v1beta1native.<resource_go>RAWObservation)
     }
     ```
     (import cluster native package for the types; namespaced types are identical)
+    > **⚠️ SetForProvider is mandatory**: Namespaced types return a *copy* from `GetForProvider()`
+    > (to convert reference types). Without `SetForProvider()`, late-initialized fields are lost,
+    > causing an infinite reconcile loop where Ready never becomes True.
   - Stub Observe/Create/Update/Delete returning `errors.New("not implemented")`
   - Must compile without upjet imports
 
@@ -843,6 +851,8 @@ calling `SetTestConditionIfAnnotated` in the controller.
 8. Run full test suite: `go test ./internal/controller/<SERVICE>/...`
 9. Verify no upjet imports: `grep -r "crossplane/upjet" internal/controller/<SERVICE>/`
 10. Verify late initialization for AWS-defaulted fields (e.g., type, logging level)
+    Pattern: `spec := cr.GetForProvider(); if lateInit(spec, resp) { cr.SetForProvider(*spec); return {..., ResourceLateInitialized: true}, nil }`
+    ⚠️ Always call SetForProvider after modifying the GetForProvider result — namespaced types return a copy!
 11. Verify Unavailable() condition for non-ACTIVE states
 12. Verify ALL mutable fields compared in isUpToDate (cross-check with schema.json — no gaps)
 13. Verify working tree is clean: `git status --short -- 'apis/*/<SERVICE>/' 'internal/controller/*/<SERVICE>/'`

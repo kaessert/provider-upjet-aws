@@ -64,6 +64,18 @@ Check against `.agents/specs/native-controller-pattern.md` §17 (Pitfalls) and �
 8. For every field where isUpToDate returns false, Update handles that value
 9. All references from config.go AND KnownReferencers are annotated
 10. Connection details match the catalog
+11. **SetForProvider** called after `GetForProvider()` + late-init in `Observe()` — example:
+    ```go
+    spec := cr.GetForProvider()
+    if lateInitialize(spec, awsResp) {
+        cr.SetForProvider(*spec)  // ⚠️ mandatory write-back
+        return managed.ExternalObservation{..., ResourceLateInitialized: true}, nil
+    }
+    ```
+    🔴 **Critical**: Namespaced types return a *copy* from `GetForProvider()`. Without
+    `SetForProvider()`, late-initialized fields are silently discarded, causing an infinite
+    reconcile loop where `ResourceLateInitialized: true` is returned every cycle and the
+    `Ready` condition never becomes `True`.
 
 ### 1c. Parity Check
 
@@ -71,6 +83,12 @@ For each resource, compare the RAW type fields against the TF type fields:
 - Count fields in Parameters, InitParameters, Observation
 - Verify they match (same json tags, same Go types)
 - Check for missing or extra fields
+- Verify `SetForProvider()` exists on **both** cluster and namespaced RAW types:
+  ```bash
+  grep -n "SetForProvider" apis/cluster/$ARGUMENTS/*/native/*_raw_types.go
+  grep -n "SetForProvider" apis/namespaced/$ARGUMENTS/*/native/*_raw_types.go
+  ```
+  If missing from either scope type → **Critical** issue (infinite late-init loop).
 
 ### 1d. Git Status
 
@@ -91,6 +109,10 @@ Categorize every finding:
 | 🟠 Medium | Behavioral difference from TF, missing error handling, wrong references |
 | 🟡 Warning | Code quality, missing tests, documentation gaps |
 | 🔵 Convention | Typos, naming, style |
+
+> **Known Critical Pattern — Missing SetForProvider**: If `SetForProvider()` is absent on
+> either scope type, or `Observe()` calls `GetForProvider()` to late-init but never calls
+> `SetForProvider(*spec)`, classify as **🔴 Critical** — infinite reconcile loop.
 
 ---
 
