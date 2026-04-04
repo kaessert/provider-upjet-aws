@@ -265,6 +265,9 @@ type StateMachineRAWObservation struct {
 	// Whether a version was published on creation.
 	Publish *bool `json:"publish,omitempty"`
 
+	// Region where this resource is managed. Reflected from spec.forProvider.region.
+	Region *string `json:"region,omitempty"`
+
 	// The ARN of the state machine version revision.
 	RevisionID *string `json:"revisionId,omitempty"`
 
@@ -276,6 +279,11 @@ type StateMachineRAWObservation struct {
 
 	// The current status of the state machine. Either ACTIVE or DELETING.
 	Status *string `json:"status,omitempty"`
+
+	// Key-value map of resource tags (user-specified, without provider defaults).
+	// Reflected from spec.forProvider.tags, mirroring TF atProvider.tags behavior.
+	// +mapType=granular
+	Tags map[string]*string `json:"tags,omitempty"`
 
 	// Key-value map of resource tags including provider defaults.
 	// +mapType=granular

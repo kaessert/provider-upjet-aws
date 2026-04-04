@@ -655,6 +655,10 @@ spec:
                   publish:
                     description: Whether a version was published on creation.
                     type: boolean
+                  region:
+                    description: Region where this resource is managed. Reflected
+                      from spec.forProvider.region.
+                    type: string
                   revisionId:
                     description: The ARN of the state machine version revision.
                     type: string
@@ -668,6 +672,14 @@ spec:
                     description: The current status of the state machine. Either ACTIVE
                       or DELETING.
                     type: string
+                  tags:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Key-value map of resource tags (user-specified, without provider defaults).
+                      Reflected from spec.forProvider.tags, mirroring TF atProvider.tags behavior.
+                    type: object
+                    x-kubernetes-map-type: granular
                   tagsAll:
                     additionalProperties:
                       type: string

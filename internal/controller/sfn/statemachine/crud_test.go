@@ -1021,3 +1021,148 @@ func TestObserve_EncryptionKMSDataKeyReusePeriodSecondsMatch_ReturnsUpToDate(t *
 		t.Errorf("Observe() ResourceUpToDate = false, want true (KMSDataKeyReusePeriodSeconds match)")
 	}
 }
+
+// ── Observation Tags/Region reflection tests ───────────────────────────────────
+
+// TestObserve_ReflectsTagsFromSpec verifies that after a successful Observe call,
+// status.atProvider.tags is populated with the tags from spec.forProvider.tags,
+// mirroring TF StateMachine behavior (atProvider.tags reflects user-specified tags).
+func TestObserve_ReflectsTagsFromSpec(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(_ context.Context, _ *awssfn.DescribeStateMachineInput, _ ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+		listTagsForResourceFn: func(_ context.Context, _ *awssfn.ListTagsForResourceInput, _ ...func(*awssfn.Options)) (*awssfn.ListTagsForResourceOutput, error) {
+			return &awssfn.ListTagsForResourceOutput{
+				Tags: []sfntypes.Tag{
+					{Key: aws.String("env"), Value: aws.String("prod")},
+				},
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	tagVal := "prod"
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+		Tags:       map[string]*string{"env": &tagVal},
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() Tags reflection: unexpected error: %v", err)
+	}
+
+	atProvider := cr.GetAtProvider()
+	if atProvider.Tags == nil {
+		t.Fatal("Observe() atProvider.tags is nil, want map with 'env' key")
+	}
+	v, ok := atProvider.Tags["env"]
+	if !ok {
+		t.Errorf("Observe() atProvider.tags missing 'env' key, got %v", atProvider.Tags)
+	} else if v == nil || *v != "prod" {
+		t.Errorf("Observe() atProvider.tags[env] = %v, want 'prod'", v)
+	}
+}
+
+// TestObserve_ReflectsRegionFromSpec verifies that after a successful Observe call,
+// status.atProvider.region is populated with the region from spec.forProvider.region,
+// mirroring TF StateMachine behavior (atProvider.region reflects the spec region).
+func TestObserve_ReflectsRegionFromSpec(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(_ context.Context, _ *awssfn.DescribeStateMachineInput, _ ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	region := "us-east-1"
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+		Region:     &region,
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() Region reflection: unexpected error: %v", err)
+	}
+
+	atProvider := cr.GetAtProvider()
+	if atProvider.Region == nil {
+		t.Fatal("Observe() atProvider.region is nil, want 'us-east-1'")
+	}
+	if *atProvider.Region != "us-east-1" {
+		t.Errorf("Observe() atProvider.region = %q, want 'us-east-1'", *atProvider.Region)
+	}
+}
+
+// TestObserve_ReflectsNilTagsAndRegion verifies that nil Tags and nil Region in
+// spec do not cause panics and result in nil atProvider.tags/region.
+func TestObserve_ReflectsNilTagsAndRegion(t *testing.T) {
+	now := time.Now()
+	mock := &mockSFNClient{
+		describeStateMachineFn: func(_ context.Context, _ *awssfn.DescribeStateMachineInput, _ ...func(*awssfn.Options)) (*awssfn.DescribeStateMachineOutput, error) {
+			return &awssfn.DescribeStateMachineOutput{
+				StateMachineArn: aws.String(testARN),
+				Name:            aws.String(testName),
+				Definition:      aws.String(testDefinition),
+				RoleArn:         aws.String(testRoleARN),
+				Type:            sfntypes.StateMachineTypeStandard,
+				Status:          sfntypes.StateMachineStatusActive,
+				CreationDate:    &now,
+			}, nil
+		},
+	}
+	ec := &statemachine.ExternalClient{Client: mock}
+
+	smType := testSMTypeStandard
+	cr := testCR(testName, clusternative.StateMachineRAWParameters{
+		Definition: aws.String(testDefinition),
+		RoleArn:    aws.String(testRoleARN),
+		Type:       &smType,
+		// No Tags, no Region
+	}, clusternative.StateMachineRAWObservation{
+		Arn: aws.String(testARN),
+	})
+
+	_, err := ec.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("Observe() nil Tags/Region: unexpected error: %v", err)
+	}
+
+	atProvider := cr.GetAtProvider()
+	if atProvider.Tags != nil {
+		t.Errorf("Observe() atProvider.tags = %v, want nil when no spec tags", atProvider.Tags)
+	}
+	if atProvider.Region != nil {
+		t.Errorf("Observe() atProvider.region = %v, want nil when no spec region", atProvider.Region)
+	}
+}

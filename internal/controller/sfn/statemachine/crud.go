@@ -100,6 +100,14 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StateMachineCR) (manage
 
 	cr.SetAtProvider(mapDescribeToObservation(resp))
 
+	// Reflect spec fields into atProvider to maintain TF parity.
+	// AWS DescribeStateMachine does not return tags or region, so we mirror
+	// them from spec.forProvider — matching TF's atProvider.tags/region behavior.
+	obs := cr.GetAtProvider()
+	obs.Tags = cr.GetForProvider().Tags
+	obs.Region = cr.GetForProvider().Region
+	cr.SetAtProvider(obs)
+
 	// Late-initialize spec fields that AWS defaults (e.g. type → STANDARD).
 	lateInited := lateInitialize(cr, resp)
 
