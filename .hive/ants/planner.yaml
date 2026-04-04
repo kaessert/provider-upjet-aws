@@ -101,7 +101,7 @@ pheromone_watch:
   exclude_labels: []
   include_labels:
   - stage:planner
-  re_check_on_complete: true
+  re_check_on_complete: false
   statuses:
   - ToDo
   wake_on_empty: false
