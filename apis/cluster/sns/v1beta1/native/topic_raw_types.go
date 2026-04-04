@@ -599,6 +599,10 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (t *TopicRAW) GetForProvider() *TopicRAWParameters { return &t.Spec.ForProvider }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+// Required by the TopicCR interface for late-initialization write-back.
+func (t *TopicRAW) SetForProvider(p TopicRAWParameters) { t.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (t *TopicRAW) GetInitProvider() *TopicRAWInitParameters { return &t.Spec.InitProvider }
 

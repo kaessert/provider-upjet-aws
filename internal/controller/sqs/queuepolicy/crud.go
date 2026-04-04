@@ -42,6 +42,9 @@ type SQSClient interface {
 type QueuePolicyCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.QueuePolicyRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// Added for interface consistency with other native CR types.
+	SetForProvider(clusternative.QueuePolicyRAWParameters)
 	GetInitProvider() *clusternative.QueuePolicyRAWInitParameters
 	GetAtProvider() clusternative.QueuePolicyRAWObservation
 	SetAtProvider(clusternative.QueuePolicyRAWObservation)

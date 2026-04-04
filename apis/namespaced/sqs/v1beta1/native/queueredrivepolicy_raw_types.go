@@ -164,3 +164,13 @@ func (q *QueueRedrivePolicyRAW) GetAtProvider() clusternative.QueueRedrivePolicy
 func (q *QueueRedrivePolicyRAW) SetAtProvider(o clusternative.QueueRedrivePolicyRAWObservation) {
 	q.Status.AtProvider = o
 }
+
+// SetForProvider copies cluster-scoped QueueRedrivePolicyRAWParameters back
+// to the namespaced spec. Added for interface consistency.
+func (q *QueueRedrivePolicyRAW) SetForProvider(p clusternative.QueueRedrivePolicyRAWParameters) {
+	q.Spec.ForProvider.QueueURL = p.QueueURL
+	q.Spec.ForProvider.QueueURLRef = p.QueueURLRef
+	q.Spec.ForProvider.QueueURLSelector = p.QueueURLSelector
+	q.Spec.ForProvider.RedrivePolicy = p.RedrivePolicy
+	q.Spec.ForProvider.Region = p.Region
+}

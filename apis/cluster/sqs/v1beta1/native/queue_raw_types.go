@@ -286,6 +286,10 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (q *QueueRAW) GetForProvider() *QueueRAWParameters { return &q.Spec.ForProvider }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+// Required by the QueueCR interface for late-initialization write-back.
+func (q *QueueRAW) SetForProvider(p QueueRAWParameters) { q.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (q *QueueRAW) GetInitProvider() *QueueRAWInitParameters { return &q.Spec.InitProvider }
 

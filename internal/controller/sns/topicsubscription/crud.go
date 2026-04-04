@@ -58,13 +58,15 @@ var _ SNSSubscriptionClient = (*awssns.Client)(nil)
 type TopicSubscriptionCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.TopicSubscriptionRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// ⚠️ MANDATORY: Namespaced types return a *copy* from GetForProvider() (to
+	// convert reference types). Without SetForProvider(), late-initialized fields
+	// are silently discarded every reconcile, causing an infinite
+	// ResourceLateInitialized loop where Ready never becomes True.
+	SetForProvider(clusternative.TopicSubscriptionRAWParameters)
 	GetInitProvider() *clusternative.TopicSubscriptionRAWInitParameters
 	GetAtProvider() clusternative.TopicSubscriptionRAWObservation
 	SetAtProvider(clusternative.TopicSubscriptionRAWObservation)
-	// SetForProviderFilterPolicyScope is needed for late-initialization of AWS-defaulted
-	// fields. GetForProvider() returns a field-copied struct for namespaced scope,
-	// so mutations through the returned pointer do not propagate back to the spec.
-	SetForProviderFilterPolicyScope(*string)
 }
 
 // ExternalClient implements the shared CRUD logic for TopicSubscription resources.
@@ -109,7 +111,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr TopicSubscriptionCR) (m
 	cr.SetAtProvider(mapAttrsToObservation(attrs))
 
 	// Late-initialize AWS-defaulted fields.
-	lateInited := e.lateInitialize(cr, attrs)
+	spec := cr.GetForProvider()
+	lateInited := lateInitialize(spec, attrs)
+	if lateInited {
+		cr.SetForProvider(*spec)
+	}
 
 	// If the subscription is still pending external confirmation, mark it
 	// unavailable but report it as existing so the reconciler does not
@@ -288,14 +294,13 @@ func setBoolObs(dst **bool, attrs map[string]string, key string) {
 // lateInitialize copies AWS-defaulted field values into the spec when those
 // fields were not explicitly set. Returns true if any field was populated.
 //
-// Uses SetForProvider* setters rather than mutating through GetForProvider()
-// because the namespaced GetForProvider() returns a field-copied struct.
-func (e *ExternalClient) lateInitialize(cr TopicSubscriptionCR, attrs map[string]string) bool {
-	spec := cr.GetForProvider()
+// Mutates the spec pointer directly; callers must call cr.SetForProvider(*spec)
+// afterwards to persist the changes in both cluster and namespaced scopes.
+func lateInitialize(spec *clusternative.TopicSubscriptionRAWParameters, attrs map[string]string) bool {
 	changed := false
 
 	if v, ok := lateInitStringVal(spec.FilterPolicyScope, attrs, "FilterPolicyScope"); ok {
-		cr.SetForProviderFilterPolicyScope(v)
+		spec.FilterPolicyScope = v
 		changed = true
 	}
 

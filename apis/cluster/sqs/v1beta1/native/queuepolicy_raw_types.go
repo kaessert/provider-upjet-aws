@@ -134,6 +134,9 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (q *QueuePolicyRAW) GetForProvider() *QueuePolicyRAWParameters { return &q.Spec.ForProvider }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+func (q *QueuePolicyRAW) SetForProvider(p QueuePolicyRAWParameters) { q.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (q *QueuePolicyRAW) GetInitProvider() *QueuePolicyRAWInitParameters {
 	return &q.Spec.InitProvider

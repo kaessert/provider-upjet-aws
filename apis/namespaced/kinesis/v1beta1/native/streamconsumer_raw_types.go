@@ -174,3 +174,14 @@ func (s *StreamConsumerRAW) GetAtProvider() v1beta1clusternative.StreamConsumerR
 func (s *StreamConsumerRAW) SetAtProvider(o v1beta1clusternative.StreamConsumerRAWObservation) {
 	s.Status.AtProvider = o
 }
+
+// SetForProvider copies cluster-scoped StreamConsumerRAWParameters back to the
+// namespaced spec. Added for interface consistency with other native CR types.
+func (s *StreamConsumerRAW) SetForProvider(p v1beta1clusternative.StreamConsumerRAWParameters) {
+	s.Spec.ForProvider.Name = p.Name
+	s.Spec.ForProvider.Region = p.Region
+	s.Spec.ForProvider.StreamArn = p.StreamArn
+	s.Spec.ForProvider.StreamArnRef = p.StreamArnRef
+	s.Spec.ForProvider.StreamArnSelector = p.StreamArnSelector
+	s.Spec.ForProvider.Tags = p.Tags
+}

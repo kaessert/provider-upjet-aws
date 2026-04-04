@@ -290,6 +290,27 @@ func (t *TopicSubscriptionRAW) SetAtProvider(o clusternative.TopicSubscriptionRA
 	t.Status.AtProvider = o
 }
 
+// SetForProvider copies cluster-scoped TopicSubscriptionRAWParameters back to
+// the namespaced spec. Required by TopicSubscriptionCR for late-init write-back.
+// Namespaced GetForProvider() returns a freshly-allocated copy, so any
+// mutations made by the shared CRUD late-init logic must be written back via
+// this method to actually persist in the spec.
+func (t *TopicSubscriptionRAW) SetForProvider(p clusternative.TopicSubscriptionRAWParameters) {
+	t.Spec.ForProvider.ConfirmationTimeoutInMinutes = p.ConfirmationTimeoutInMinutes
+	t.Spec.ForProvider.DeliveryPolicy = p.DeliveryPolicy
+	t.Spec.ForProvider.Endpoint = p.Endpoint
+	t.Spec.ForProvider.EndpointAutoConfirms = p.EndpointAutoConfirms
+	t.Spec.ForProvider.FilterPolicy = p.FilterPolicy
+	t.Spec.ForProvider.FilterPolicyScope = p.FilterPolicyScope
+	t.Spec.ForProvider.Protocol = p.Protocol
+	t.Spec.ForProvider.RawMessageDelivery = p.RawMessageDelivery
+	t.Spec.ForProvider.RedrivePolicy = p.RedrivePolicy
+	t.Spec.ForProvider.Region = p.Region
+	t.Spec.ForProvider.ReplayPolicy = p.ReplayPolicy
+	t.Spec.ForProvider.SubscriptionRoleArn = p.SubscriptionRoleArn
+	t.Spec.ForProvider.TopicArn = p.TopicArn
+}
+
 // SetForProviderFilterPolicyScope sets FilterPolicyScope for late-initialization.
 // This setter is needed because GetForProvider() returns a field-copied struct,
 // so mutations through the returned pointer do not propagate back to the spec.

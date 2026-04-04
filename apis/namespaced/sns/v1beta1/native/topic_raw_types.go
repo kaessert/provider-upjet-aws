@@ -574,6 +574,41 @@ func (t *TopicRAW) SetAtProvider(o clusternative.TopicRAWObservation) {
 	t.Status.AtProvider = o
 }
 
+// SetForProvider copies cluster-scoped TopicRAWParameters back to the
+// namespaced spec. Required by the TopicCR interface for late-init write-back.
+// Namespaced GetForProvider() returns a freshly-allocated copy, so any
+// mutations made by the shared CRUD late-init logic must be written back via
+// this method to actually persist in the spec.
+func (t *TopicRAW) SetForProvider(p clusternative.TopicRAWParameters) {
+	t.Spec.ForProvider.ApplicationFailureFeedbackRoleArn = p.ApplicationFailureFeedbackRoleArn
+	t.Spec.ForProvider.ApplicationSuccessFeedbackRoleArn = p.ApplicationSuccessFeedbackRoleArn
+	t.Spec.ForProvider.ApplicationSuccessFeedbackSampleRate = p.ApplicationSuccessFeedbackSampleRate
+	t.Spec.ForProvider.ArchivePolicy = p.ArchivePolicy
+	t.Spec.ForProvider.ContentBasedDeduplication = p.ContentBasedDeduplication
+	t.Spec.ForProvider.DeliveryPolicy = p.DeliveryPolicy
+	t.Spec.ForProvider.DisplayName = p.DisplayName
+	t.Spec.ForProvider.FifoThroughputScope = p.FifoThroughputScope
+	t.Spec.ForProvider.FifoTopic = p.FifoTopic
+	t.Spec.ForProvider.FirehoseFailureFeedbackRoleArn = p.FirehoseFailureFeedbackRoleArn
+	t.Spec.ForProvider.FirehoseSuccessFeedbackRoleArn = p.FirehoseSuccessFeedbackRoleArn
+	t.Spec.ForProvider.FirehoseSuccessFeedbackSampleRate = p.FirehoseSuccessFeedbackSampleRate
+	t.Spec.ForProvider.HTTPFailureFeedbackRoleArn = p.HTTPFailureFeedbackRoleArn
+	t.Spec.ForProvider.HTTPSuccessFeedbackRoleArn = p.HTTPSuccessFeedbackRoleArn
+	t.Spec.ForProvider.HTTPSuccessFeedbackSampleRate = p.HTTPSuccessFeedbackSampleRate
+	t.Spec.ForProvider.KMSMasterKeyID = p.KMSMasterKeyID
+	t.Spec.ForProvider.LambdaFailureFeedbackRoleArn = p.LambdaFailureFeedbackRoleArn
+	t.Spec.ForProvider.LambdaSuccessFeedbackRoleArn = p.LambdaSuccessFeedbackRoleArn
+	t.Spec.ForProvider.LambdaSuccessFeedbackSampleRate = p.LambdaSuccessFeedbackSampleRate
+	t.Spec.ForProvider.Policy = p.Policy
+	t.Spec.ForProvider.Region = p.Region
+	t.Spec.ForProvider.SignatureVersion = p.SignatureVersion
+	t.Spec.ForProvider.SqsFailureFeedbackRoleArn = p.SqsFailureFeedbackRoleArn
+	t.Spec.ForProvider.SqsSuccessFeedbackRoleArn = p.SqsSuccessFeedbackRoleArn
+	t.Spec.ForProvider.SqsSuccessFeedbackSampleRate = p.SqsSuccessFeedbackSampleRate
+	t.Spec.ForProvider.Tags = p.Tags
+	t.Spec.ForProvider.TracingConfig = p.TracingConfig
+}
+
 // SetForProviderFifoThroughputScope sets spec.forProvider.fifoThroughputScope.
 // Used by late-initialization so the persisted spec is updated correctly.
 func (t *TopicRAW) SetForProviderFifoThroughputScope(v *string) {

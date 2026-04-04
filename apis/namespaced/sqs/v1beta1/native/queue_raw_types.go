@@ -310,6 +310,32 @@ func (q *QueueRAW) GetAtProvider() clusternative.QueueRAWObservation { return q.
 // SetAtProvider sets the observed state.
 func (q *QueueRAW) SetAtProvider(o clusternative.QueueRAWObservation) { q.Status.AtProvider = o }
 
+// SetForProvider copies cluster-scoped QueueRAWParameters back to the
+// namespaced spec. Required by the QueueCR interface for late-init write-back.
+// Namespaced GetForProvider() returns a freshly-allocated copy, so any
+// mutations made by the shared CRUD late-init logic must be written back via
+// this method to actually persist in the spec.
+func (q *QueueRAW) SetForProvider(p clusternative.QueueRAWParameters) {
+	q.Spec.ForProvider.ContentBasedDeduplication = p.ContentBasedDeduplication
+	q.Spec.ForProvider.DeduplicationScope = p.DeduplicationScope
+	q.Spec.ForProvider.DelaySeconds = p.DelaySeconds
+	q.Spec.ForProvider.FifoQueue = p.FifoQueue
+	q.Spec.ForProvider.FifoThroughputLimit = p.FifoThroughputLimit
+	q.Spec.ForProvider.KMSDataKeyReusePeriodSeconds = p.KMSDataKeyReusePeriodSeconds
+	q.Spec.ForProvider.KMSMasterKeyID = p.KMSMasterKeyID
+	q.Spec.ForProvider.MaxMessageSize = p.MaxMessageSize
+	q.Spec.ForProvider.MessageRetentionSeconds = p.MessageRetentionSeconds
+	q.Spec.ForProvider.Name = p.Name
+	q.Spec.ForProvider.Policy = p.Policy
+	q.Spec.ForProvider.ReceiveWaitTimeSeconds = p.ReceiveWaitTimeSeconds
+	q.Spec.ForProvider.RedriveAllowPolicy = p.RedriveAllowPolicy
+	q.Spec.ForProvider.RedrivePolicy = p.RedrivePolicy
+	q.Spec.ForProvider.Region = p.Region
+	q.Spec.ForProvider.SqsManagedSseEnabled = p.SqsManagedSseEnabled
+	q.Spec.ForProvider.Tags = p.Tags
+	q.Spec.ForProvider.VisibilityTimeoutSeconds = p.VisibilityTimeoutSeconds
+}
+
 // SetForProviderDeduplicationScope sets spec.forProvider.deduplicationScope.
 // Called by the shared CRUD late-initialization logic, which cannot mutate the
 // spec through GetForProvider() (since that returns a field-copied struct, not

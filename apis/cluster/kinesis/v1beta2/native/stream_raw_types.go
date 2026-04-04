@@ -217,6 +217,10 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (s *StreamRAW) GetForProvider() *StreamRAWParameters { return &s.Spec.ForProvider }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+// Required by the StreamCR interface for late-initialization write-back.
+func (s *StreamRAW) SetForProvider(p StreamRAWParameters) { s.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (s *StreamRAW) GetInitProvider() *StreamRAWInitParameters { return &s.Spec.InitProvider }
 

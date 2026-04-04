@@ -164,3 +164,13 @@ func (q *QueuePolicyRAW) GetAtProvider() clusternative.QueuePolicyRAWObservation
 func (q *QueuePolicyRAW) SetAtProvider(o clusternative.QueuePolicyRAWObservation) {
 	q.Status.AtProvider = o
 }
+
+// SetForProvider copies cluster-scoped QueuePolicyRAWParameters back to the
+// namespaced spec. Added for interface consistency with other native CR types.
+func (q *QueuePolicyRAW) SetForProvider(p clusternative.QueuePolicyRAWParameters) {
+	q.Spec.ForProvider.Policy = p.Policy
+	q.Spec.ForProvider.QueueURL = p.QueueURL
+	q.Spec.ForProvider.QueueURLRef = p.QueueURLRef
+	q.Spec.ForProvider.QueueURLSelector = p.QueueURLSelector
+	q.Spec.ForProvider.Region = p.Region
+}

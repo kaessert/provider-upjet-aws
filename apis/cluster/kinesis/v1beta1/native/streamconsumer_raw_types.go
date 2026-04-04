@@ -152,6 +152,12 @@ func (s *StreamConsumerRAW) GetForProvider() *StreamConsumerRAWParameters {
 	return &s.Spec.ForProvider
 }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+// Required by the StreamConsumerCR interface for consistency with other native CR types.
+func (s *StreamConsumerRAW) SetForProvider(p StreamConsumerRAWParameters) {
+	s.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (s *StreamConsumerRAW) GetInitProvider() *StreamConsumerRAWInitParameters {
 	return &s.Spec.InitProvider

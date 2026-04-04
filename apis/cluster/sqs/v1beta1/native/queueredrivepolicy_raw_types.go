@@ -139,6 +139,11 @@ func (q *QueueRedrivePolicyRAW) GetForProvider() *QueueRedrivePolicyRAWParameter
 	return &q.Spec.ForProvider
 }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+func (q *QueueRedrivePolicyRAW) SetForProvider(p QueueRedrivePolicyRAWParameters) {
+	q.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (q *QueueRedrivePolicyRAW) GetInitProvider() *QueueRedrivePolicyRAWInitParameters {
 	return &q.Spec.InitProvider

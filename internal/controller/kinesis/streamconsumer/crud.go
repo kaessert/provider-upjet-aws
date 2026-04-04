@@ -53,6 +53,9 @@ type KinesisConsumerClient interface {
 type StreamConsumerCR interface {
 	resource.Managed
 	GetForProvider() *v1beta1native.StreamConsumerRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// Added for interface consistency with other native CR types.
+	SetForProvider(v1beta1native.StreamConsumerRAWParameters)
 	GetInitProvider() *v1beta1native.StreamConsumerRAWInitParameters
 	GetAtProvider() v1beta1native.StreamConsumerRAWObservation
 	SetAtProvider(v1beta1native.StreamConsumerRAWObservation)

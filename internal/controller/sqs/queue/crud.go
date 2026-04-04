@@ -55,18 +55,15 @@ type SQSClient interface {
 type QueueCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.QueueRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// ⚠️ MANDATORY: Namespaced types return a *copy* from GetForProvider() (to
+	// convert reference types). Without SetForProvider(), late-initialized fields
+	// are silently discarded every reconcile, causing an infinite
+	// ResourceLateInitialized loop where Ready never becomes True.
+	SetForProvider(clusternative.QueueRAWParameters)
 	GetInitProvider() *clusternative.QueueRAWInitParameters
 	GetAtProvider() clusternative.QueueRAWObservation
 	SetAtProvider(clusternative.QueueRAWObservation)
-	// SetForProviderDeduplicationScope sets spec.forProvider.deduplicationScope.
-	// GetForProvider() for namespaced resources returns a field-copied struct;
-	// mutations to it do not propagate back to the spec. These explicit setters
-	// are used by late-initialization so that the persisted spec is updated
-	// correctly for both cluster and namespaced scope types.
-	SetForProviderDeduplicationScope(*string)
-	SetForProviderFifoThroughputLimit(*string)
-	SetForProviderKMSDataKeyReusePeriodSeconds(*float64)
-	SetForProviderSqsManagedSseEnabled(*bool)
 }
 
 // ExternalClient implements the shared CRUD logic for Queue resources.
@@ -103,7 +100,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueueCR) (managed.Exter
 	cr.SetAtProvider(mapAttrsToObservation(attrs, queueURL))
 
 	// Late-initialize AWS-defaulted fields.
-	lateInited := lateInitialize(cr, attrs)
+	spec := cr.GetForProvider()
+	lateInited := lateInitialize(spec, attrs)
+	if lateInited {
+		cr.SetForProvider(*spec)
+	}
 
 	cr.SetConditions(xpv1.Available())
 
@@ -242,30 +243,25 @@ func mapAttrsToObservation(attrs map[string]string, queueURL string) clusternati
 // lateInitialize copies AWS-defaulted field values into the spec when those
 // fields were not explicitly set.  Returns true if any field was populated.
 //
-// Note: we use explicit SetForProvider* setters rather than mutating through
-// the pointer returned by GetForProvider(). For namespaced resources,
-// GetForProvider() returns a field-copied struct (not a direct pointer to
-// spec.forProvider), so mutations through that pointer would not persist.
-// The setter methods work correctly for both cluster and namespaced scopes.
-func lateInitialize(cr QueueCR, attrs map[string]string) bool {
-	spec := cr.GetForProvider()
-
+// Mutates the spec pointer directly; callers must call cr.SetForProvider(*spec)
+// afterwards to persist the changes in both cluster and namespaced scopes.
+func lateInitialize(spec *clusternative.QueueRAWParameters, attrs map[string]string) bool {
 	var changed bool
 
 	if v, ok := lateInitStringVal(spec.DeduplicationScope, attrs, "DeduplicationScope"); ok {
-		cr.SetForProviderDeduplicationScope(v)
+		spec.DeduplicationScope = v
 		changed = true
 	}
 	if v, ok := lateInitStringVal(spec.FifoThroughputLimit, attrs, "FifoThroughputLimit"); ok {
-		cr.SetForProviderFifoThroughputLimit(v)
+		spec.FifoThroughputLimit = v
 		changed = true
 	}
 	if v, ok := lateInitFloat64Val(spec.KMSDataKeyReusePeriodSeconds, attrs, "KmsDataKeyReusePeriodSeconds"); ok {
-		cr.SetForProviderKMSDataKeyReusePeriodSeconds(v)
+		spec.KMSDataKeyReusePeriodSeconds = v
 		changed = true
 	}
 	if v, ok := lateInitBoolVal(spec.SqsManagedSseEnabled, attrs, "SqsManagedSseEnabled"); ok {
-		cr.SetForProviderSqsManagedSseEnabled(v)
+		spec.SqsManagedSseEnabled = v
 		changed = true
 	}
 

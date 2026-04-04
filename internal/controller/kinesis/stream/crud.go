@@ -69,18 +69,15 @@ type KinesisStreamClient interface {
 type StreamCR interface {
 	resource.Managed
 	GetForProvider() *v1beta2native.StreamRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// ⚠️ MANDATORY: Namespaced types return a *copy* from GetForProvider() (to
+	// convert reference types). Without SetForProvider(), late-initialized fields
+	// are silently discarded every reconcile, causing an infinite
+	// ResourceLateInitialized loop where Ready never becomes True.
+	SetForProvider(v1beta2native.StreamRAWParameters)
 	GetInitProvider() *v1beta2native.StreamRAWInitParameters
 	GetAtProvider() v1beta2native.StreamRAWObservation
 	SetAtProvider(v1beta2native.StreamRAWObservation)
-	// Late-initialization setters: GetForProvider() for namespaced resources
-	// returns a field-copied struct; mutations to it do not propagate back to
-	// the spec. These explicit setters ensure the persisted spec is updated
-	// correctly for both cluster and namespaced scope types.
-	SetForProviderEncryptionType(*string)
-	SetForProviderRetentionPeriod(*float64)
-	SetForProviderShardCount(*float64)
-	SetForProviderMaxRecordSizeInKib(*float64)
-	SetForProviderStreamModeDetails(*v1beta2native.StreamModeDetailsRAWParameters)
 }
 
 // ExternalClient implements the shared CRUD logic for StreamRAW resources.
@@ -112,7 +109,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr StreamCR) (managed.Exte
 	}
 
 	populateObservation(cr, summary)
-	lateInited := lateInitialize(cr, summary)
+	spec := cr.GetForProvider()
+	lateInited := lateInitialize(spec, summary)
+	if lateInited {
+		cr.SetForProvider(*spec)
+	}
 	setStreamCondition(cr, summary.StreamStatus)
 
 	// While transitioning, skip the upToDate check to prevent spurious Update
@@ -803,63 +804,65 @@ func awsTagsToSpecMap(tags []ktypes.Tag) map[string]*string {
 //   - spec.forProvider.streamModeDetails  → AWS always returns PROVISIONED.
 //
 // Note: enforce_consumer_deletion is intentionally excluded from late-init.
-func lateInitialize(cr StreamCR, summary *ktypes.StreamDescriptionSummary) bool {
+//
+// Mutates the spec pointer directly; callers must call cr.SetForProvider(*spec)
+// afterwards to persist the changes in both cluster and namespaced scopes.
+func lateInitialize(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if summary == nil {
 		return false
 	}
-	spec := cr.GetForProvider()
 	changed := false
-	changed = lateInitEncryptionType(cr, spec, summary) || changed
-	changed = lateInitRetentionPeriod(cr, spec, summary) || changed
-	changed = lateInitShardCount(cr, spec, summary) || changed
-	changed = lateInitMaxRecordSize(cr, spec, summary) || changed
-	changed = lateInitStreamModeDetails(cr, spec, summary) || changed
+	changed = lateInitEncryptionType(spec, summary) || changed
+	changed = lateInitRetentionPeriod(spec, summary) || changed
+	changed = lateInitShardCount(spec, summary) || changed
+	changed = lateInitMaxRecordSize(spec, summary) || changed
+	changed = lateInitStreamModeDetails(spec, summary) || changed
 	return changed
 }
 
-func lateInitEncryptionType(cr StreamCR, spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
+func lateInitEncryptionType(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if spec.EncryptionType != nil || summary.EncryptionType == "" {
 		return false
 	}
 	encType := string(summary.EncryptionType)
-	cr.SetForProviderEncryptionType(&encType)
+	spec.EncryptionType = &encType
 	return true
 }
 
-func lateInitRetentionPeriod(cr StreamCR, spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
+func lateInitRetentionPeriod(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if spec.RetentionPeriod != nil || summary.RetentionPeriodHours == nil {
 		return false
 	}
 	v := float64(*summary.RetentionPeriodHours)
-	cr.SetForProviderRetentionPeriod(&v)
+	spec.RetentionPeriod = &v
 	return true
 }
 
-func lateInitShardCount(cr StreamCR, spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
+func lateInitShardCount(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if spec.ShardCount != nil || summary.OpenShardCount == nil {
 		return false
 	}
 	v := float64(*summary.OpenShardCount)
-	cr.SetForProviderShardCount(&v)
+	spec.ShardCount = &v
 	return true
 }
 
-func lateInitMaxRecordSize(cr StreamCR, spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
+func lateInitMaxRecordSize(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if spec.MaxRecordSizeInKib != nil || summary.MaxRecordSizeInKiB == nil {
 		return false
 	}
 	v := float64(*summary.MaxRecordSizeInKiB)
-	cr.SetForProviderMaxRecordSizeInKib(&v)
+	spec.MaxRecordSizeInKib = &v
 	return true
 }
 
-func lateInitStreamModeDetails(cr StreamCR, spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
+func lateInitStreamModeDetails(spec *v1beta2native.StreamRAWParameters, summary *ktypes.StreamDescriptionSummary) bool {
 	if spec.StreamModeDetails != nil || summary.StreamModeDetails == nil {
 		return false
 	}
 	mode := string(summary.StreamModeDetails.StreamMode)
-	cr.SetForProviderStreamModeDetails(&v1beta2native.StreamModeDetailsRAWParameters{
+	spec.StreamModeDetails = &v1beta2native.StreamModeDetailsRAWParameters{
 		StreamMode: &mode,
-	})
+	}
 	return true
 }

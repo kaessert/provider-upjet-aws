@@ -249,6 +249,33 @@ func (s *StreamRAW) GetAtProvider() clusternative.StreamRAWObservation { return 
 // SetAtProvider sets the observed state.
 func (s *StreamRAW) SetAtProvider(o clusternative.StreamRAWObservation) { s.Status.AtProvider = o }
 
+// SetForProvider copies cluster-scoped StreamRAWParameters back to the
+// namespaced spec. Required by the StreamCR interface for late-init write-back.
+// Namespaced GetForProvider() returns a freshly-allocated copy, so any
+// mutations made by the shared CRUD late-init logic must be written back via
+// this method to actually persist in the spec.
+func (s *StreamRAW) SetForProvider(p clusternative.StreamRAWParameters) {
+	s.Spec.ForProvider.EncryptionType = p.EncryptionType
+	s.Spec.ForProvider.EnforceConsumerDeletion = p.EnforceConsumerDeletion
+	s.Spec.ForProvider.KMSKeyID = p.KMSKeyID
+	s.Spec.ForProvider.KMSKeyIDRef = p.KMSKeyIDRef
+	s.Spec.ForProvider.KMSKeyIDSelector = p.KMSKeyIDSelector
+	s.Spec.ForProvider.MaxRecordSizeInKib = p.MaxRecordSizeInKib
+	s.Spec.ForProvider.Region = p.Region
+	s.Spec.ForProvider.RetentionPeriod = p.RetentionPeriod
+	s.Spec.ForProvider.ShardCount = p.ShardCount
+	s.Spec.ForProvider.ShardLevelMetrics = p.ShardLevelMetrics
+	s.Spec.ForProvider.Tags = p.Tags
+	// StreamModeDetails requires type conversion between cluster and namespaced types.
+	if p.StreamModeDetails != nil {
+		s.Spec.ForProvider.StreamModeDetails = &StreamModeDetailsRAWParameters{
+			StreamMode: p.StreamModeDetails.StreamMode,
+		}
+	} else {
+		s.Spec.ForProvider.StreamModeDetails = nil
+	}
+}
+
 // SetForProviderEncryptionType sets spec.forProvider.encryptionType.
 // Used by late-initialization so that mutations propagate back to the
 // namespaced spec (GetForProvider() returns a field-copied struct).

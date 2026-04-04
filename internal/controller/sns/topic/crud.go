@@ -60,15 +60,15 @@ type SNSClient interface {
 type TopicCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.TopicRAWParameters
+	// SetForProvider writes back the full ForProvider parameters.
+	// ⚠️ MANDATORY: Namespaced types return a *copy* from GetForProvider() (to
+	// convert reference types). Without SetForProvider(), late-initialized fields
+	// are silently discarded every reconcile, causing an infinite
+	// ResourceLateInitialized loop where Ready never becomes True.
+	SetForProvider(clusternative.TopicRAWParameters)
 	GetInitProvider() *clusternative.TopicRAWInitParameters
 	GetAtProvider() clusternative.TopicRAWObservation
 	SetAtProvider(clusternative.TopicRAWObservation)
-	// SetForProvider* setters are needed for late-initialization of AWS-defaulted
-	// fields. GetForProvider() returns a field-copied struct for namespaced scope,
-	// so mutations through the returned pointer do not propagate back to the spec.
-	SetForProviderFifoThroughputScope(*string)
-	SetForProviderSignatureVersion(*float64)
-	SetForProviderTracingConfig(*string)
 }
 
 // ExternalClient implements the shared CRUD logic for Topic resources.
@@ -104,7 +104,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr TopicCR) (managed.Exter
 	cr.SetAtProvider(mapAttrsToObservation(attrs, cr.GetAtProvider()))
 
 	// Late-initialize AWS-defaulted fields.
-	lateInited := e.lateInitialize(cr, attrs)
+	spec := cr.GetForProvider()
+	lateInited := lateInitialize(spec, attrs)
+	if lateInited {
+		cr.SetForProvider(*spec)
+	}
 
 	cr.SetConditions(xpv1.Available())
 
@@ -376,22 +380,21 @@ func setFloatObs(dst **float64, attrs map[string]string, key string) {
 // lateInitialize copies AWS-defaulted field values into the spec when those
 // fields were not explicitly set. Returns true if any field was populated.
 //
-// Uses SetForProvider* setters rather than mutating through GetForProvider()
-// because the namespaced GetForProvider() returns a field-copied struct.
-func (e *ExternalClient) lateInitialize(cr TopicCR, attrs map[string]string) bool {
-	spec := cr.GetForProvider()
+// Mutates the spec pointer directly; callers must call cr.SetForProvider(*spec)
+// afterwards to persist the changes in both cluster and namespaced scopes.
+func lateInitialize(spec *clusternative.TopicRAWParameters, attrs map[string]string) bool {
 	changed := false
 
 	if v, ok := lateInitStringVal(spec.TracingConfig, attrs, "TracingConfig"); ok {
-		cr.SetForProviderTracingConfig(v)
+		spec.TracingConfig = v
 		changed = true
 	}
 	if v, ok := lateInitStringVal(spec.FifoThroughputScope, attrs, "FifoThroughputScope"); ok {
-		cr.SetForProviderFifoThroughputScope(v)
+		spec.FifoThroughputScope = v
 		changed = true
 	}
 	if v, ok := lateInitSignatureVersion(spec.SignatureVersion, attrs); ok {
-		cr.SetForProviderSignatureVersion(v)
+		spec.SignatureVersion = v
 		changed = true
 	}
 

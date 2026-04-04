@@ -303,6 +303,12 @@ func (t *TopicSubscriptionRAW) GetForProvider() *TopicSubscriptionRAWParameters 
 	return &t.Spec.ForProvider
 }
 
+// SetForProvider sets spec.forProvider to the given parameters.
+// Required by the TopicSubscriptionCR interface for late-initialization write-back.
+func (t *TopicSubscriptionRAW) SetForProvider(p TopicSubscriptionRAWParameters) {
+	t.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (t *TopicSubscriptionRAW) GetInitProvider() *TopicSubscriptionRAWInitParameters {
 	return &t.Spec.InitProvider
