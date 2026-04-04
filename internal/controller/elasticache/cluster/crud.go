@@ -528,6 +528,51 @@ func setAtProviderFromCluster(cr ClusterCR, cc ectypes.CacheCluster, tags []ecty
 		o.LogDeliveryConfiguration = logConfigs
 	}
 
+	// MaintenanceWindow from PreferredMaintenanceWindow.
+	o.MaintenanceWindow = cc.PreferredMaintenanceWindow
+
+	// SnapshotRetentionLimit: *int32 → *float64.
+	if cc.SnapshotRetentionLimit != nil {
+		f := float64(*cc.SnapshotRetentionLimit)
+		o.SnapshotRetentionLimit = &f
+	}
+
+	// SnapshotWindow.
+	o.SnapshotWindow = cc.SnapshotWindow
+
+	// TransitEncryptionEnabled.
+	o.TransitEncryptionEnabled = cc.TransitEncryptionEnabled
+
+	// AvailabilityZone from PreferredAvailabilityZone.
+	o.AvailabilityZone = cc.PreferredAvailabilityZone
+
+	// AutoMinorVersionUpgrade: *bool → *string ("true"/"false").
+	if cc.AutoMinorVersionUpgrade != nil {
+		s := strconv.FormatBool(*cc.AutoMinorVersionUpgrade)
+		o.AutoMinorVersionUpgrade = &s
+	}
+
+	// Port / ClusterAddress / ConfigurationEndpoint.
+	// For Memcached, ConfigurationEndpoint is set at the cluster level and
+	// contains the cluster's address and port.
+	// For Redis/Valkey, ConfigurationEndpoint is nil; port comes from CacheNodes[0].
+	if cc.ConfigurationEndpoint != nil {
+		o.ClusterAddress = cc.ConfigurationEndpoint.Address
+		if cc.ConfigurationEndpoint.Port != nil {
+			f := float64(*cc.ConfigurationEndpoint.Port)
+			o.Port = &f
+		}
+		// ConfigurationEndpoint atProvider field is "address:port" (TF parity).
+		if cc.ConfigurationEndpoint.Address != nil && cc.ConfigurationEndpoint.Port != nil {
+			ep := *cc.ConfigurationEndpoint.Address + ":" + strconv.Itoa(int(*cc.ConfigurationEndpoint.Port))
+			o.ConfigurationEndpoint = &ep
+		}
+	} else if len(cc.CacheNodes) > 0 && cc.CacheNodes[0].Endpoint != nil && cc.CacheNodes[0].Endpoint.Port != nil {
+		// Redis/Valkey: top-level Port from the first node's endpoint.
+		f := float64(*cc.CacheNodes[0].Endpoint.Port)
+		o.Port = &f
+	}
+
 	cr.SetAtProvider(o)
 }
 

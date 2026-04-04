@@ -1146,6 +1146,158 @@ func TestIsUpToDate_LogDeliveryConfiguration_Same(t *testing.T) {
 	}
 }
 
+// ── setAtProviderFromCluster observation field tests ──────────────────────────
+
+// TestSetAtProvider_ObservationFields_Redis verifies that all observation fields
+// (Port, MaintenanceWindow, SnapshotRetentionLimit, SnapshotWindow,
+// TransitEncryptionEnabled, AvailabilityZone, AutoMinorVersionUpgrade) are
+// populated correctly for a Redis cluster where ConfigurationEndpoint is nil
+// and Port comes from CacheNodes[0].Endpoint.Port.
+func TestSetAtProvider_ObservationFields_Redis(t *testing.T) {
+	cr := newTestCR("my-redis", testClusterID)
+
+	cc := ectypes.CacheCluster{
+		CacheClusterId:             aws.String(testClusterID),
+		ARN:                        aws.String(testClusterARN),
+		CacheClusterStatus:         aws.String("available"),
+		Engine:                     aws.String("redis"),
+		PreferredMaintenanceWindow: aws.String("sun:05:00-sun:06:00"),
+		SnapshotRetentionLimit:     aws.Int32(7),
+		SnapshotWindow:             aws.String("03:00-04:00"),
+		TransitEncryptionEnabled:   aws.Bool(true),
+		PreferredAvailabilityZone:  aws.String("us-east-1a"),
+		AutoMinorVersionUpgrade:    aws.Bool(true),
+		CacheNodes: []ectypes.CacheNode{
+			{
+				Endpoint: &ectypes.Endpoint{
+					Address: aws.String("my-cluster.abc.0001.use1.cache.amazonaws.com"),
+					Port:    aws.Int32(6379),
+				},
+			},
+		},
+	}
+
+	setAtProviderFromCluster(cr, cc, nil)
+	obs := cr.GetAtProvider()
+
+	// Port from CacheNodes[0].Endpoint.Port for Redis.
+	if obs.Port == nil || *obs.Port != 6379 {
+		t.Errorf("expected Port=6379, got %v", obs.Port)
+	}
+	// MaintenanceWindow.
+	if obs.MaintenanceWindow == nil || *obs.MaintenanceWindow != "sun:05:00-sun:06:00" {
+		t.Errorf("expected MaintenanceWindow='sun:05:00-sun:06:00', got %v", obs.MaintenanceWindow)
+	}
+	// SnapshotRetentionLimit: *int32(7) → *float64(7).
+	if obs.SnapshotRetentionLimit == nil || *obs.SnapshotRetentionLimit != 7.0 {
+		t.Errorf("expected SnapshotRetentionLimit=7, got %v", obs.SnapshotRetentionLimit)
+	}
+	// SnapshotWindow.
+	if obs.SnapshotWindow == nil || *obs.SnapshotWindow != "03:00-04:00" {
+		t.Errorf("expected SnapshotWindow='03:00-04:00', got %v", obs.SnapshotWindow)
+	}
+	// TransitEncryptionEnabled.
+	if obs.TransitEncryptionEnabled == nil || !*obs.TransitEncryptionEnabled {
+		t.Errorf("expected TransitEncryptionEnabled=true, got %v", obs.TransitEncryptionEnabled)
+	}
+	// AvailabilityZone from PreferredAvailabilityZone.
+	if obs.AvailabilityZone == nil || *obs.AvailabilityZone != "us-east-1a" {
+		t.Errorf("expected AvailabilityZone='us-east-1a', got %v", obs.AvailabilityZone)
+	}
+	// AutoMinorVersionUpgrade: *bool(true) → *string("true").
+	if obs.AutoMinorVersionUpgrade == nil || *obs.AutoMinorVersionUpgrade != "true" {
+		t.Errorf("expected AutoMinorVersionUpgrade='true', got %v", obs.AutoMinorVersionUpgrade)
+	}
+	// ClusterAddress must NOT be set for Redis (ConfigurationEndpoint is nil).
+	if obs.ClusterAddress != nil {
+		t.Errorf("expected ClusterAddress=nil for Redis, got %v", obs.ClusterAddress)
+	}
+	// ConfigurationEndpoint must NOT be set for Redis.
+	if obs.ConfigurationEndpoint != nil {
+		t.Errorf("expected ConfigurationEndpoint=nil for Redis, got %v", obs.ConfigurationEndpoint)
+	}
+}
+
+// TestSetAtProvider_ObservationFields_Memcached verifies that Port, ClusterAddress,
+// and ConfigurationEndpoint are set correctly from ConfigurationEndpoint for a
+// Memcached cluster, plus AutoMinorVersionUpgrade=false → "false".
+func TestSetAtProvider_ObservationFields_Memcached(t *testing.T) {
+	cr := newTestCR("my-memcached", "my-memcached")
+	cr.Spec.ForProvider.Engine = aws.String("memcached")
+
+	cc := ectypes.CacheCluster{
+		CacheClusterId:     aws.String("my-memcached"),
+		ARN:                aws.String(testClusterARN),
+		CacheClusterStatus: aws.String("available"),
+		Engine:             aws.String("memcached"),
+		ConfigurationEndpoint: &ectypes.Endpoint{
+			Address: aws.String("my-cluster.cfg.usw2.cache.amazonaws.com"),
+			Port:    aws.Int32(11211),
+		},
+		PreferredMaintenanceWindow: aws.String("mon:02:00-mon:03:00"),
+		AutoMinorVersionUpgrade:    aws.Bool(false),
+	}
+
+	setAtProviderFromCluster(cr, cc, nil)
+	obs := cr.GetAtProvider()
+
+	// Port from ConfigurationEndpoint.Port for Memcached.
+	if obs.Port == nil || *obs.Port != 11211 {
+		t.Errorf("expected Port=11211, got %v", obs.Port)
+	}
+	// ClusterAddress from ConfigurationEndpoint.Address.
+	if obs.ClusterAddress == nil || *obs.ClusterAddress != "my-cluster.cfg.usw2.cache.amazonaws.com" {
+		t.Errorf("expected ClusterAddress='my-cluster.cfg.usw2.cache.amazonaws.com', got %v", obs.ClusterAddress)
+	}
+	// ConfigurationEndpoint in "address:port" format.
+	want := "my-cluster.cfg.usw2.cache.amazonaws.com:11211"
+	if obs.ConfigurationEndpoint == nil || *obs.ConfigurationEndpoint != want {
+		t.Errorf("expected ConfigurationEndpoint=%q, got %v", want, obs.ConfigurationEndpoint)
+	}
+	// MaintenanceWindow.
+	if obs.MaintenanceWindow == nil || *obs.MaintenanceWindow != "mon:02:00-mon:03:00" {
+		t.Errorf("expected MaintenanceWindow='mon:02:00-mon:03:00', got %v", obs.MaintenanceWindow)
+	}
+	// AutoMinorVersionUpgrade: *bool(false) → *string("false").
+	if obs.AutoMinorVersionUpgrade == nil || *obs.AutoMinorVersionUpgrade != "false" {
+		t.Errorf("expected AutoMinorVersionUpgrade='false', got %v", obs.AutoMinorVersionUpgrade)
+	}
+}
+
+// TestSetAtProvider_NilOptionalFields verifies that nil optional fields in the
+// AWS response (AutoMinorVersionUpgrade, TransitEncryptionEnabled, etc.) result
+// in nil observation fields — no nil-pointer panics.
+func TestSetAtProvider_NilOptionalFields(t *testing.T) {
+	cr := newTestCR("my-cluster", testClusterID)
+
+	cc := ectypes.CacheCluster{
+		CacheClusterId:     aws.String(testClusterID),
+		ARN:                aws.String(testClusterARN),
+		CacheClusterStatus: aws.String("available"),
+		// All optional fields nil.
+	}
+
+	// Must not panic.
+	setAtProviderFromCluster(cr, cc, nil)
+	obs := cr.GetAtProvider()
+
+	if obs.Port != nil {
+		t.Errorf("expected nil Port when CacheNodes is empty and ConfigurationEndpoint is nil")
+	}
+	if obs.AutoMinorVersionUpgrade != nil {
+		t.Errorf("expected nil AutoMinorVersionUpgrade when AWS field is nil")
+	}
+	if obs.TransitEncryptionEnabled != nil {
+		t.Errorf("expected nil TransitEncryptionEnabled when AWS field is nil")
+	}
+	if obs.SnapshotRetentionLimit != nil {
+		t.Errorf("expected nil SnapshotRetentionLimit when AWS field is nil")
+	}
+	if obs.AvailabilityZone != nil {
+		t.Errorf("expected nil AvailabilityZone when AWS field is nil")
+	}
+}
+
 // TestObserve_NilGuard_ConfigEndpoint verifies nil-safety when ConfigurationEndpoint
 // is nil (as it is for Redis/Valkey).
 func TestObserve_NilGuard_ConfigEndpoint(t *testing.T) {
