@@ -58,6 +58,7 @@ type ElastiCacheServerlessCacheClient interface {
 type ServerlessCacheCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.ServerlessCacheRAWParameters
+	SetForProvider(clusternative.ServerlessCacheRAWParameters)
 	GetInitProvider() *clusternative.ServerlessCacheRAWInitParameters
 	GetAtProvider() clusternative.ServerlessCacheRAWObservation
 	SetAtProvider(clusternative.ServerlessCacheRAWObservation)
@@ -189,6 +190,7 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ServerlessCacheCR) (man
 	lateInit = nativehelper.LateInitializeStringPtr(&spec.MajorEngineVersion, sc.MajorEngineVersion) || lateInit
 	lateInit = nativehelper.LateInitializeStringPtr(&spec.DailySnapshotTime, sc.DailySnapshotTime) || lateInit
 	if lateInit {
+		cr.SetForProvider(*spec)
 		connDetails := buildConnectionDetails(sc)
 		return managed.ExternalObservation{
 			ResourceExists:          true,

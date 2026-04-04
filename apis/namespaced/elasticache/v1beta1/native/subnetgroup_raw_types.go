@@ -151,6 +151,16 @@ func (s *SubnetGroupRAW) GetForProvider() *clusternative.SubnetGroupRAWParameter
 	}
 }
 
+// SetForProvider writes back a cluster-scoped SubnetGroupRAWParameters to this
+// namespaced resource's ForProvider fields. This is the symmetric inverse of
+// GetForProvider, required so that late-initialized fields are persisted.
+func (s *SubnetGroupRAW) SetForProvider(p clusternative.SubnetGroupRAWParameters) {
+	s.Spec.ForProvider.Description = p.Description
+	s.Spec.ForProvider.Region = p.Region
+	s.Spec.ForProvider.SubnetIds = p.SubnetIds
+	s.Spec.ForProvider.Tags = p.Tags
+}
+
 // GetInitProvider returns a cluster-scoped SubnetGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (s *SubnetGroupRAW) GetInitProvider() *clusternative.SubnetGroupRAWInitParameters {

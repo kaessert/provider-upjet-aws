@@ -143,6 +143,17 @@ func (p *ParameterGroupRAW) GetForProvider() *clusternative.ParameterGroupRAWPar
 	}
 }
 
+// SetForProvider writes back a cluster-scoped ParameterGroupRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider.
+func (p *ParameterGroupRAW) SetForProvider(pp clusternative.ParameterGroupRAWParameters) {
+	p.Spec.ForProvider.Description = pp.Description
+	p.Spec.ForProvider.Family = pp.Family
+	p.Spec.ForProvider.Name = pp.Name
+	p.Spec.ForProvider.Parameter = pp.Parameter
+	p.Spec.ForProvider.Region = pp.Region
+	p.Spec.ForProvider.Tags = pp.Tags
+}
+
 // GetInitProvider returns a cluster-scoped ParameterGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (p *ParameterGroupRAW) GetInitProvider() *clusternative.ParameterGroupRAWInitParameters {

@@ -44,6 +44,7 @@ type ElastiCacheGRGClient interface {
 type GlobalReplicationGroupCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.GlobalReplicationGroupRAWParameters
+	SetForProvider(clusternative.GlobalReplicationGroupRAWParameters)
 	GetInitProvider() *clusternative.GlobalReplicationGroupRAWInitParameters
 	GetAtProvider() clusternative.GlobalReplicationGroupRAWObservation
 	SetAtProvider(clusternative.GlobalReplicationGroupRAWObservation)

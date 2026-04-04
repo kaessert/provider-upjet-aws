@@ -197,6 +197,21 @@ func (g *GlobalReplicationGroupRAW) GetForProvider() *clusternative.GlobalReplic
 	}
 }
 
+// SetForProvider writes back a cluster-scoped GlobalReplicationGroupRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider.
+func (g *GlobalReplicationGroupRAW) SetForProvider(p clusternative.GlobalReplicationGroupRAWParameters) {
+	g.Spec.ForProvider.AutomaticFailoverEnabled = p.AutomaticFailoverEnabled
+	g.Spec.ForProvider.CacheNodeType = p.CacheNodeType
+	g.Spec.ForProvider.Engine = p.Engine
+	g.Spec.ForProvider.EngineVersion = p.EngineVersion
+	g.Spec.ForProvider.GlobalReplicationGroupDescription = p.GlobalReplicationGroupDescription
+	g.Spec.ForProvider.GlobalReplicationGroupIDSuffix = p.GlobalReplicationGroupIDSuffix
+	g.Spec.ForProvider.NumNodeGroups = p.NumNodeGroups
+	g.Spec.ForProvider.ParameterGroupName = p.ParameterGroupName
+	g.Spec.ForProvider.PrimaryReplicationGroupID = p.PrimaryReplicationGroupID
+	g.Spec.ForProvider.Region = p.Region
+}
+
 // GetInitProvider returns a cluster-scoped GlobalReplicationGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (g *GlobalReplicationGroupRAW) GetInitProvider() *clusternative.GlobalReplicationGroupRAWInitParameters {

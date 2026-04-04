@@ -518,6 +518,9 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (c *ClusterRAW) GetForProvider() *ClusterRAWParameters { return &c.Spec.ForProvider }
 
+// SetForProvider writes back the ForProvider parameters.
+func (c *ClusterRAW) SetForProvider(p ClusterRAWParameters) { c.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (c *ClusterRAW) GetInitProvider() *ClusterRAWInitParameters { return &c.Spec.InitProvider }
 

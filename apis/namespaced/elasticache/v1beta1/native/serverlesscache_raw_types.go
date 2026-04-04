@@ -274,6 +274,26 @@ func (s *ServerlessCacheRAW) GetForProvider() *clusternative.ServerlessCacheRAWP
 	}
 }
 
+// SetForProvider writes back a cluster-scoped ServerlessCacheRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider,
+// required so that late-initialized fields (MajorEngineVersion, DailySnapshotTime)
+// are persisted.
+func (s *ServerlessCacheRAW) SetForProvider(p clusternative.ServerlessCacheRAWParameters) {
+	s.Spec.ForProvider.CacheUsageLimits = p.CacheUsageLimits
+	s.Spec.ForProvider.DailySnapshotTime = p.DailySnapshotTime
+	s.Spec.ForProvider.Description = p.Description
+	s.Spec.ForProvider.Engine = p.Engine
+	s.Spec.ForProvider.KMSKeyID = p.KMSKeyID
+	s.Spec.ForProvider.MajorEngineVersion = p.MajorEngineVersion
+	s.Spec.ForProvider.Region = p.Region
+	s.Spec.ForProvider.SecurityGroupIds = p.SecurityGroupIds
+	s.Spec.ForProvider.SnapshotArnsToRestore = p.SnapshotArnsToRestore
+	s.Spec.ForProvider.SnapshotRetentionLimit = p.SnapshotRetentionLimit
+	s.Spec.ForProvider.SubnetIds = p.SubnetIds
+	s.Spec.ForProvider.Tags = p.Tags
+	s.Spec.ForProvider.UserGroupID = p.UserGroupID
+}
+
 // GetInitProvider returns a cluster-scoped ServerlessCacheRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (s *ServerlessCacheRAW) GetInitProvider() *clusternative.ServerlessCacheRAWInitParameters {

@@ -484,6 +484,77 @@ func (r *ReplicationGroupRAW) GetForProvider() *clusterv2native.ReplicationGroup
 	}
 }
 
+// SetForProvider writes back a cluster-scoped ReplicationGroupRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider,
+// required so that late-initialized fields (NodeType, SnapshotWindow,
+// SnapshotRetentionLimit, ClusterMode) are persisted.
+func (r *ReplicationGroupRAW) SetForProvider(p clusterv2native.ReplicationGroupRAWParameters) {
+	r.Spec.ForProvider.ApplyImmediately = p.ApplyImmediately
+	r.Spec.ForProvider.AtRestEncryptionEnabled = p.AtRestEncryptionEnabled
+	r.Spec.ForProvider.AuthTokenSecretRef = p.AuthTokenSecretRef
+	r.Spec.ForProvider.AuthTokenUpdateStrategy = p.AuthTokenUpdateStrategy
+	r.Spec.ForProvider.AutoMinorVersionUpgrade = p.AutoMinorVersionUpgrade
+	r.Spec.ForProvider.AutoGenerateAuthToken = p.AutoGenerateAuthToken
+	r.Spec.ForProvider.AutomaticFailoverEnabled = p.AutomaticFailoverEnabled
+	r.Spec.ForProvider.ClusterMode = p.ClusterMode
+	r.Spec.ForProvider.DataTieringEnabled = p.DataTieringEnabled
+	r.Spec.ForProvider.Description = p.Description
+	r.Spec.ForProvider.Engine = p.Engine
+	r.Spec.ForProvider.EngineVersion = p.EngineVersion
+	r.Spec.ForProvider.FinalSnapshotIdentifier = p.FinalSnapshotIdentifier
+	r.Spec.ForProvider.GlobalReplicationGroupID = p.GlobalReplicationGroupID
+	r.Spec.ForProvider.IPDiscovery = p.IPDiscovery
+	r.Spec.ForProvider.KMSKeyID = p.KMSKeyID
+	r.Spec.ForProvider.MaintenanceWindow = p.MaintenanceWindow
+	r.Spec.ForProvider.MultiAzEnabled = p.MultiAzEnabled
+	r.Spec.ForProvider.NetworkType = p.NetworkType
+	r.Spec.ForProvider.NodeType = p.NodeType
+	r.Spec.ForProvider.NotificationTopicArn = p.NotificationTopicArn
+	r.Spec.ForProvider.NumCacheClusters = p.NumCacheClusters
+	r.Spec.ForProvider.NumNodeGroups = p.NumNodeGroups
+	r.Spec.ForProvider.ParameterGroupName = p.ParameterGroupName
+	r.Spec.ForProvider.Port = p.Port
+	r.Spec.ForProvider.PreferredCacheClusterAzs = p.PreferredCacheClusterAzs
+	r.Spec.ForProvider.ReplicasPerNodeGroup = p.ReplicasPerNodeGroup
+	r.Spec.ForProvider.Region = p.Region
+	r.Spec.ForProvider.SecurityGroupIds = p.SecurityGroupIds
+	r.Spec.ForProvider.SecurityGroupNames = p.SecurityGroupNames
+	r.Spec.ForProvider.SnapshotArns = p.SnapshotArns
+	r.Spec.ForProvider.SnapshotName = p.SnapshotName
+	r.Spec.ForProvider.SnapshotRetentionLimit = p.SnapshotRetentionLimit
+	r.Spec.ForProvider.SnapshotWindow = p.SnapshotWindow
+	r.Spec.ForProvider.SubnetGroupName = p.SubnetGroupName
+	r.Spec.ForProvider.Tags = p.Tags
+	r.Spec.ForProvider.TransitEncryptionEnabled = p.TransitEncryptionEnabled
+	r.Spec.ForProvider.TransitEncryptionMode = p.TransitEncryptionMode
+	r.Spec.ForProvider.UserGroupIds = p.UserGroupIds
+	// Convert LogDeliveryConfiguration back from cluster-scoped type to namespaced type.
+	logDelivery := make([]RGLogDeliveryConfigurationRAWParameters, 0, len(p.LogDeliveryConfiguration))
+	for _, ld := range p.LogDeliveryConfiguration {
+		logDelivery = append(logDelivery, RGLogDeliveryConfigurationRAWParameters{
+			Destination:     ld.Destination,
+			DestinationType: ld.DestinationType,
+			LogFormat:       ld.LogFormat,
+			LogType:         ld.LogType,
+		})
+	}
+	r.Spec.ForProvider.LogDeliveryConfiguration = logDelivery
+	// Convert NodeGroupConfiguration back from cluster-scoped type to namespaced type.
+	nodeGroupCfg := make([]NodeGroupConfigurationRAWParameters, 0, len(p.NodeGroupConfiguration))
+	for _, ng := range p.NodeGroupConfiguration {
+		nodeGroupCfg = append(nodeGroupCfg, NodeGroupConfigurationRAWParameters{
+			NodeGroupID:              ng.NodeGroupID,
+			PrimaryAvailabilityZone:  ng.PrimaryAvailabilityZone,
+			PrimaryOutpostArn:        ng.PrimaryOutpostArn,
+			ReplicaAvailabilityZones: ng.ReplicaAvailabilityZones,
+			ReplicaCount:             ng.ReplicaCount,
+			ReplicaOutpostArns:       ng.ReplicaOutpostArns,
+			Slots:                    ng.Slots,
+		})
+	}
+	r.Spec.ForProvider.NodeGroupConfiguration = nodeGroupCfg
+}
+
 // GetInitProvider returns a cluster-scoped ReplicationGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (r *ReplicationGroupRAW) GetInitProvider() *clusterv2native.ReplicationGroupRAWInitParameters {

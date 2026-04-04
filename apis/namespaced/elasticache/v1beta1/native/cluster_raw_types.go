@@ -416,6 +416,41 @@ func (c *ClusterRAW) GetForProvider() *clusternative.ClusterRAWParameters {
 	}
 }
 
+// SetForProvider writes back a cluster-scoped ClusterRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider,
+// required so that late-initialized fields are persisted.
+func (c *ClusterRAW) SetForProvider(p clusternative.ClusterRAWParameters) {
+	c.Spec.ForProvider.ApplyImmediately = p.ApplyImmediately
+	c.Spec.ForProvider.AutoMinorVersionUpgrade = p.AutoMinorVersionUpgrade
+	c.Spec.ForProvider.AvailabilityZone = p.AvailabilityZone
+	c.Spec.ForProvider.AzMode = p.AzMode
+	c.Spec.ForProvider.Engine = p.Engine
+	c.Spec.ForProvider.EngineVersion = p.EngineVersion
+	c.Spec.ForProvider.FinalSnapshotIdentifier = p.FinalSnapshotIdentifier
+	c.Spec.ForProvider.IPDiscovery = p.IPDiscovery
+	c.Spec.ForProvider.LogDeliveryConfiguration = p.LogDeliveryConfiguration
+	c.Spec.ForProvider.MaintenanceWindow = p.MaintenanceWindow
+	c.Spec.ForProvider.NetworkType = p.NetworkType
+	c.Spec.ForProvider.NodeType = p.NodeType
+	c.Spec.ForProvider.NotificationTopicArn = p.NotificationTopicArn
+	c.Spec.ForProvider.NumCacheNodes = p.NumCacheNodes
+	c.Spec.ForProvider.OutpostMode = p.OutpostMode
+	c.Spec.ForProvider.ParameterGroupName = p.ParameterGroupName
+	c.Spec.ForProvider.Port = p.Port
+	c.Spec.ForProvider.PreferredAvailabilityZones = p.PreferredAvailabilityZones
+	c.Spec.ForProvider.PreferredOutpostArn = p.PreferredOutpostArn
+	c.Spec.ForProvider.Region = p.Region
+	c.Spec.ForProvider.ReplicationGroupID = p.ReplicationGroupID
+	c.Spec.ForProvider.SecurityGroupIds = p.SecurityGroupIds
+	c.Spec.ForProvider.SnapshotArns = p.SnapshotArns
+	c.Spec.ForProvider.SnapshotName = p.SnapshotName
+	c.Spec.ForProvider.SnapshotRetentionLimit = p.SnapshotRetentionLimit
+	c.Spec.ForProvider.SnapshotWindow = p.SnapshotWindow
+	c.Spec.ForProvider.SubnetGroupName = p.SubnetGroupName
+	c.Spec.ForProvider.Tags = p.Tags
+	c.Spec.ForProvider.TransitEncryptionEnabled = p.TransitEncryptionEnabled
+}
+
 // GetInitProvider returns a cluster-scoped ClusterRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (c *ClusterRAW) GetInitProvider() *clusternative.ClusterRAWInitParameters {

@@ -51,6 +51,7 @@ type ElastiCacheClusterClient interface {
 type ClusterCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.ClusterRAWParameters
+	SetForProvider(clusternative.ClusterRAWParameters)
 	GetInitProvider() *clusternative.ClusterRAWInitParameters
 	GetAtProvider() clusternative.ClusterRAWObservation
 	SetAtProvider(clusternative.ClusterRAWObservation)
@@ -137,7 +138,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ClusterCR) (managed.Ext
 	// The late-initialized values are AWS-assigned defaults already present in AWS.
 	// We copy them into spec for future isUpToDate comparisons but do NOT need to
 	// push them back to AWS. ResourceUpToDate=true prevents a spurious Update.
-	if lateInitializeCluster(cr.GetForProvider(), cc) {
+	spec := cr.GetForProvider()
+	if lateInitializeCluster(spec, cc) {
+		cr.SetForProvider(*spec)
 		connDetails := buildConnectionDetails(cc)
 		return managed.ExternalObservation{
 			ResourceExists:          true,

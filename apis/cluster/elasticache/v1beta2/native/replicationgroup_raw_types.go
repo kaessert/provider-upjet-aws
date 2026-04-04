@@ -485,6 +485,11 @@ func (r *ReplicationGroupRAW) GetForProvider() *ReplicationGroupRAWParameters {
 	return &r.Spec.ForProvider
 }
 
+// SetForProvider writes back the ForProvider parameters.
+func (r *ReplicationGroupRAW) SetForProvider(p ReplicationGroupRAWParameters) {
+	r.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (r *ReplicationGroupRAW) GetInitProvider() *ReplicationGroupRAWInitParameters {
 	return &r.Spec.InitProvider

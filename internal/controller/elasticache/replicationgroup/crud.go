@@ -64,6 +64,7 @@ type ElastiCacheRGClient interface {
 type ReplicationGroupCR interface {
 	xpresource.Managed
 	GetForProvider() *clusternativev2.ReplicationGroupRAWParameters
+	SetForProvider(clusternativev2.ReplicationGroupRAWParameters)
 	GetInitProvider() *clusternativev2.ReplicationGroupRAWInitParameters
 	GetAtProvider() clusternativev2.ReplicationGroupRAWObservation
 	SetAtProvider(clusternativev2.ReplicationGroupRAWObservation)
@@ -162,7 +163,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr ReplicationGroupCR) (ma
 	// ClusterMode) are AWS-assigned defaults already present in AWS. We copy them into
 	// spec for future isUpToDate comparisons but do NOT need to push them back to AWS.
 	// ResourceUpToDate=true prevents a spurious Update triggered by the reconciler.
-	if lateInitializeRG(cr.GetForProvider(), rg) {
+	spec := cr.GetForProvider()
+	if lateInitializeRG(spec, rg) {
+		cr.SetForProvider(*spec)
 		connDetails := e.buildConnectionDetails(ctx, cr, rg)
 		return managed.ExternalObservation{
 			ResourceExists:          true,

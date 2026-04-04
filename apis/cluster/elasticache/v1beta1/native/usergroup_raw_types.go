@@ -160,6 +160,9 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (u *UserGroupRAW) GetForProvider() *UserGroupRAWParameters { return &u.Spec.ForProvider }
 
+// SetForProvider writes back the ForProvider parameters.
+func (u *UserGroupRAW) SetForProvider(p UserGroupRAWParameters) { u.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (u *UserGroupRAW) GetInitProvider() *UserGroupRAWInitParameters { return &u.Spec.InitProvider }
 

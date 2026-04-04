@@ -404,6 +404,11 @@ func (s *ServerlessCacheRAW) GetForProvider() *ServerlessCacheRAWParameters {
 	return &s.Spec.ForProvider
 }
 
+// SetForProvider writes back the ForProvider parameters.
+func (s *ServerlessCacheRAW) SetForProvider(p ServerlessCacheRAWParameters) {
+	s.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (s *ServerlessCacheRAW) GetInitProvider() *ServerlessCacheRAWInitParameters {
 	return &s.Spec.InitProvider

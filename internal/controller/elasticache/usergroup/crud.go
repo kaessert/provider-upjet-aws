@@ -50,6 +50,7 @@ type ElastiCacheUGClient interface {
 type UserGroupCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.UserGroupRAWParameters
+	SetForProvider(clusternative.UserGroupRAWParameters)
 	GetInitProvider() *clusternative.UserGroupRAWInitParameters
 	GetAtProvider() clusternative.UserGroupRAWObservation
 	SetAtProvider(clusternative.UserGroupRAWObservation)

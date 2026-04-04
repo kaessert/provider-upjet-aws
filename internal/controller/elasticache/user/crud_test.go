@@ -769,3 +769,74 @@ func TestIsUpToDate_EngineCase_NoLoop(t *testing.T) {
 		t.Error("isUpToDate should return true when spec Engine 'REDIS' matches AWS 'redis' case-insensitively")
 	}
 }
+
+// ── SetForProvider tests ───────────────────────────────────────────────────────
+
+// copyUserCR wraps a UserRAW to simulate namespaced behavior where
+// GetForProvider returns a copy rather than a direct pointer.
+// Verifies that Observe calls SetForProvider so late-init persists.
+type copyUserCR struct {
+	*clusternativev2.UserRAW
+	setForProviderCallCount int
+}
+
+func (c *copyUserCR) GetForProvider() *clusternativev2.UserRAWParameters {
+	// Return a copy — simulates namespaced type behavior.
+	p := c.Spec.ForProvider
+	return &p
+}
+
+func (c *copyUserCR) SetForProvider(p clusternativev2.UserRAWParameters) {
+	c.setForProviderCallCount++
+	c.Spec.ForProvider = p
+}
+
+// TestObserve_LateInit_SetForProvider_Called verifies that when late-init fires,
+// SetForProvider is called and the spec is updated — even when GetForProvider
+// returns a copy (as namespaced types do).
+func TestObserve_LateInit_SetForProvider_Called(t *testing.T) {
+	inner := newTestCR("my-user", testUserID)
+	inner.Spec.ForProvider.Engine = nil // trigger late-init
+
+	cr := &copyUserCR{UserRAW: inner}
+
+	e := &ExternalClient{Client: &mockUserClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeUsersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeUsersOutput, error) {
+			return &awselasticache.DescribeUsersOutput{
+				Users: []ectypes.User{
+					{
+						UserId:       aws.String(testUserID),
+						ARN:          aws.String(testUserARN),
+						Status:       aws.String("active"),
+						Engine:       aws.String(testEngine),
+						AccessString: aws.String("on ~* +@all"),
+						UserName:     aws.String("testuser"),
+					},
+				},
+			}, nil
+		},
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Late-init must fire.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true")
+	}
+
+	// SetForProvider must have been called.
+	if cr.setForProviderCallCount == 0 {
+		t.Error("expected SetForProvider to be called when late-init fires")
+	}
+
+	// The spec field must be updated (not discarded as a copy).
+	if cr.Spec.ForProvider.Engine == nil {
+		t.Fatal("expected spec.Engine to be populated after SetForProvider was called")
+	}
+	if got, want := *cr.Spec.ForProvider.Engine, testEngine; got != want {
+		t.Errorf("spec.Engine: got %q, want %q", got, want)
+	}
+}

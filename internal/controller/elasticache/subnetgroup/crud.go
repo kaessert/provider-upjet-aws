@@ -51,6 +51,7 @@ type ElastiCacheSGClient interface {
 type SubnetGroupCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.SubnetGroupRAWParameters
+	SetForProvider(clusternative.SubnetGroupRAWParameters)
 	GetInitProvider() *clusternative.SubnetGroupRAWInitParameters
 	GetAtProvider() clusternative.SubnetGroupRAWObservation
 	SetAtProvider(clusternative.SubnetGroupRAWObservation)
@@ -114,21 +115,18 @@ func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed
 	// Late-initialize Description from the AWS response.
 	// IMPORTANT: Skip LateInit when AWS description is whitespace-only.
 	// AWS stores an empty-string description as a single space (" "). If we
-	// late-initialize a nil spec.Description with " ", the change is lost for
-	// namespaced types whose GetForProvider() returns a copy rather than a
-	// pointer to the actual spec field. This causes an infinite reconciliation
-	// loop because LateInitializeStringPtr returns true every cycle (spec.Description
-	// is always nil since the copy modification is discarded), and Crossplane calls
-	// Update, which AWS rejects with "No modifications were requested".
-	//
-	// Whitespace-only descriptions are semantically empty and already handled by
-	// the TrimSpace comparison in isUpToDate, so skipping late-init here is safe.
-	// For non-empty, meaningful descriptions we still late-initialize.
+	// late-initialize a nil spec.Description with " ", the change would be lost for
+	// namespaced types whose GetForProvider() returns a copy rather than a pointer
+	// to the actual spec field — solved by SetForProvider, but whitespace descriptions
+	// are semantically empty and already handled by the TrimSpace comparison in
+	// isUpToDate, so we skip late-init for them regardless.
 	awsDescTrimmed := strings.TrimSpace(aws.ToString(sg.CacheSubnetGroupDescription))
 	if awsDescTrimmed != "" && cr.GetForProvider().Description == nil {
 		// AWS has a non-empty description but spec doesn't — late-init it.
 		// ResourceUpToDate=true: AWS already has the correct value; no Update needed.
-		if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Description, sg.CacheSubnetGroupDescription) {
+		spec := cr.GetForProvider()
+		if nativehelper.LateInitializeStringPtr(&spec.Description, sg.CacheSubnetGroupDescription) {
+			cr.SetForProvider(*spec)
 			return managed.ExternalObservation{
 				ResourceExists:          true,
 				ResourceUpToDate:        true,

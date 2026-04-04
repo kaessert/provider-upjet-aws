@@ -506,3 +506,65 @@ func TestObserve_LateInit_WhitespaceDescription(t *testing.T) {
 		t.Error("expected ResourceUpToDate=true: nil description and \" \" are equivalent after TrimSpace")
 	}
 }
+
+// ── SetForProvider tests ───────────────────────────────────────────────────────
+
+// copySubnetGroupCR wraps a SubnetGroupRAW to simulate namespaced behavior:
+// GetForProvider returns a COPY rather than a direct pointer to the spec field.
+// This verifies that Observe correctly calls SetForProvider to persist late-init.
+type copySubnetGroupCR struct {
+	*clusternative.SubnetGroupRAW
+	setForProviderCallCount int
+}
+
+func (c *copySubnetGroupCR) GetForProvider() *clusternative.SubnetGroupRAWParameters {
+	// Return a copy — simulates the namespaced type behavior.
+	p := c.Spec.ForProvider
+	return &p
+}
+
+func (c *copySubnetGroupCR) SetForProvider(p clusternative.SubnetGroupRAWParameters) {
+	c.setForProviderCallCount++
+	c.Spec.ForProvider = p
+}
+
+// TestObserve_LateInit_SetForProvider_Called verifies that when late-init fires,
+// SetForProvider is called and the spec field is actually persisted — even when
+// GetForProvider returns a copy (as namespaced types do).
+func TestObserve_LateInit_SetForProvider_Called(t *testing.T) {
+	inner := newTestCR("my-sg", testSGName)
+	inner.Spec.ForProvider.Description = nil // trigger late-init
+	inner.Spec.ForProvider.SubnetIds = []*string{aws.String(testSubnetID1)}
+
+	cr := &copySubnetGroupCR{SubnetGroupRAW: inner}
+
+	e := &ExternalClient{Client: &mockElastiCacheSGClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheSubnetGroupsInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheSubnetGroupsOutput, error) {
+			return subnetGroupResponse(testSGName, testSGARN, testDescription, []string{testSubnetID1}), nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Late-init must fire.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true")
+	}
+
+	// SetForProvider must have been called.
+	if cr.setForProviderCallCount == 0 {
+		t.Error("expected SetForProvider to be called when late-init fires")
+	}
+
+	// The spec field must be updated (not discarded as a copy).
+	if cr.Spec.ForProvider.Description == nil {
+		t.Fatal("expected spec.Description to be populated after SetForProvider was called")
+	}
+	if got, want := *cr.Spec.ForProvider.Description, testDescription; got != want {
+		t.Errorf("spec.Description: got %q, want %q", got, want)
+	}
+}

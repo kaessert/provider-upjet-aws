@@ -247,6 +247,11 @@ func (g *GlobalReplicationGroupRAW) GetForProvider() *GlobalReplicationGroupRAWP
 	return &g.Spec.ForProvider
 }
 
+// SetForProvider writes back the ForProvider parameters.
+func (g *GlobalReplicationGroupRAW) SetForProvider(p GlobalReplicationGroupRAWParameters) {
+	g.Spec.ForProvider = p
+}
+
 // GetInitProvider returns the InitProvider parameters.
 func (g *GlobalReplicationGroupRAW) GetInitProvider() *GlobalReplicationGroupRAWInitParameters {
 	return &g.Spec.InitProvider

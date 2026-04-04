@@ -55,6 +55,7 @@ type ElastiCacheUserClient interface {
 type UserCR interface {
 	resource.Managed
 	GetForProvider() *clusternativev2.UserRAWParameters
+	SetForProvider(clusternativev2.UserRAWParameters)
 	GetInitProvider() *clusternativev2.UserRAWInitParameters
 	GetAtProvider() clusternativev2.UserRAWObservation
 	SetAtProvider(clusternativev2.UserRAWObservation)
@@ -136,7 +137,9 @@ func (e *ExternalClient) Observe(ctx context.Context, cr UserCR) (managed.Extern
 	// Engine is set by AWS when a user is created — spec may omit it.
 	// AWS stores engine as lowercase ("redis"); we copy that to spec when nil.
 	// ResourceUpToDate=true: the AWS value is already correct; no Update needed.
-	if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Engine, u.Engine) {
+	spec := cr.GetForProvider()
+	if nativehelper.LateInitializeStringPtr(&spec.Engine, u.Engine) {
+		cr.SetForProvider(*spec)
 		return managed.ExternalObservation{
 			ResourceExists:          true,
 			ResourceUpToDate:        true,

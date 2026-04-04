@@ -53,6 +53,7 @@ type ElastiCachePGClient interface {
 type ParameterGroupCR interface {
 	resource.Managed
 	GetForProvider() *clusternative.ParameterGroupRAWParameters
+	SetForProvider(clusternative.ParameterGroupRAWParameters)
 	GetInitProvider() *clusternative.ParameterGroupRAWInitParameters
 	GetAtProvider() clusternative.ParameterGroupRAWObservation
 	SetAtProvider(clusternative.ParameterGroupRAWObservation)

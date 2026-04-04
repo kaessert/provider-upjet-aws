@@ -187,6 +187,28 @@ func (u *UserRAW) GetForProvider() *clusterv2native.UserRAWParameters {
 	}
 }
 
+// SetForProvider writes back a cluster-scoped UserRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider,
+// required so that late-initialized fields (Engine) are persisted.
+func (u *UserRAW) SetForProvider(p clusterv2native.UserRAWParameters) {
+	u.Spec.ForProvider.AccessString = p.AccessString
+	u.Spec.ForProvider.Engine = p.Engine
+	u.Spec.ForProvider.NoPasswordRequired = p.NoPasswordRequired
+	u.Spec.ForProvider.PasswordsSecretRef = p.PasswordsSecretRef
+	u.Spec.ForProvider.Region = p.Region
+	u.Spec.ForProvider.Tags = p.Tags
+	u.Spec.ForProvider.UserName = p.UserName
+	if p.AuthenticationMode != nil {
+		if u.Spec.ForProvider.AuthenticationMode == nil {
+			u.Spec.ForProvider.AuthenticationMode = &AuthenticationModeRAWParameters{}
+		}
+		u.Spec.ForProvider.AuthenticationMode.PasswordsSecretRef = p.AuthenticationMode.PasswordsSecretRef
+		u.Spec.ForProvider.AuthenticationMode.Type = p.AuthenticationMode.Type
+	} else {
+		u.Spec.ForProvider.AuthenticationMode = nil
+	}
+}
+
 // GetInitProvider returns a cluster-scoped UserRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (u *UserRAW) GetInitProvider() *clusterv2native.UserRAWInitParameters {

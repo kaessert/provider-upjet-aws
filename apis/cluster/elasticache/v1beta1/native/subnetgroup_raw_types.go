@@ -160,6 +160,9 @@ func init() {
 // GetForProvider returns the ForProvider parameters.
 func (s *SubnetGroupRAW) GetForProvider() *SubnetGroupRAWParameters { return &s.Spec.ForProvider }
 
+// SetForProvider writes back the ForProvider parameters.
+func (s *SubnetGroupRAW) SetForProvider(p SubnetGroupRAWParameters) { s.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (s *SubnetGroupRAW) GetInitProvider() *SubnetGroupRAWInitParameters {
 	return &s.Spec.InitProvider

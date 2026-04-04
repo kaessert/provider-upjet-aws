@@ -1371,3 +1371,75 @@ func TestObserve_LateInit_ResourceUpToDate_Cluster(t *testing.T) {
 		t.Error("expected ResourceUpToDate=true during late init — Update must NOT be triggered")
 	}
 }
+
+// ── SetForProvider tests ───────────────────────────────────────────────────────
+
+// copyClusterCR wraps a ClusterRAW to simulate namespaced behavior where
+// GetForProvider returns a copy rather than a direct pointer.
+// Verifies that Observe calls SetForProvider so late-init persists.
+type copyClusterCR struct {
+	*clusternative.ClusterRAW
+	setForProviderCallCount int
+}
+
+func (c *copyClusterCR) GetForProvider() *clusternative.ClusterRAWParameters {
+	// Return a copy — simulates namespaced type behavior.
+	p := c.Spec.ForProvider
+	return &p
+}
+
+func (c *copyClusterCR) SetForProvider(p clusternative.ClusterRAWParameters) {
+	c.setForProviderCallCount++
+	c.Spec.ForProvider = p
+}
+
+// TestObserve_LateInit_SetForProvider_Called verifies that when late-init fires,
+// SetForProvider is called and the spec is updated — even when GetForProvider
+// returns a copy (as namespaced types do).
+func TestObserve_LateInit_SetForProvider_Called(t *testing.T) {
+	inner := newTestCR("my-cluster", testClusterID)
+	inner.Spec.ForProvider.NodeType = nil // trigger late-init
+
+	cr := &copyClusterCR{ClusterRAW: inner}
+
+	e := &ExternalClient{Client: &mockClusterClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheClustersInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheClustersOutput, error) {
+			return &awselasticache.DescribeCacheClustersOutput{
+				CacheClusters: []ectypes.CacheCluster{
+					{
+						CacheClusterId:     aws.String(testClusterID),
+						ARN:                aws.String(testClusterARN),
+						CacheClusterStatus: aws.String("available"),
+						Engine:             aws.String("redis"),
+						CacheNodeType:      aws.String("cache.r7g.medium"),
+						NumCacheNodes:      aws.Int32(1),
+					},
+				},
+			}, nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Late-init must fire.
+	if !obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=true")
+	}
+
+	// SetForProvider must have been called.
+	if cr.setForProviderCallCount == 0 {
+		t.Error("expected SetForProvider to be called when late-init fires")
+	}
+
+	// The spec field must be updated (not discarded as a copy).
+	if cr.Spec.ForProvider.NodeType == nil {
+		t.Fatal("expected spec.NodeType to be populated after SetForProvider was called")
+	}
+	if got, want := *cr.Spec.ForProvider.NodeType, "cache.r7g.medium"; got != want {
+		t.Errorf("spec.NodeType: got %q, want %q", got, want)
+	}
+}

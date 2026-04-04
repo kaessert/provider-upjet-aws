@@ -151,6 +151,15 @@ func (u *UserGroupRAW) GetForProvider() *clusternative.UserGroupRAWParameters {
 	}
 }
 
+// SetForProvider writes back a cluster-scoped UserGroupRAWParameters to this
+// namespaced resource's ForProvider fields. Symmetric inverse of GetForProvider.
+func (u *UserGroupRAW) SetForProvider(p clusternative.UserGroupRAWParameters) {
+	u.Spec.ForProvider.Engine = p.Engine
+	u.Spec.ForProvider.Region = p.Region
+	u.Spec.ForProvider.Tags = p.Tags
+	u.Spec.ForProvider.UserIds = p.UserIds
+}
+
 // GetInitProvider returns a cluster-scoped UserGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (u *UserGroupRAW) GetInitProvider() *clusternative.UserGroupRAWInitParameters {
