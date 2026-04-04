@@ -97,58 +97,58 @@ type ClusterModeConfigurationRAWObservation struct {
 
 // ReplicationGroupRAWParameters defines the v1beta1 spoke parameters for ReplicationGroupRAW.
 type ReplicationGroupRAWParameters struct {
-	ApplyImmediately                 *bool                                        `json:"applyImmediately,omitempty"`
-	AtRestEncryptionEnabled          *string                                      `json:"atRestEncryptionEnabled,omitempty"`
-	AuthTokenSecretRef               *xpv1.SecretKeySelector                      `json:"authTokenSecretRef,omitempty"`
-	AuthTokenUpdateStrategy          *string                                      `json:"authTokenUpdateStrategy,omitempty"`
-	AutoMinorVersionUpgrade          *string                                      `json:"autoMinorVersionUpgrade,omitempty"`
-	AutoGenerateAuthToken            *bool                                        `json:"autoGenerateAuthToken,omitempty"`
-	AutomaticFailoverEnabled         *bool                                        `json:"automaticFailoverEnabled,omitempty"`
-	ClusterMode                      *string                                      `json:"clusterMode,omitempty"`
-	ClusterModeConfiguration         []ClusterModeConfigurationRAWParameters      `json:"clusterModeConfiguration,omitempty"`
-	DataTieringEnabled               *bool                                        `json:"dataTieringEnabled,omitempty"`
-	Description                      *string                                      `json:"description,omitempty"`
-	Engine                           *string                                      `json:"engine,omitempty"`
-	EngineVersion                    *string                                      `json:"engineVersion,omitempty"`
-	FinalSnapshotIdentifier          *string                                      `json:"finalSnapshotIdentifier,omitempty"`
-	GlobalReplicationGroupID         *string                                      `json:"globalReplicationGroupId,omitempty"`
-	GlobalReplicationGroupIDRef      *xpv1.NamespacedReference                    `json:"globalReplicationGroupIdRef,omitempty"`
-	GlobalReplicationGroupIDSelector *xpv1.NamespacedSelector                     `json:"globalReplicationGroupIdSelector,omitempty"`
-	IPDiscovery                      *string                                      `json:"ipDiscovery,omitempty"`
-	KMSKeyID                         *string                                      `json:"kmsKeyId,omitempty"`
-	KMSKeyIDRef                      *xpv1.NamespacedReference                    `json:"kmsKeyIdRef,omitempty"`
-	KMSKeyIDSelector                 *xpv1.NamespacedSelector                     `json:"kmsKeyIdSelector,omitempty"`
-	LogDeliveryConfiguration         []RGLogDeliveryConfigurationRAWParameters    `json:"logDeliveryConfiguration,omitempty"`
-	MaintenanceWindow                *string                                      `json:"maintenanceWindow,omitempty"`
-	MultiAzEnabled                   *bool                                        `json:"multiAzEnabled,omitempty"`
-	NetworkType                      *string                                      `json:"networkType,omitempty"`
-	NodeGroupConfiguration           []NodeGroupConfigurationRAWParameters         `json:"nodeGroupConfiguration,omitempty"`
-	NodeType                         *string                                      `json:"nodeType,omitempty"`
-	NotificationTopicArn             *string                                      `json:"notificationTopicArn,omitempty"`
-	NumCacheClusters                 *float64                                     `json:"numCacheClusters,omitempty"`
-	NumNodeGroups                    *float64                                     `json:"numNodeGroups,omitempty"`
-	ParameterGroupName               *string                                      `json:"parameterGroupName,omitempty"`
-	Port                             *float64                                     `json:"port,omitempty"`
-	PreferredCacheClusterAzs         []*string                                    `json:"preferredCacheClusterAzs,omitempty"`
-	ReplicasPerNodeGroup             *float64                                     `json:"replicasPerNodeGroup,omitempty"`
+	ApplyImmediately                 *bool                                     `json:"applyImmediately,omitempty"`
+	AtRestEncryptionEnabled          *string                                   `json:"atRestEncryptionEnabled,omitempty"`
+	AuthTokenSecretRef               *xpv1.SecretKeySelector                   `json:"authTokenSecretRef,omitempty"`
+	AuthTokenUpdateStrategy          *string                                   `json:"authTokenUpdateStrategy,omitempty"`
+	AutoMinorVersionUpgrade          *string                                   `json:"autoMinorVersionUpgrade,omitempty"`
+	AutoGenerateAuthToken            *bool                                     `json:"autoGenerateAuthToken,omitempty"`
+	AutomaticFailoverEnabled         *bool                                     `json:"automaticFailoverEnabled,omitempty"`
+	ClusterMode                      *string                                   `json:"clusterMode,omitempty"`
+	ClusterModeConfiguration         []ClusterModeConfigurationRAWParameters   `json:"clusterModeConfiguration,omitempty"`
+	DataTieringEnabled               *bool                                     `json:"dataTieringEnabled,omitempty"`
+	Description                      *string                                   `json:"description,omitempty"`
+	Engine                           *string                                   `json:"engine,omitempty"`
+	EngineVersion                    *string                                   `json:"engineVersion,omitempty"`
+	FinalSnapshotIdentifier          *string                                   `json:"finalSnapshotIdentifier,omitempty"`
+	GlobalReplicationGroupID         *string                                   `json:"globalReplicationGroupId,omitempty"`
+	GlobalReplicationGroupIDRef      *xpv1.NamespacedReference                 `json:"globalReplicationGroupIdRef,omitempty"`
+	GlobalReplicationGroupIDSelector *xpv1.NamespacedSelector                  `json:"globalReplicationGroupIdSelector,omitempty"`
+	IPDiscovery                      *string                                   `json:"ipDiscovery,omitempty"`
+	KMSKeyID                         *string                                   `json:"kmsKeyId,omitempty"`
+	KMSKeyIDRef                      *xpv1.NamespacedReference                 `json:"kmsKeyIdRef,omitempty"`
+	KMSKeyIDSelector                 *xpv1.NamespacedSelector                  `json:"kmsKeyIdSelector,omitempty"`
+	LogDeliveryConfiguration         []RGLogDeliveryConfigurationRAWParameters `json:"logDeliveryConfiguration,omitempty"`
+	MaintenanceWindow                *string                                   `json:"maintenanceWindow,omitempty"`
+	MultiAzEnabled                   *bool                                     `json:"multiAzEnabled,omitempty"`
+	NetworkType                      *string                                   `json:"networkType,omitempty"`
+	NodeGroupConfiguration           []NodeGroupConfigurationRAWParameters     `json:"nodeGroupConfiguration,omitempty"`
+	NodeType                         *string                                   `json:"nodeType,omitempty"`
+	NotificationTopicArn             *string                                   `json:"notificationTopicArn,omitempty"`
+	NumCacheClusters                 *float64                                  `json:"numCacheClusters,omitempty"`
+	NumNodeGroups                    *float64                                  `json:"numNodeGroups,omitempty"`
+	ParameterGroupName               *string                                   `json:"parameterGroupName,omitempty"`
+	Port                             *float64                                  `json:"port,omitempty"`
+	PreferredCacheClusterAzs         []*string                                 `json:"preferredCacheClusterAzs,omitempty"`
+	ReplicasPerNodeGroup             *float64                                  `json:"replicasPerNodeGroup,omitempty"`
 	// Region where this resource will be managed.
 	// +kubebuilder:validation:Required
-	Region                  *string                    `json:"region"`
-	SecurityGroupIDRefs     []xpv1.NamespacedReference `json:"securityGroupIdRefs,omitempty"`
-	SecurityGroupIDSelector *xpv1.NamespacedSelector   `json:"securityGroupIdSelector,omitempty"`
-	SecurityGroupIds        []*string                  `json:"securityGroupIds,omitempty"`
-	SecurityGroupNames      []*string                  `json:"securityGroupNames,omitempty"`
-	SnapshotArns            []*string                  `json:"snapshotArns,omitempty"`
-	SnapshotName            *string                    `json:"snapshotName,omitempty"`
-	SnapshotRetentionLimit  *float64                   `json:"snapshotRetentionLimit,omitempty"`
-	SnapshotWindow          *string                    `json:"snapshotWindow,omitempty"`
-	SubnetGroupName         *string                    `json:"subnetGroupName,omitempty"`
-	SubnetGroupNameRef      *xpv1.NamespacedReference  `json:"subnetGroupNameRef,omitempty"`
-	SubnetGroupNameSelector *xpv1.NamespacedSelector   `json:"subnetGroupNameSelector,omitempty"`
-	Tags                    map[string]*string         `json:"tags,omitempty"`
-	TransitEncryptionEnabled *bool                     `json:"transitEncryptionEnabled,omitempty"`
-	TransitEncryptionMode   *string                    `json:"transitEncryptionMode,omitempty"`
-	UserGroupIds            []*string                  `json:"userGroupIds,omitempty"`
+	Region                   *string                    `json:"region"`
+	SecurityGroupIDRefs      []xpv1.NamespacedReference `json:"securityGroupIdRefs,omitempty"`
+	SecurityGroupIDSelector  *xpv1.NamespacedSelector   `json:"securityGroupIdSelector,omitempty"`
+	SecurityGroupIds         []*string                  `json:"securityGroupIds,omitempty"`
+	SecurityGroupNames       []*string                  `json:"securityGroupNames,omitempty"`
+	SnapshotArns             []*string                  `json:"snapshotArns,omitempty"`
+	SnapshotName             *string                    `json:"snapshotName,omitempty"`
+	SnapshotRetentionLimit   *float64                   `json:"snapshotRetentionLimit,omitempty"`
+	SnapshotWindow           *string                    `json:"snapshotWindow,omitempty"`
+	SubnetGroupName          *string                    `json:"subnetGroupName,omitempty"`
+	SubnetGroupNameRef       *xpv1.NamespacedReference  `json:"subnetGroupNameRef,omitempty"`
+	SubnetGroupNameSelector  *xpv1.NamespacedSelector   `json:"subnetGroupNameSelector,omitempty"`
+	Tags                     map[string]*string         `json:"tags,omitempty"`
+	TransitEncryptionEnabled *bool                      `json:"transitEncryptionEnabled,omitempty"`
+	TransitEncryptionMode    *string                    `json:"transitEncryptionMode,omitempty"`
+	UserGroupIds             []*string                  `json:"userGroupIds,omitempty"`
 }
 
 // ReplicationGroupRAWInitParameters defines the v1beta1 spoke init parameters.
@@ -177,7 +177,7 @@ type ReplicationGroupRAWInitParameters struct {
 	MaintenanceWindow                *string                                       `json:"maintenanceWindow,omitempty"`
 	MultiAzEnabled                   *bool                                         `json:"multiAzEnabled,omitempty"`
 	NetworkType                      *string                                       `json:"networkType,omitempty"`
-	NodeGroupConfiguration           []NodeGroupConfigurationRAWInitParameters      `json:"nodeGroupConfiguration,omitempty"`
+	NodeGroupConfiguration           []NodeGroupConfigurationRAWInitParameters     `json:"nodeGroupConfiguration,omitempty"`
 	NodeType                         *string                                       `json:"nodeType,omitempty"`
 	NotificationTopicArn             *string                                       `json:"notificationTopicArn,omitempty"`
 	NumCacheClusters                 *float64                                      `json:"numCacheClusters,omitempty"`
@@ -374,4 +374,6 @@ func (r *ReplicationGroupRAW) GetAtProvider() ReplicationGroupRAWObservation {
 }
 
 // SetAtProvider sets the observed state.
-func (r *ReplicationGroupRAW) SetAtProvider(o ReplicationGroupRAWObservation) { r.Status.AtProvider = o }
+func (r *ReplicationGroupRAW) SetAtProvider(o ReplicationGroupRAWObservation) {
+	r.Status.AtProvider = o
+}

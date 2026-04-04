@@ -299,53 +299,53 @@ type ReplicationGroupRAWParameters struct {
 
 // ReplicationGroupRAWInitParameters defines init parameters for namespaced ReplicationGroupRAW (v1beta2 hub).
 type ReplicationGroupRAWInitParameters struct {
-	ApplyImmediately                 *bool                                             `json:"applyImmediately,omitempty"`
-	AtRestEncryptionEnabled          *string                                           `json:"atRestEncryptionEnabled,omitempty"`
-	AuthTokenUpdateStrategy          *string                                           `json:"authTokenUpdateStrategy,omitempty"`
-	AutoMinorVersionUpgrade          *string                                           `json:"autoMinorVersionUpgrade,omitempty"`
-	AutoGenerateAuthToken            *bool                                             `json:"autoGenerateAuthToken,omitempty"`
-	AutomaticFailoverEnabled         *bool                                             `json:"automaticFailoverEnabled,omitempty"`
-	ClusterMode                      *string                                           `json:"clusterMode,omitempty"`
-	DataTieringEnabled               *bool                                             `json:"dataTieringEnabled,omitempty"`
-	Description                      *string                                           `json:"description,omitempty"`
-	Engine                           *string                                           `json:"engine,omitempty"`
-	EngineVersion                    *string                                           `json:"engineVersion,omitempty"`
-	FinalSnapshotIdentifier          *string                                           `json:"finalSnapshotIdentifier,omitempty"`
-	GlobalReplicationGroupID         *string                                           `json:"globalReplicationGroupId,omitempty"`
-	GlobalReplicationGroupIDRef      *xpv1.NamespacedReference                         `json:"globalReplicationGroupIdRef,omitempty"`
-	GlobalReplicationGroupIDSelector *xpv1.NamespacedSelector                          `json:"globalReplicationGroupIdSelector,omitempty"`
-	IPDiscovery                      *string                                           `json:"ipDiscovery,omitempty"`
-	KMSKeyID                         *string                                           `json:"kmsKeyId,omitempty"`
-	KMSKeyIDRef                      *xpv1.NamespacedReference                         `json:"kmsKeyIdRef,omitempty"`
-	KMSKeyIDSelector                 *xpv1.NamespacedSelector                          `json:"kmsKeyIdSelector,omitempty"`
-	LogDeliveryConfiguration         []RGLogDeliveryConfigurationRAWInitParameters     `json:"logDeliveryConfiguration,omitempty"`
-	MaintenanceWindow                *string                                           `json:"maintenanceWindow,omitempty"`
-	MultiAzEnabled                   *bool                                             `json:"multiAzEnabled,omitempty"`
-	NetworkType                      *string                                           `json:"networkType,omitempty"`
-	NodeGroupConfiguration           []NodeGroupConfigurationRAWInitParameters         `json:"nodeGroupConfiguration,omitempty"`
-	NodeType                         *string                                           `json:"nodeType,omitempty"`
-	NotificationTopicArn             *string                                           `json:"notificationTopicArn,omitempty"`
-	NumCacheClusters                 *float64                                          `json:"numCacheClusters,omitempty"`
-	NumNodeGroups                    *float64                                          `json:"numNodeGroups,omitempty"`
-	ParameterGroupName               *string                                           `json:"parameterGroupName,omitempty"`
-	Port                             *float64                                          `json:"port,omitempty"`
-	PreferredCacheClusterAzs         []*string                                         `json:"preferredCacheClusterAzs,omitempty"`
-	ReplicasPerNodeGroup             *float64                                          `json:"replicasPerNodeGroup,omitempty"`
-	SecurityGroupIDRefs              []xpv1.NamespacedReference                        `json:"securityGroupIdRefs,omitempty"`
-	SecurityGroupIDSelector          *xpv1.NamespacedSelector                          `json:"securityGroupIdSelector,omitempty"`
-	SecurityGroupIds                 []*string                                         `json:"securityGroupIds,omitempty"`
-	SecurityGroupNames               []*string                                         `json:"securityGroupNames,omitempty"`
-	SnapshotArns                     []*string                                         `json:"snapshotArns,omitempty"`
-	SnapshotName                     *string                                           `json:"snapshotName,omitempty"`
-	SnapshotRetentionLimit           *float64                                          `json:"snapshotRetentionLimit,omitempty"`
-	SnapshotWindow                   *string                                           `json:"snapshotWindow,omitempty"`
-	SubnetGroupName                  *string                                           `json:"subnetGroupName,omitempty"`
-	SubnetGroupNameRef               *xpv1.NamespacedReference                         `json:"subnetGroupNameRef,omitempty"`
-	SubnetGroupNameSelector          *xpv1.NamespacedSelector                          `json:"subnetGroupNameSelector,omitempty"`
-	Tags                             map[string]*string                                `json:"tags,omitempty"`
-	TransitEncryptionEnabled         *bool                                             `json:"transitEncryptionEnabled,omitempty"`
-	TransitEncryptionMode            *string                                           `json:"transitEncryptionMode,omitempty"`
-	UserGroupIds                     []*string                                         `json:"userGroupIds,omitempty"`
+	ApplyImmediately                 *bool                                         `json:"applyImmediately,omitempty"`
+	AtRestEncryptionEnabled          *string                                       `json:"atRestEncryptionEnabled,omitempty"`
+	AuthTokenUpdateStrategy          *string                                       `json:"authTokenUpdateStrategy,omitempty"`
+	AutoMinorVersionUpgrade          *string                                       `json:"autoMinorVersionUpgrade,omitempty"`
+	AutoGenerateAuthToken            *bool                                         `json:"autoGenerateAuthToken,omitempty"`
+	AutomaticFailoverEnabled         *bool                                         `json:"automaticFailoverEnabled,omitempty"`
+	ClusterMode                      *string                                       `json:"clusterMode,omitempty"`
+	DataTieringEnabled               *bool                                         `json:"dataTieringEnabled,omitempty"`
+	Description                      *string                                       `json:"description,omitempty"`
+	Engine                           *string                                       `json:"engine,omitempty"`
+	EngineVersion                    *string                                       `json:"engineVersion,omitempty"`
+	FinalSnapshotIdentifier          *string                                       `json:"finalSnapshotIdentifier,omitempty"`
+	GlobalReplicationGroupID         *string                                       `json:"globalReplicationGroupId,omitempty"`
+	GlobalReplicationGroupIDRef      *xpv1.NamespacedReference                     `json:"globalReplicationGroupIdRef,omitempty"`
+	GlobalReplicationGroupIDSelector *xpv1.NamespacedSelector                      `json:"globalReplicationGroupIdSelector,omitempty"`
+	IPDiscovery                      *string                                       `json:"ipDiscovery,omitempty"`
+	KMSKeyID                         *string                                       `json:"kmsKeyId,omitempty"`
+	KMSKeyIDRef                      *xpv1.NamespacedReference                     `json:"kmsKeyIdRef,omitempty"`
+	KMSKeyIDSelector                 *xpv1.NamespacedSelector                      `json:"kmsKeyIdSelector,omitempty"`
+	LogDeliveryConfiguration         []RGLogDeliveryConfigurationRAWInitParameters `json:"logDeliveryConfiguration,omitempty"`
+	MaintenanceWindow                *string                                       `json:"maintenanceWindow,omitempty"`
+	MultiAzEnabled                   *bool                                         `json:"multiAzEnabled,omitempty"`
+	NetworkType                      *string                                       `json:"networkType,omitempty"`
+	NodeGroupConfiguration           []NodeGroupConfigurationRAWInitParameters     `json:"nodeGroupConfiguration,omitempty"`
+	NodeType                         *string                                       `json:"nodeType,omitempty"`
+	NotificationTopicArn             *string                                       `json:"notificationTopicArn,omitempty"`
+	NumCacheClusters                 *float64                                      `json:"numCacheClusters,omitempty"`
+	NumNodeGroups                    *float64                                      `json:"numNodeGroups,omitempty"`
+	ParameterGroupName               *string                                       `json:"parameterGroupName,omitempty"`
+	Port                             *float64                                      `json:"port,omitempty"`
+	PreferredCacheClusterAzs         []*string                                     `json:"preferredCacheClusterAzs,omitempty"`
+	ReplicasPerNodeGroup             *float64                                      `json:"replicasPerNodeGroup,omitempty"`
+	SecurityGroupIDRefs              []xpv1.NamespacedReference                    `json:"securityGroupIdRefs,omitempty"`
+	SecurityGroupIDSelector          *xpv1.NamespacedSelector                      `json:"securityGroupIdSelector,omitempty"`
+	SecurityGroupIds                 []*string                                     `json:"securityGroupIds,omitempty"`
+	SecurityGroupNames               []*string                                     `json:"securityGroupNames,omitempty"`
+	SnapshotArns                     []*string                                     `json:"snapshotArns,omitempty"`
+	SnapshotName                     *string                                       `json:"snapshotName,omitempty"`
+	SnapshotRetentionLimit           *float64                                      `json:"snapshotRetentionLimit,omitempty"`
+	SnapshotWindow                   *string                                       `json:"snapshotWindow,omitempty"`
+	SubnetGroupName                  *string                                       `json:"subnetGroupName,omitempty"`
+	SubnetGroupNameRef               *xpv1.NamespacedReference                     `json:"subnetGroupNameRef,omitempty"`
+	SubnetGroupNameSelector          *xpv1.NamespacedSelector                      `json:"subnetGroupNameSelector,omitempty"`
+	Tags                             map[string]*string                            `json:"tags,omitempty"`
+	TransitEncryptionEnabled         *bool                                         `json:"transitEncryptionEnabled,omitempty"`
+	TransitEncryptionMode            *string                                       `json:"transitEncryptionMode,omitempty"`
+	UserGroupIds                     []*string                                     `json:"userGroupIds,omitempty"`
 }
 
 // ReplicationGroupRAWSpec defines the desired state of namespaced ReplicationGroupRAW (v1beta2 hub).
@@ -417,7 +417,7 @@ func (*ReplicationGroupRAW) Hub() {}
 // this namespaced resource's ForProvider fields.
 func (r *ReplicationGroupRAW) GetForProvider() *clusterv2native.ReplicationGroupRAWParameters {
 	// Convert local log delivery configs to cluster types.
-	var logDelivery []clusterv2native.RGLogDeliveryConfigurationRAWParameters
+	logDelivery := make([]clusterv2native.RGLogDeliveryConfigurationRAWParameters, 0, len(r.Spec.ForProvider.LogDeliveryConfiguration))
 	for _, ld := range r.Spec.ForProvider.LogDeliveryConfiguration {
 		logDelivery = append(logDelivery, clusterv2native.RGLogDeliveryConfigurationRAWParameters{
 			Destination:     ld.Destination,
@@ -427,7 +427,7 @@ func (r *ReplicationGroupRAW) GetForProvider() *clusterv2native.ReplicationGroup
 		})
 	}
 	// Convert local node group configs to cluster types.
-	var nodeGroupCfg []clusterv2native.NodeGroupConfigurationRAWParameters
+	nodeGroupCfg := make([]clusterv2native.NodeGroupConfigurationRAWParameters, 0, len(r.Spec.ForProvider.NodeGroupConfiguration))
 	for _, ng := range r.Spec.ForProvider.NodeGroupConfiguration {
 		nodeGroupCfg = append(nodeGroupCfg, clusterv2native.NodeGroupConfigurationRAWParameters{
 			NodeGroupID:              ng.NodeGroupID,
@@ -487,7 +487,7 @@ func (r *ReplicationGroupRAW) GetForProvider() *clusterv2native.ReplicationGroup
 // GetInitProvider returns a cluster-scoped ReplicationGroupRAWInitParameters populated from
 // this namespaced resource's InitProvider fields.
 func (r *ReplicationGroupRAW) GetInitProvider() *clusterv2native.ReplicationGroupRAWInitParameters {
-	var logDelivery []clusterv2native.RGLogDeliveryConfigurationRAWInitParameters
+	logDelivery := make([]clusterv2native.RGLogDeliveryConfigurationRAWInitParameters, 0, len(r.Spec.InitProvider.LogDeliveryConfiguration))
 	for _, ld := range r.Spec.InitProvider.LogDeliveryConfiguration {
 		logDelivery = append(logDelivery, clusterv2native.RGLogDeliveryConfigurationRAWInitParameters{
 			Destination:     ld.Destination,
@@ -496,7 +496,7 @@ func (r *ReplicationGroupRAW) GetInitProvider() *clusterv2native.ReplicationGrou
 			LogType:         ld.LogType,
 		})
 	}
-	var nodeGroupCfg []clusterv2native.NodeGroupConfigurationRAWInitParameters
+	nodeGroupCfg := make([]clusterv2native.NodeGroupConfigurationRAWInitParameters, 0, len(r.Spec.InitProvider.NodeGroupConfiguration))
 	for _, ng := range r.Spec.InitProvider.NodeGroupConfiguration {
 		nodeGroupCfg = append(nodeGroupCfg, clusterv2native.NodeGroupConfigurationRAWInitParameters{
 			NodeGroupID:              ng.NodeGroupID,
@@ -509,45 +509,45 @@ func (r *ReplicationGroupRAW) GetInitProvider() *clusterv2native.ReplicationGrou
 		})
 	}
 	return &clusterv2native.ReplicationGroupRAWInitParameters{
-		ApplyImmediately:             r.Spec.InitProvider.ApplyImmediately,
-		AtRestEncryptionEnabled:      r.Spec.InitProvider.AtRestEncryptionEnabled,
-		AuthTokenUpdateStrategy:      r.Spec.InitProvider.AuthTokenUpdateStrategy,
-		AutoMinorVersionUpgrade:      r.Spec.InitProvider.AutoMinorVersionUpgrade,
-		AutoGenerateAuthToken:        r.Spec.InitProvider.AutoGenerateAuthToken,
-		AutomaticFailoverEnabled:     r.Spec.InitProvider.AutomaticFailoverEnabled,
-		ClusterMode:                  r.Spec.InitProvider.ClusterMode,
-		DataTieringEnabled:           r.Spec.InitProvider.DataTieringEnabled,
-		Description:                  r.Spec.InitProvider.Description,
-		Engine:                       r.Spec.InitProvider.Engine,
-		EngineVersion:                r.Spec.InitProvider.EngineVersion,
-		FinalSnapshotIdentifier:      r.Spec.InitProvider.FinalSnapshotIdentifier,
-		GlobalReplicationGroupID:     r.Spec.InitProvider.GlobalReplicationGroupID,
-		IPDiscovery:                  r.Spec.InitProvider.IPDiscovery,
-		KMSKeyID:                     r.Spec.InitProvider.KMSKeyID,
-		LogDeliveryConfiguration:     logDelivery,
-		MaintenanceWindow:            r.Spec.InitProvider.MaintenanceWindow,
-		MultiAzEnabled:               r.Spec.InitProvider.MultiAzEnabled,
-		NetworkType:                  r.Spec.InitProvider.NetworkType,
-		NodeGroupConfiguration:       nodeGroupCfg,
-		NodeType:                     r.Spec.InitProvider.NodeType,
-		NotificationTopicArn:         r.Spec.InitProvider.NotificationTopicArn,
-		NumCacheClusters:             r.Spec.InitProvider.NumCacheClusters,
-		NumNodeGroups:                r.Spec.InitProvider.NumNodeGroups,
-		ParameterGroupName:           r.Spec.InitProvider.ParameterGroupName,
-		Port:                         r.Spec.InitProvider.Port,
-		PreferredCacheClusterAzs:     r.Spec.InitProvider.PreferredCacheClusterAzs,
-		ReplicasPerNodeGroup:         r.Spec.InitProvider.ReplicasPerNodeGroup,
-		SecurityGroupIds:             r.Spec.InitProvider.SecurityGroupIds,
-		SecurityGroupNames:           r.Spec.InitProvider.SecurityGroupNames,
-		SnapshotArns:                 r.Spec.InitProvider.SnapshotArns,
-		SnapshotName:                 r.Spec.InitProvider.SnapshotName,
-		SnapshotRetentionLimit:       r.Spec.InitProvider.SnapshotRetentionLimit,
-		SnapshotWindow:               r.Spec.InitProvider.SnapshotWindow,
-		SubnetGroupName:              r.Spec.InitProvider.SubnetGroupName,
-		Tags:                         r.Spec.InitProvider.Tags,
-		TransitEncryptionEnabled:     r.Spec.InitProvider.TransitEncryptionEnabled,
-		TransitEncryptionMode:        r.Spec.InitProvider.TransitEncryptionMode,
-		UserGroupIds:                 r.Spec.InitProvider.UserGroupIds,
+		ApplyImmediately:         r.Spec.InitProvider.ApplyImmediately,
+		AtRestEncryptionEnabled:  r.Spec.InitProvider.AtRestEncryptionEnabled,
+		AuthTokenUpdateStrategy:  r.Spec.InitProvider.AuthTokenUpdateStrategy,
+		AutoMinorVersionUpgrade:  r.Spec.InitProvider.AutoMinorVersionUpgrade,
+		AutoGenerateAuthToken:    r.Spec.InitProvider.AutoGenerateAuthToken,
+		AutomaticFailoverEnabled: r.Spec.InitProvider.AutomaticFailoverEnabled,
+		ClusterMode:              r.Spec.InitProvider.ClusterMode,
+		DataTieringEnabled:       r.Spec.InitProvider.DataTieringEnabled,
+		Description:              r.Spec.InitProvider.Description,
+		Engine:                   r.Spec.InitProvider.Engine,
+		EngineVersion:            r.Spec.InitProvider.EngineVersion,
+		FinalSnapshotIdentifier:  r.Spec.InitProvider.FinalSnapshotIdentifier,
+		GlobalReplicationGroupID: r.Spec.InitProvider.GlobalReplicationGroupID,
+		IPDiscovery:              r.Spec.InitProvider.IPDiscovery,
+		KMSKeyID:                 r.Spec.InitProvider.KMSKeyID,
+		LogDeliveryConfiguration: logDelivery,
+		MaintenanceWindow:        r.Spec.InitProvider.MaintenanceWindow,
+		MultiAzEnabled:           r.Spec.InitProvider.MultiAzEnabled,
+		NetworkType:              r.Spec.InitProvider.NetworkType,
+		NodeGroupConfiguration:   nodeGroupCfg,
+		NodeType:                 r.Spec.InitProvider.NodeType,
+		NotificationTopicArn:     r.Spec.InitProvider.NotificationTopicArn,
+		NumCacheClusters:         r.Spec.InitProvider.NumCacheClusters,
+		NumNodeGroups:            r.Spec.InitProvider.NumNodeGroups,
+		ParameterGroupName:       r.Spec.InitProvider.ParameterGroupName,
+		Port:                     r.Spec.InitProvider.Port,
+		PreferredCacheClusterAzs: r.Spec.InitProvider.PreferredCacheClusterAzs,
+		ReplicasPerNodeGroup:     r.Spec.InitProvider.ReplicasPerNodeGroup,
+		SecurityGroupIds:         r.Spec.InitProvider.SecurityGroupIds,
+		SecurityGroupNames:       r.Spec.InitProvider.SecurityGroupNames,
+		SnapshotArns:             r.Spec.InitProvider.SnapshotArns,
+		SnapshotName:             r.Spec.InitProvider.SnapshotName,
+		SnapshotRetentionLimit:   r.Spec.InitProvider.SnapshotRetentionLimit,
+		SnapshotWindow:           r.Spec.InitProvider.SnapshotWindow,
+		SubnetGroupName:          r.Spec.InitProvider.SubnetGroupName,
+		Tags:                     r.Spec.InitProvider.Tags,
+		TransitEncryptionEnabled: r.Spec.InitProvider.TransitEncryptionEnabled,
+		TransitEncryptionMode:    r.Spec.InitProvider.TransitEncryptionMode,
+		UserGroupIds:             r.Spec.InitProvider.UserGroupIds,
 	}
 }
 

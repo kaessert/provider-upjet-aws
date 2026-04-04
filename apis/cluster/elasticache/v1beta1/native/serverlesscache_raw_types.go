@@ -400,7 +400,9 @@ func init() {
 }
 
 // GetForProvider returns the ForProvider parameters.
-func (s *ServerlessCacheRAW) GetForProvider() *ServerlessCacheRAWParameters { return &s.Spec.ForProvider }
+func (s *ServerlessCacheRAW) GetForProvider() *ServerlessCacheRAWParameters {
+	return &s.Spec.ForProvider
+}
 
 // GetInitProvider returns the InitProvider parameters.
 func (s *ServerlessCacheRAW) GetInitProvider() *ServerlessCacheRAWInitParameters {
@@ -408,7 +410,9 @@ func (s *ServerlessCacheRAW) GetInitProvider() *ServerlessCacheRAWInitParameters
 }
 
 // GetAtProvider returns the current observed state.
-func (s *ServerlessCacheRAW) GetAtProvider() ServerlessCacheRAWObservation { return s.Status.AtProvider }
+func (s *ServerlessCacheRAW) GetAtProvider() ServerlessCacheRAWObservation {
+	return s.Status.AtProvider
+}
 
 // SetAtProvider sets the observed state.
 func (s *ServerlessCacheRAW) SetAtProvider(o ServerlessCacheRAWObservation) {
