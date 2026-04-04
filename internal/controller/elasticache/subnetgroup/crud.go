@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
 	ectypes "github.com/aws/aws-sdk-go-v2/service/elasticache/types"
+	xpv1 "github.com/crossplane/crossplane-runtime/v2/apis/common/v1"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/v2/pkg/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -135,6 +136,11 @@ func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed
 
 	upToDate := isUpToDate(cr.GetForProvider(), sg, observedTags)
 	nativehelper.SetTestConditionIfAnnotated(cr, upToDate)
+
+	// Mark the resource as Available (Ready=True) — SubnetGroup has no
+	// intermediate states like "creating" or "modifying" in the AWS API;
+	// if Describe succeeds the resource is fully operational.
+	cr.SetConditions(xpv1.Available())
 
 	return managed.ExternalObservation{
 		ResourceExists:   true,
