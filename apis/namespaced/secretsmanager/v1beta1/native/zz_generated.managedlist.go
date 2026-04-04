@@ -24,3 +24,12 @@ func (l *SecretRAWList) GetItems() []resource.Managed {
 	}
 	return items
 }
+
+// GetItems of this SecretVersionRAWList.
+func (l *SecretVersionRAWList) GetItems() []resource.Managed {
+	items := make([]resource.Managed, len(l.Items))
+	for i := range l.Items {
+		items[i] = &l.Items[i]
+	}
+	return items
+}

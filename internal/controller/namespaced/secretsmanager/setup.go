@@ -14,6 +14,7 @@ import (
 	namespacedcontroller "github.com/upbound/provider-aws/v2/internal/controller/namespaced"
 	"github.com/upbound/provider-aws/v2/internal/controller/namespaced/secretsmanager/secretpolicyraw"
 	"github.com/upbound/provider-aws/v2/internal/controller/namespaced/secretsmanager/secretraw"
+	"github.com/upbound/provider-aws/v2/internal/controller/namespaced/secretsmanager/secretversionraw"
 )
 
 func init() {
@@ -27,6 +28,7 @@ func SetupAll(mgr ctrl.Manager, o xpcontroller.Options) error {
 	for _, setup := range []func(ctrl.Manager, xpcontroller.Options) error{
 		secretpolicyraw.Setup,
 		secretraw.Setup,
+		secretversionraw.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err
