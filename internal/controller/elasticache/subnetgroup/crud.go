@@ -10,6 +10,7 @@ package subnetgroup
 import (
 	"context"
 	"sort"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awselasticache "github.com/aws/aws-sdk-go-v2/service/elasticache"
@@ -151,10 +152,17 @@ func (e *ExternalClient) Update(ctx context.Context, cr SubnetGroupCR) (managed.
 	spec := cr.GetForProvider()
 	extName := nativehelper.GetExternalName(cr)
 
+	// CacheSubnetGroupDescription is required by the AWS SDK (non-nil).
+	// Default to empty string when not provided, mirroring Terraform's behaviour.
+	description := spec.Description
+	if description == nil {
+		description = aws.String("")
+	}
+
 	// Modify description and subnet IDs.
 	_, err := e.Client.ModifyCacheSubnetGroup(ctx, &awselasticache.ModifyCacheSubnetGroupInput{
 		CacheSubnetGroupName:        aws.String(extName),
-		CacheSubnetGroupDescription: spec.Description,
+		CacheSubnetGroupDescription: description,
 		SubnetIds:                   derefStringSlice(spec.SubnetIds),
 	})
 	if err != nil {
@@ -193,9 +201,10 @@ func (e *ExternalClient) Delete(ctx context.Context, cr SubnetGroupCR) (managed.
 
 // isUpToDate returns true when the spec is in sync with the observed AWS state.
 func isUpToDate(spec *clusternative.SubnetGroupRAWParameters, sg ectypes.CacheSubnetGroup, observedTags []ectypes.Tag) bool {
-	// Check description.
-	specDesc := aws.ToString(spec.Description)
-	awsDesc := aws.ToString(sg.CacheSubnetGroupDescription)
+	// Check description. AWS may store an empty-string description as a single
+	// space (" "), so we trim whitespace before comparing to avoid spurious drift.
+	specDesc := strings.TrimSpace(aws.ToString(spec.Description))
+	awsDesc := strings.TrimSpace(aws.ToString(sg.CacheSubnetGroupDescription))
 	if specDesc != awsDesc {
 		return false
 	}
