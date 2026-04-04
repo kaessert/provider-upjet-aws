@@ -330,6 +330,9 @@ func (dst *UserRAW) ConvertFrom(srcRaw conversion.Hub) error {
 // GetForProvider returns the ForProvider parameters.
 func (u *UserRAW) GetForProvider() *UserRAWParameters { return &u.Spec.ForProvider }
 
+// SetForProvider writes back the ForProvider parameters.
+func (u *UserRAW) SetForProvider(p UserRAWParameters) { u.Spec.ForProvider = p }
+
 // GetInitProvider returns the InitProvider parameters.
 func (u *UserRAW) GetInitProvider() *UserRAWInitParameters { return &u.Spec.InitProvider }
 
