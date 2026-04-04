@@ -193,7 +193,7 @@ func (e *ExternalClient) Update(ctx context.Context, cr UserGroupCR) (managed.Ex
 }
 
 // Delete deletes the external UserGroupRAW resource.
-// Idempotent: UserGroupNotFoundFault is treated as success.
+// Idempotent: UserGroupNotFoundFault and "already deleting" state are treated as success.
 func (e *ExternalClient) Delete(ctx context.Context, cr UserGroupCR) (managed.ExternalDelete, error) {
 	extName := nativehelper.GetExternalName(cr)
 
@@ -202,6 +202,12 @@ func (e *ExternalClient) Delete(ctx context.Context, cr UserGroupCR) (managed.Ex
 	})
 	if err != nil {
 		if nativehelper.IsNotFound(err) {
+			return managed.ExternalDelete{}, nil
+		}
+		// AWS rejects delete requests when the user group is already in "deleting"
+		// state (InvalidUserGroupStateFault). Treat this as a no-op: the deletion
+		// is already in progress and the resource will be cleaned up shortly.
+		if nativehelper.IsErrorCode(err, "InvalidUserGroupStateFault") {
 			return managed.ExternalDelete{}, nil
 		}
 		return managed.ExternalDelete{}, nativehelper.Wrap(err, errDelete)

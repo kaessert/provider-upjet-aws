@@ -141,10 +141,17 @@ func (e *ExternalClient) Create(ctx context.Context, cr ParameterGroupCR) (manag
 		groupName = nativehelper.GetExternalName(cr)
 	}
 
+	// Description is required by the AWS SDK (non-nil). Default to empty string
+	// when the user has not provided one, mirroring Terraform's behaviour.
+	description := spec.Description
+	if description == nil {
+		description = aws.String("")
+	}
+
 	input := &awselasticache.CreateCacheParameterGroupInput{
 		CacheParameterGroupName:   aws.String(groupName),
 		CacheParameterGroupFamily: spec.Family,
-		Description:               spec.Description,
+		Description:               description,
 		Tags:                      mapToTags(spec.Tags),
 	}
 

@@ -174,3 +174,41 @@ func TestIsAccessDenied_FalseForNonSmithyError(t *testing.T) {
 		t.Error("IsAccessDenied(plain error) = true, want false")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// IsErrorCode tests
+// ---------------------------------------------------------------------------
+
+// TestIsErrorCode_NilError verifies that IsErrorCode returns false for nil.
+func TestIsErrorCode_NilError(t *testing.T) {
+	if IsErrorCode(nil, "InvalidUserGroupStateFault") {
+		t.Error("expected IsErrorCode(nil, ...) = false")
+	}
+}
+
+// TestIsErrorCode_MatchingCode verifies that IsErrorCode returns true when the
+// smithy APIError code matches the given code exactly.
+func TestIsErrorCode_MatchingCode(t *testing.T) {
+	err := &mockAPIError{code: "InvalidUserGroupStateFault", message: "user group is deleting"}
+	if !IsErrorCode(err, "InvalidUserGroupStateFault") {
+		t.Error("IsErrorCode(InvalidUserGroupStateFault) = false, want true")
+	}
+}
+
+// TestIsErrorCode_NonMatchingCode verifies that IsErrorCode returns false when
+// the code doesn't match exactly.
+func TestIsErrorCode_NonMatchingCode(t *testing.T) {
+	err := &mockAPIError{code: "SomeOtherError", message: "some error"}
+	if IsErrorCode(err, "InvalidUserGroupStateFault") {
+		t.Error("IsErrorCode(SomeOtherError) = true, want false")
+	}
+}
+
+// TestIsErrorCode_FalseForNonSmithyError verifies that IsErrorCode returns
+// false for plain Go errors.
+func TestIsErrorCode_FalseForNonSmithyError(t *testing.T) {
+	err := errors.New("some generic error")
+	if IsErrorCode(err, "InvalidUserGroupStateFault") {
+		t.Error("IsErrorCode(plain error) = true, want false")
+	}
+}

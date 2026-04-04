@@ -54,3 +54,17 @@ func IsAccessDenied(err error) bool {
 		code == "403" ||
 		code == "Forbidden"
 }
+
+// IsErrorCode returns true when err is an AWS API error with the given code.
+// This is useful for service-specific error codes that are not covered by
+// IsNotFound or IsAccessDenied.
+func IsErrorCode(err error, code string) bool {
+	if err == nil {
+		return false
+	}
+	var ae smithy.APIError
+	if !errors.As(err, &ae) {
+		return false
+	}
+	return ae.ErrorCode() == code
+}

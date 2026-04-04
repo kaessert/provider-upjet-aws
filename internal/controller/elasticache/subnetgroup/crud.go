@@ -121,9 +121,16 @@ func (e *ExternalClient) Create(ctx context.Context, cr SubnetGroupCR) (managed.
 	spec := cr.GetForProvider()
 	extName := nativehelper.GetExternalName(cr)
 
+	// CacheSubnetGroupDescription is required by the AWS SDK (non-nil). Default
+	// to empty string when not provided, mirroring Terraform's behaviour.
+	description := spec.Description
+	if description == nil {
+		description = aws.String("")
+	}
+
 	input := &awselasticache.CreateCacheSubnetGroupInput{
 		CacheSubnetGroupName:        aws.String(extName),
-		CacheSubnetGroupDescription: spec.Description,
+		CacheSubnetGroupDescription: description,
 		SubnetIds:                   derefStringSlice(spec.SubnetIds),
 		Tags:                        mapToTags(spec.Tags),
 	}
