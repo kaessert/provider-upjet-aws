@@ -430,8 +430,13 @@ func TestCreate_UsesExternalNameAsGroupName(t *testing.T) {
 // ── Late-initialization tests ──────────────────────────────────────────────────
 
 // TestObserve_LateInit_NilDescription verifies that when spec.Description is nil
-// and AWS returns a non-empty description, Observe returns ResourceLateInitialized=true
-// and populates the spec field.
+// and AWS returns a non-empty, non-whitespace description, Observe returns
+// ResourceLateInitialized=true and populates the spec field.
+//
+// IMPORTANT: Whitespace-only descriptions (like " " which AWS uses for empty
+// descriptions) are intentionally NOT late-initialized to avoid infinite
+// reconciliation loops for namespaced types. isUpToDate uses TrimSpace to
+// treat nil/"" and " " as equivalent.
 func TestObserve_LateInit_NilDescription(t *testing.T) {
 	cr := newTestCR("my-sg", testSGName)
 	cr.Spec.ForProvider.Description = nil // intentionally nil
@@ -449,9 +454,10 @@ func TestObserve_LateInit_NilDescription(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Must signal late initialization so the controller saves the spec.
+	// Must signal late initialization so the controller saves the spec
+	// (testDescription = "Test subnet group" is non-empty and non-whitespace).
 	if !obs.ResourceLateInitialized {
-		t.Error("expected ResourceLateInitialized=true when Description is nil and AWS returns a value")
+		t.Error("expected ResourceLateInitialized=true when Description is nil and AWS returns a non-empty value")
 	}
 
 	// spec.Description must be populated from the AWS response.
@@ -460,5 +466,43 @@ func TestObserve_LateInit_NilDescription(t *testing.T) {
 	}
 	if got, want := *cr.Spec.ForProvider.Description, testDescription; got != want {
 		t.Errorf("spec.Description: got %q, want %q", got, want)
+	}
+}
+
+// TestObserve_LateInit_WhitespaceDescription verifies that when spec.Description
+// is nil and AWS returns a whitespace-only description (i.e., " "), Observe does
+// NOT late-initialize the Description field and considers the resource up to date.
+// This prevents an infinite reconciliation loop for namespaced types.
+func TestObserve_LateInit_WhitespaceDescription(t *testing.T) {
+	cr := newTestCR("my-sg", testSGName)
+	cr.Spec.ForProvider.Description = nil // intentionally nil
+	cr.Spec.ForProvider.SubnetIds = []*string{aws.String(testSubnetID1)}
+
+	e := &ExternalClient{Client: &mockElastiCacheSGClient{
+		describeFn: func(_ context.Context, _ *awselasticache.DescribeCacheSubnetGroupsInput, _ ...func(*awselasticache.Options)) (*awselasticache.DescribeCacheSubnetGroupsOutput, error) {
+			// AWS stores empty-string description as " " (single space)
+			return subnetGroupResponse(testSGName, testSGARN, " ", []string{testSubnetID1}), nil
+		},
+		listTagsFn: noopListTags,
+	}}
+
+	obs, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Must NOT late-initialize when AWS description is whitespace-only.
+	if obs.ResourceLateInitialized {
+		t.Error("expected ResourceLateInitialized=false: whitespace description should be treated as empty, no LateInit needed")
+	}
+
+	// spec.Description must remain nil.
+	if cr.Spec.ForProvider.Description != nil {
+		t.Errorf("expected spec.Description to remain nil, got %q", *cr.Spec.ForProvider.Description)
+	}
+
+	// Resource MUST be considered up-to-date: nil spec description == " " AWS description.
+	if !obs.ResourceUpToDate {
+		t.Error("expected ResourceUpToDate=true: nil description and \" \" are equivalent after TrimSpace")
 	}
 }

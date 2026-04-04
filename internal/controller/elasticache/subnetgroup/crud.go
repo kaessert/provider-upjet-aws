@@ -108,16 +108,29 @@ func (e *ExternalClient) Observe(ctx context.Context, cr SubnetGroupCR) (managed
 	}
 	cr.SetAtProvider(o)
 
-	// Late-initialize Description from the AWS response (spec §8).
-	// AWS stores and returns a (possibly normalized) description. Without late-init,
-	// a nil spec.Description would produce "" vs "some desc" in isUpToDate, causing
-	// a spurious update that clears the description.
-	if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Description, sg.CacheSubnetGroupDescription) {
-		return managed.ExternalObservation{
-			ResourceExists:          true,
-			ResourceUpToDate:        false,
-			ResourceLateInitialized: true,
-		}, nil
+	// Late-initialize Description from the AWS response.
+	// IMPORTANT: Skip LateInit when AWS description is whitespace-only.
+	// AWS stores an empty-string description as a single space (" "). If we
+	// late-initialize a nil spec.Description with " ", the change is lost for
+	// namespaced types whose GetForProvider() returns a copy rather than a
+	// pointer to the actual spec field. This causes an infinite reconciliation
+	// loop because LateInitializeStringPtr returns true every cycle (spec.Description
+	// is always nil since the copy modification is discarded), and Crossplane calls
+	// Update, which AWS rejects with "No modifications were requested".
+	//
+	// Whitespace-only descriptions are semantically empty and already handled by
+	// the TrimSpace comparison in isUpToDate, so skipping late-init here is safe.
+	// For non-empty, meaningful descriptions we still late-initialize.
+	awsDescTrimmed := strings.TrimSpace(aws.ToString(sg.CacheSubnetGroupDescription))
+	if awsDescTrimmed != "" && cr.GetForProvider().Description == nil {
+		// AWS has a non-empty description but spec doesn't — late-init it.
+		if nativehelper.LateInitializeStringPtr(&cr.GetForProvider().Description, sg.CacheSubnetGroupDescription) {
+			return managed.ExternalObservation{
+				ResourceExists:          true,
+				ResourceUpToDate:        false,
+				ResourceLateInitialized: true,
+			}, nil
+		}
 	}
 
 	upToDate := isUpToDate(cr.GetForProvider(), sg, observedTags)
