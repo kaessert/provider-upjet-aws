@@ -864,6 +864,288 @@ func TestIsUpToDate_NilNodeType_DoesNotTriggerUpdate(t *testing.T) {
 	}
 }
 
+// ── isUpToDate mutable-field tests ────────────────────────────────────────────
+// Each test verifies that isUpToDate returns false when a single mutable field
+// differs between spec and AWS state, and true when they match.
+
+// TestIsUpToDate_MaintenanceWindow_Changed verifies that isUpToDate detects drift
+// in MaintenanceWindow and returns false.
+func TestIsUpToDate_MaintenanceWindow_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:            aws.String("us-east-1"),
+		MaintenanceWindow: aws.String("mon:05:00-mon:06:00"),
+	}
+	cc := ectypes.CacheCluster{
+		PreferredMaintenanceWindow: aws.String("sun:05:00-sun:06:00"), // different
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when MaintenanceWindow differs")
+	}
+}
+
+// TestIsUpToDate_MaintenanceWindow_Same verifies that isUpToDate returns true
+// when MaintenanceWindow matches.
+func TestIsUpToDate_MaintenanceWindow_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:            aws.String("us-east-1"),
+		MaintenanceWindow: aws.String("sun:05:00-sun:06:00"),
+	}
+	cc := ectypes.CacheCluster{
+		PreferredMaintenanceWindow: aws.String("sun:05:00-sun:06:00"), // same
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when MaintenanceWindow matches")
+	}
+}
+
+// TestIsUpToDate_SnapshotRetentionLimit_Changed verifies drift detection for
+// SnapshotRetentionLimit.
+func TestIsUpToDate_SnapshotRetentionLimit_Changed(t *testing.T) {
+	srl := float64(7)
+	spec := &clusternative.ClusterRAWParameters{
+		Region:                 aws.String("us-east-1"),
+		SnapshotRetentionLimit: &srl,
+	}
+	cc := ectypes.CacheCluster{
+		SnapshotRetentionLimit: aws.Int32(3), // different
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when SnapshotRetentionLimit differs")
+	}
+}
+
+// TestIsUpToDate_SnapshotRetentionLimit_Same verifies isUpToDate returns true
+// when SnapshotRetentionLimit matches.
+func TestIsUpToDate_SnapshotRetentionLimit_Same(t *testing.T) {
+	srl := float64(7)
+	spec := &clusternative.ClusterRAWParameters{
+		Region:                 aws.String("us-east-1"),
+		SnapshotRetentionLimit: &srl,
+	}
+	cc := ectypes.CacheCluster{
+		SnapshotRetentionLimit: aws.Int32(7), // same
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when SnapshotRetentionLimit matches")
+	}
+}
+
+// TestIsUpToDate_SnapshotWindow_Changed verifies drift detection for SnapshotWindow.
+func TestIsUpToDate_SnapshotWindow_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:         aws.String("us-east-1"),
+		SnapshotWindow: aws.String("03:00-04:00"),
+	}
+	cc := ectypes.CacheCluster{
+		SnapshotWindow: aws.String("05:00-06:00"), // different
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when SnapshotWindow differs")
+	}
+}
+
+// TestIsUpToDate_SnapshotWindow_Same verifies isUpToDate returns true
+// when SnapshotWindow matches.
+func TestIsUpToDate_SnapshotWindow_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:         aws.String("us-east-1"),
+		SnapshotWindow: aws.String("03:00-04:00"),
+	}
+	cc := ectypes.CacheCluster{
+		SnapshotWindow: aws.String("03:00-04:00"), // same
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when SnapshotWindow matches")
+	}
+}
+
+// TestIsUpToDate_AutoMinorVersionUpgrade_Changed verifies drift detection for
+// AutoMinorVersionUpgrade (*string "true"/"false" in spec, *bool in AWS).
+func TestIsUpToDate_AutoMinorVersionUpgrade_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:                  aws.String("us-east-1"),
+		AutoMinorVersionUpgrade: aws.String("true"),
+	}
+	cc := ectypes.CacheCluster{
+		AutoMinorVersionUpgrade: aws.Bool(false), // different
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when AutoMinorVersionUpgrade differs")
+	}
+}
+
+// TestIsUpToDate_AutoMinorVersionUpgrade_Same verifies isUpToDate returns true
+// when AutoMinorVersionUpgrade matches.
+func TestIsUpToDate_AutoMinorVersionUpgrade_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:                  aws.String("us-east-1"),
+		AutoMinorVersionUpgrade: aws.String("true"),
+	}
+	cc := ectypes.CacheCluster{
+		AutoMinorVersionUpgrade: aws.Bool(true), // same
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when AutoMinorVersionUpgrade matches")
+	}
+}
+
+// TestIsUpToDate_NotificationTopicArn_Changed verifies drift detection for
+// NotificationTopicArn.
+func TestIsUpToDate_NotificationTopicArn_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:               aws.String("us-east-1"),
+		NotificationTopicArn: aws.String("arn:aws:sns:us-east-1:123456789012:new-topic"),
+	}
+	cc := ectypes.CacheCluster{
+		NotificationConfiguration: &ectypes.NotificationConfiguration{
+			TopicArn: aws.String("arn:aws:sns:us-east-1:123456789012:old-topic"), // different
+		},
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when NotificationTopicArn differs")
+	}
+}
+
+// TestIsUpToDate_NotificationTopicArn_Same verifies isUpToDate returns true
+// when NotificationTopicArn matches.
+func TestIsUpToDate_NotificationTopicArn_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:               aws.String("us-east-1"),
+		NotificationTopicArn: aws.String("arn:aws:sns:us-east-1:123456789012:my-topic"),
+	}
+	cc := ectypes.CacheCluster{
+		NotificationConfiguration: &ectypes.NotificationConfiguration{
+			TopicArn: aws.String("arn:aws:sns:us-east-1:123456789012:my-topic"), // same
+		},
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when NotificationTopicArn matches")
+	}
+}
+
+// TestIsUpToDate_ParameterGroupName_Changed verifies drift detection for
+// ParameterGroupName.
+func TestIsUpToDate_ParameterGroupName_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:             aws.String("us-east-1"),
+		ParameterGroupName: aws.String("my-param-group-v2"),
+	}
+	cc := ectypes.CacheCluster{
+		CacheParameterGroup: &ectypes.CacheParameterGroupStatus{
+			CacheParameterGroupName: aws.String("my-param-group-v1"), // different
+		},
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when ParameterGroupName differs")
+	}
+}
+
+// TestIsUpToDate_ParameterGroupName_Same verifies isUpToDate returns true
+// when ParameterGroupName matches.
+func TestIsUpToDate_ParameterGroupName_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region:             aws.String("us-east-1"),
+		ParameterGroupName: aws.String("my-param-group"),
+	}
+	cc := ectypes.CacheCluster{
+		CacheParameterGroup: &ectypes.CacheParameterGroupStatus{
+			CacheParameterGroupName: aws.String("my-param-group"), // same
+		},
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when ParameterGroupName matches")
+	}
+}
+
+// TestIsUpToDate_LogDeliveryConfiguration_Changed verifies drift detection for
+// LogDeliveryConfiguration when log type count changes.
+func TestIsUpToDate_LogDeliveryConfiguration_Changed(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region: aws.String("us-east-1"),
+		LogDeliveryConfiguration: []clusternative.ClusterLogDeliveryConfigurationRAWParameters{
+			{
+				LogType:         aws.String("slow-log"),
+				LogFormat:       aws.String("json"),
+				DestinationType: aws.String("cloudwatch-logs"),
+				Destination:     aws.String("/aws/elasticache/cluster/slow-log"),
+			},
+		},
+	}
+	// AWS has no log delivery configurations.
+	cc := ectypes.CacheCluster{
+		LogDeliveryConfigurations: []ectypes.LogDeliveryConfiguration{}, // different (empty)
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when LogDeliveryConfiguration count differs")
+	}
+}
+
+// TestIsUpToDate_LogDeliveryConfiguration_DestinationChanged verifies drift
+// detection when the log destination changes.
+func TestIsUpToDate_LogDeliveryConfiguration_DestinationChanged(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region: aws.String("us-east-1"),
+		LogDeliveryConfiguration: []clusternative.ClusterLogDeliveryConfigurationRAWParameters{
+			{
+				LogType:         aws.String("slow-log"),
+				LogFormat:       aws.String("json"),
+				DestinationType: aws.String("cloudwatch-logs"),
+				Destination:     aws.String("/aws/elasticache/cluster/slow-log-v2"),
+			},
+		},
+	}
+	cc := ectypes.CacheCluster{
+		LogDeliveryConfigurations: []ectypes.LogDeliveryConfiguration{
+			{
+				LogType:         ectypes.LogTypeSlowLog,
+				LogFormat:       ectypes.LogFormatJson,
+				DestinationType: ectypes.DestinationTypeCloudWatchLogs,
+				DestinationDetails: &ectypes.DestinationDetails{
+					CloudWatchLogsDetails: &ectypes.CloudWatchLogsDestinationDetails{
+						LogGroup: aws.String("/aws/elasticache/cluster/slow-log-v1"), // different
+					},
+				},
+			},
+		},
+	}
+	if isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return false when log destination differs")
+	}
+}
+
+// TestIsUpToDate_LogDeliveryConfiguration_Same verifies isUpToDate returns true
+// when log delivery configuration matches.
+func TestIsUpToDate_LogDeliveryConfiguration_Same(t *testing.T) {
+	spec := &clusternative.ClusterRAWParameters{
+		Region: aws.String("us-east-1"),
+		LogDeliveryConfiguration: []clusternative.ClusterLogDeliveryConfigurationRAWParameters{
+			{
+				LogType:         aws.String("slow-log"),
+				LogFormat:       aws.String("json"),
+				DestinationType: aws.String("cloudwatch-logs"),
+				Destination:     aws.String("/aws/elasticache/cluster/slow-log"),
+			},
+		},
+	}
+	cc := ectypes.CacheCluster{
+		LogDeliveryConfigurations: []ectypes.LogDeliveryConfiguration{
+			{
+				LogType:         ectypes.LogTypeSlowLog,
+				LogFormat:       ectypes.LogFormatJson,
+				DestinationType: ectypes.DestinationTypeCloudWatchLogs,
+				DestinationDetails: &ectypes.DestinationDetails{
+					CloudWatchLogsDetails: &ectypes.CloudWatchLogsDestinationDetails{
+						LogGroup: aws.String("/aws/elasticache/cluster/slow-log"), // same
+					},
+				},
+			},
+		},
+	}
+	if !isUpToDate(spec, cc, nil) {
+		t.Error("isUpToDate should return true when LogDeliveryConfiguration matches")
+	}
+}
+
 // TestObserve_NilGuard_ConfigEndpoint verifies nil-safety when ConfigurationEndpoint
 // is nil (as it is for Redis/Valkey).
 func TestObserve_NilGuard_ConfigEndpoint(t *testing.T) {

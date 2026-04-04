@@ -564,6 +564,8 @@ func lateInitializeCluster(spec *clusternative.ClusterRAWParameters, cc ectypes.
 }
 
 // isUpToDate returns true when the spec is in sync with the observed AWS state.
+//
+//nolint:gocyclo
 func isUpToDate(spec *clusternative.ClusterRAWParameters, cc ectypes.CacheCluster, observedTags []ectypes.Tag) bool {
 	// NodeType: guard against nil — clusters linked to a replication group may not
 	// have NodeType in spec (it is inherited from the RG). After late-initialization
@@ -595,7 +597,122 @@ func isUpToDate(spec *clusternative.ClusterRAWParameters, cc ectypes.CacheCluste
 		return false
 	}
 
+	// MaintenanceWindow.
+	if spec.MaintenanceWindow != nil && aws.ToString(spec.MaintenanceWindow) != aws.ToString(cc.PreferredMaintenanceWindow) {
+		return false
+	}
+
+	// SnapshotRetentionLimit: spec is *float64, AWS is *int32.
+	if spec.SnapshotRetentionLimit != nil {
+		specSRL := int32(*spec.SnapshotRetentionLimit)
+		awsSRL := int32(0)
+		if cc.SnapshotRetentionLimit != nil {
+			awsSRL = *cc.SnapshotRetentionLimit
+		}
+		if specSRL != awsSRL {
+			return false
+		}
+	}
+
+	// SnapshotWindow.
+	if spec.SnapshotWindow != nil && aws.ToString(spec.SnapshotWindow) != aws.ToString(cc.SnapshotWindow) {
+		return false
+	}
+
+	// AutoMinorVersionUpgrade: spec is *string ("true"/"false"), AWS is *bool.
+	if spec.AutoMinorVersionUpgrade != nil && cc.AutoMinorVersionUpgrade != nil {
+		specAMVU := *spec.AutoMinorVersionUpgrade == "true" || *spec.AutoMinorVersionUpgrade == "yes"
+		if specAMVU != *cc.AutoMinorVersionUpgrade {
+			return false
+		}
+	}
+
+	// NotificationTopicArn.
+	if spec.NotificationTopicArn != nil && cc.NotificationConfiguration != nil {
+		if aws.ToString(spec.NotificationTopicArn) != aws.ToString(cc.NotificationConfiguration.TopicArn) {
+			return false
+		}
+	}
+
+	// ParameterGroupName.
+	if spec.ParameterGroupName != nil && cc.CacheParameterGroup != nil {
+		if aws.ToString(spec.ParameterGroupName) != aws.ToString(cc.CacheParameterGroup.CacheParameterGroupName) {
+			return false
+		}
+	}
+
+	// LogDeliveryConfiguration.
+	if !logDeliveryConfigUpToDate(spec.LogDeliveryConfiguration, cc.LogDeliveryConfigurations) {
+		return false
+	}
+
 	return true
+}
+
+// logDeliveryConfigUpToDate returns true when the spec log delivery configurations
+// match the observed AWS configurations.
+//
+// Comparison strategy:
+//   - Count mismatch → not up-to-date
+//   - For each spec entry, find a matching AWS entry by LogType (at most 2 entries)
+//   - Compare LogFormat, DestinationType, and destination value
+//
+//nolint:gocyclo
+func logDeliveryConfigUpToDate(spec []clusternative.ClusterLogDeliveryConfigurationRAWParameters, aws []ectypes.LogDeliveryConfiguration) bool {
+	if len(spec) != len(aws) {
+		return false
+	}
+	if len(spec) == 0 {
+		return true
+	}
+
+	// Build a map keyed by LogType for the AWS observed configs.
+	awsByLogType := make(map[ectypes.LogType]ectypes.LogDeliveryConfiguration, len(aws))
+	for _, a := range aws {
+		awsByLogType[a.LogType] = a
+	}
+
+	for _, s := range spec {
+		if s.LogType == nil {
+			continue
+		}
+		awsEntry, ok := awsByLogType[ectypes.LogType(*s.LogType)]
+		if !ok {
+			return false
+		}
+		// Compare LogFormat.
+		if s.LogFormat != nil && string(awsEntry.LogFormat) != *s.LogFormat {
+			return false
+		}
+		// Compare DestinationType.
+		if s.DestinationType != nil && string(awsEntry.DestinationType) != *s.DestinationType {
+			return false
+		}
+		// Compare destination value.
+		if s.Destination != nil && awsEntry.DestinationDetails != nil {
+			var awsDest string
+			switch {
+			case awsEntry.DestinationDetails.CloudWatchLogsDetails != nil:
+				awsDest = aws2ToString(awsEntry.DestinationDetails.CloudWatchLogsDetails.LogGroup)
+			case awsEntry.DestinationDetails.KinesisFirehoseDetails != nil:
+				awsDest = aws2ToString(awsEntry.DestinationDetails.KinesisFirehoseDetails.DeliveryStream)
+			}
+			if *s.Destination != awsDest {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// aws2ToString is a local alias to avoid shadowing the imported aws package
+// inside logDeliveryConfigUpToDate which uses a parameter named "aws".
+func aws2ToString(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }
 
 // securityGroupIDsUpToDate returns true when the spec security group IDs match
