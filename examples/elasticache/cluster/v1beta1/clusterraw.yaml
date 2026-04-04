@@ -5,6 +5,8 @@
 apiVersion: elasticache.aws.upbound.io/v1beta1
 kind: ClusterRAW
 metadata:
+  annotations:
+    uptest.upbound.io/timeout: "3600"
   labels:
     testing.upbound.io/example-name: foo
   name: foo

@@ -5,6 +5,8 @@
 apiVersion: elasticache.aws.upbound.io/v1beta2
 kind: ReplicationGroupRAW
 metadata:
+  annotations:
+    uptest.upbound.io/timeout: "3600"
   labels:
     testing.upbound.io/example-name: example
   name: example
