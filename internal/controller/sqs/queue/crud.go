@@ -97,10 +97,21 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueueCR) (managed.Exter
 	}
 
 	attrs := resp.Attributes
-	cr.SetAtProvider(mapAttrsToObservation(attrs, queueURL))
+
+	// Fetch tags once for both observation population and up-to-date check,
+	// avoiding a duplicate ListQueueTags API call per reconcile.
+	tagsResp, err := e.Client.ListQueueTags(ctx, &awssqs.ListQueueTagsInput{
+		QueueUrl: &queueURL,
+	})
+	if err != nil {
+		return managed.ExternalObservation{}, nativehelper.Wrap(err, errListTags)
+	}
+
+	spec := cr.GetForProvider()
+	queueName := queueNameFromCR(cr)
+	cr.SetAtProvider(mapAttrsToObservation(attrs, queueURL, spec, tagsResp.Tags, queueName))
 
 	// Late-initialize AWS-defaulted fields.
-	spec := cr.GetForProvider()
 	lateInited := lateInitialize(spec, attrs)
 	if lateInited {
 		cr.SetForProvider(*spec)
@@ -108,7 +119,7 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueueCR) (managed.Exter
 
 	cr.SetConditions(xpv1.Available())
 
-	upToDate, err := e.isUpToDate(ctx, cr, attrs)
+	upToDate, err := e.isUpToDate(cr, attrs, tagsResp.Tags)
 	if err != nil {
 		return managed.ExternalObservation{}, err
 	}
@@ -227,16 +238,64 @@ func isQueueDoesNotExist(err error) bool {
 	return errors.As(err, &notFound)
 }
 
-// mapAttrsToObservation converts the SQS attribute map to an observation struct.
-func mapAttrsToObservation(attrs map[string]string, queueURL string) clusternative.QueueRAWObservation {
+// mapAttrsToObservation converts the SQS attribute map and supplementary data
+// into a fully populated observation struct.
+//
+// Parameters:
+//   - attrs: response from GetQueueAttributes (with AttributeNames=All)
+//   - queueURL: the queue URL used as ID and URL fields
+//   - spec: the CR's ForProvider spec (used for Region — not an AWS attribute)
+//   - awsTags: response from ListQueueTags (not in GetQueueAttributes)
+//   - queueName: the resolved queue name (spec.Name or K8s object name)
+func mapAttrsToObservation(attrs map[string]string, queueURL string, spec *clusternative.QueueRAWParameters, awsTags map[string]string, queueName string) clusternative.QueueRAWObservation {
 	obs := clusternative.QueueRAWObservation{
 		URL: &queueURL,
 		ID:  &queueURL,
 	}
+
 	if arn, ok := attrs["QueueArn"]; ok {
 		arn := arn
 		obs.Arn = &arn
 	}
+
+	// Numeric fields (stored as integer strings by AWS).
+	obs.DelaySeconds = parseFloatAttr(attrs, "DelaySeconds")
+	obs.MaxMessageSize = parseFloatAttr(attrs, "MaximumMessageSize")
+	obs.MessageRetentionSeconds = parseFloatAttr(attrs, "MessageRetentionPeriod")
+	obs.ReceiveWaitTimeSeconds = parseFloatAttr(attrs, "ReceiveMessageWaitTimeSeconds")
+	obs.VisibilityTimeoutSeconds = parseFloatAttr(attrs, "VisibilityTimeout")
+	obs.KMSDataKeyReusePeriodSeconds = parseFloatAttr(attrs, "KmsDataKeyReusePeriodSeconds")
+
+	// String fields.
+	obs.KMSMasterKeyID = strAttrPtr(attrs, "KmsMasterKeyId")
+	obs.DeduplicationScope = strAttrPtr(attrs, "DeduplicationScope")
+	obs.FifoThroughputLimit = strAttrPtr(attrs, "FifoThroughputLimit")
+	obs.Policy = strAttrPtr(attrs, "Policy")
+	obs.RedrivePolicy = strAttrPtr(attrs, "RedrivePolicy")
+	obs.RedriveAllowPolicy = strAttrPtr(attrs, "RedriveAllowPolicy")
+
+	// Boolean fields.
+	obs.SqsManagedSseEnabled = parseBoolAttr(attrs, "SqsManagedSseEnabled")
+	obs.ContentBasedDeduplication = parseBoolAttr(attrs, "ContentBasedDeduplication")
+	obs.FifoQueue = parseBoolAttr(attrs, "FifoQueue")
+
+	// Fields derived from spec (not in GetQueueAttributes response).
+	obs.Region = spec.Region
+	obs.Name = &queueName
+
+	// Tags from ListQueueTags (not in GetQueueAttributes).
+	if len(awsTags) > 0 {
+		tags := make(map[string]*string, len(awsTags))
+		tagsAll := make(map[string]*string, len(awsTags))
+		for k, v := range awsTags {
+			k, v := k, v
+			tags[k] = &v
+			tagsAll[k] = &v
+		}
+		obs.Tags = tags
+		obs.TagsAll = tagsAll
+	}
+
 	return obs
 }
 
@@ -306,7 +365,9 @@ func lateInitBoolVal(current *bool, attrs map[string]string, key string) (*bool,
 }
 
 // isUpToDate compares the desired spec against the observed AWS state.
-func (e *ExternalClient) isUpToDate(ctx context.Context, cr QueueCR, attrs map[string]string) (bool, error) {
+// awsTags is the result of ListQueueTags, pre-fetched by the caller (Observe)
+// to avoid a redundant API call.
+func (e *ExternalClient) isUpToDate(cr QueueCR, attrs map[string]string, awsTags map[string]string) (bool, error) {
 	spec := cr.GetForProvider()
 
 	if !attrsBasicUpToDate(spec, attrs) {
@@ -324,17 +385,9 @@ func (e *ExternalClient) isUpToDate(ctx context.Context, cr QueueCR, attrs map[s
 		return false, err
 	}
 
-	queueURL := nativehelper.GetExternalName(cr)
-	tagsResp, err := e.Client.ListQueueTags(ctx, &awssqs.ListQueueTagsInput{
-		QueueUrl: &queueURL,
-	})
-	if err != nil {
-		return false, nativehelper.Wrap(err, errListTags)
-	}
-
 	toAdd, toRemove := nativehelper.DiffTagsWithDefaults(
 		specTagsToNative(spec.Tags),
-		awsTagsToNative(tagsResp.Tags),
+		awsTagsToNative(awsTags),
 		nil,
 	)
 	return len(toAdd) == 0 && len(toRemove) == 0, nil
@@ -527,6 +580,41 @@ func (e *ExternalClient) applyTagsRemove(ctx context.Context, queueURL string, t
 }
 
 // ── attribute converters ───────────────────────────────────────────────────────
+
+// parseFloatAttr parses a string attribute from the attrs map as float64.
+// Returns nil if the key is absent or the value cannot be parsed.
+func parseFloatAttr(attrs map[string]string, key string) *float64 {
+	v, ok := attrs[key]
+	if !ok || v == "" {
+		return nil
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return nil
+	}
+	return &f
+}
+
+// parseBoolAttr parses a string attribute from the attrs map as bool.
+// Returns nil if the key is absent.
+func parseBoolAttr(attrs map[string]string, key string) *bool {
+	v, ok := attrs[key]
+	if !ok || v == "" {
+		return nil
+	}
+	b := v == "true"
+	return &b
+}
+
+// strAttrPtr returns a pointer to the attribute value, or nil if absent/empty.
+func strAttrPtr(attrs map[string]string, key string) *string {
+	v, ok := attrs[key]
+	if !ok || v == "" {
+		return nil
+	}
+	copy := v
+	return &copy
+}
 
 // setFloatAttr sets an SQS attribute from a *float64. SQS expects integer strings.
 func setFloatAttr(attrs map[string]string, key string, val *float64) {

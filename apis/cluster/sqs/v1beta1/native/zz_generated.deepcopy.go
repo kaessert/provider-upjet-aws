@@ -404,15 +404,106 @@ func (in *QueueRAWObservation) DeepCopyInto(out *QueueRAWObservation) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ContentBasedDeduplication != nil {
+		in, out := &in.ContentBasedDeduplication, &out.ContentBasedDeduplication
+		*out = new(bool)
+		**out = **in
+	}
+	if in.DeduplicationScope != nil {
+		in, out := &in.DeduplicationScope, &out.DeduplicationScope
+		*out = new(string)
+		**out = **in
+	}
+	if in.DelaySeconds != nil {
+		in, out := &in.DelaySeconds, &out.DelaySeconds
+		*out = new(float64)
+		**out = **in
+	}
+	if in.FifoQueue != nil {
+		in, out := &in.FifoQueue, &out.FifoQueue
+		*out = new(bool)
+		**out = **in
+	}
+	if in.FifoThroughputLimit != nil {
+		in, out := &in.FifoThroughputLimit, &out.FifoThroughputLimit
+		*out = new(string)
+		**out = **in
+	}
 	if in.ID != nil {
 		in, out := &in.ID, &out.ID
 		*out = new(string)
 		**out = **in
 	}
-	if in.URL != nil {
-		in, out := &in.URL, &out.URL
+	if in.KMSDataKeyReusePeriodSeconds != nil {
+		in, out := &in.KMSDataKeyReusePeriodSeconds, &out.KMSDataKeyReusePeriodSeconds
+		*out = new(float64)
+		**out = **in
+	}
+	if in.KMSMasterKeyID != nil {
+		in, out := &in.KMSMasterKeyID, &out.KMSMasterKeyID
 		*out = new(string)
 		**out = **in
+	}
+	if in.MaxMessageSize != nil {
+		in, out := &in.MaxMessageSize, &out.MaxMessageSize
+		*out = new(float64)
+		**out = **in
+	}
+	if in.MessageRetentionSeconds != nil {
+		in, out := &in.MessageRetentionSeconds, &out.MessageRetentionSeconds
+		*out = new(float64)
+		**out = **in
+	}
+	if in.Name != nil {
+		in, out := &in.Name, &out.Name
+		*out = new(string)
+		**out = **in
+	}
+	if in.Policy != nil {
+		in, out := &in.Policy, &out.Policy
+		*out = new(string)
+		**out = **in
+	}
+	if in.ReceiveWaitTimeSeconds != nil {
+		in, out := &in.ReceiveWaitTimeSeconds, &out.ReceiveWaitTimeSeconds
+		*out = new(float64)
+		**out = **in
+	}
+	if in.RedriveAllowPolicy != nil {
+		in, out := &in.RedriveAllowPolicy, &out.RedriveAllowPolicy
+		*out = new(string)
+		**out = **in
+	}
+	if in.RedrivePolicy != nil {
+		in, out := &in.RedrivePolicy, &out.RedrivePolicy
+		*out = new(string)
+		**out = **in
+	}
+	if in.Region != nil {
+		in, out := &in.Region, &out.Region
+		*out = new(string)
+		**out = **in
+	}
+	if in.SqsManagedSseEnabled != nil {
+		in, out := &in.SqsManagedSseEnabled, &out.SqsManagedSseEnabled
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]*string, len(*in))
+		for key, val := range *in {
+			var outVal *string
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				inVal := (*in)[key]
+				in, out := &inVal, &outVal
+				*out = new(string)
+				**out = **in
+			}
+			(*out)[key] = outVal
+		}
 	}
 	if in.TagsAll != nil {
 		in, out := &in.TagsAll, &out.TagsAll
@@ -429,6 +520,16 @@ func (in *QueueRAWObservation) DeepCopyInto(out *QueueRAWObservation) {
 			}
 			(*out)[key] = outVal
 		}
+	}
+	if in.URL != nil {
+		in, out := &in.URL, &out.URL
+		*out = new(string)
+		**out = **in
+	}
+	if in.VisibilityTimeoutSeconds != nil {
+		in, out := &in.VisibilityTimeoutSeconds, &out.VisibilityTimeoutSeconds
+		*out = new(float64)
+		**out = **in
 	}
 }
 

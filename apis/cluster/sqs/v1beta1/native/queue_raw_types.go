@@ -172,19 +172,83 @@ type QueueRAWInitParameters struct {
 }
 
 // QueueRAWObservation defines the observed state of a native SQS Queue.
+// All fields mirror the TF QueueObservation to maintain CRD schema parity.
 type QueueRAWObservation struct {
 	// ARN of the SQS queue.
 	Arn *string `json:"arn,omitempty"`
 
+	// Enables content-based deduplication for FIFO queues.
+	ContentBasedDeduplication *bool `json:"contentBasedDeduplication,omitempty"`
+
+	// Specifies whether message deduplication occurs at the message group or
+	// queue level.
+	DeduplicationScope *string `json:"deduplicationScope,omitempty"`
+
+	// Time in seconds that the delivery of all messages in the queue will be
+	// delayed.
+	DelaySeconds *float64 `json:"delaySeconds,omitempty"`
+
+	// Boolean designating a FIFO queue.
+	FifoQueue *bool `json:"fifoQueue,omitempty"`
+
+	// Specifies whether the FIFO queue throughput quota applies to the entire
+	// queue or per message group.
+	FifoThroughputLimit *string `json:"fifoThroughputLimit,omitempty"`
+
 	// URL for the created Amazon SQS queue (same as ID).
 	ID *string `json:"id,omitempty"`
 
-	// URL for the created Amazon SQS queue.
-	URL *string `json:"url,omitempty"`
+	// Length of time, in seconds, for which Amazon SQS can reuse a data key to
+	// encrypt or decrypt messages before calling AWS KMS again.
+	KMSDataKeyReusePeriodSeconds *float64 `json:"kmsDataKeyReusePeriodSeconds,omitempty"`
+
+	// ID of an AWS-managed customer master key (CMK) for Amazon SQS or a
+	// custom CMK.
+	KMSMasterKeyID *string `json:"kmsMasterKeyId,omitempty"`
+
+	// Limit of how many bytes a message can contain before Amazon SQS rejects
+	// it.
+	MaxMessageSize *float64 `json:"maxMessageSize,omitempty"`
+
+	// Number of seconds Amazon SQS retains a message.
+	MessageRetentionSeconds *float64 `json:"messageRetentionSeconds,omitempty"`
+
+	// Name of the queue.
+	Name *string `json:"name,omitempty"`
+
+	// JSON policy for the SQS queue.
+	Policy *string `json:"policy,omitempty"`
+
+	// Time for which a ReceiveMessage call will wait for a message to arrive
+	// (long polling) before returning.
+	ReceiveWaitTimeSeconds *float64 `json:"receiveWaitTimeSeconds,omitempty"`
+
+	// JSON policy to set up the Dead Letter Queue redrive permission.
+	RedriveAllowPolicy *string `json:"redriveAllowPolicy,omitempty"`
+
+	// JSON policy to set up the Dead Letter Queue.
+	RedrivePolicy *string `json:"redrivePolicy,omitempty"`
+
+	// Region where this resource is managed.
+	Region *string `json:"region,omitempty"`
+
+	// Boolean to enable server-side encryption (SSE) of message content with
+	// SQS-owned encryption keys.
+	SqsManagedSseEnabled *bool `json:"sqsManagedSseEnabled,omitempty"`
+
+	// Key-value map of resource tags.
+	// +mapType=granular
+	Tags map[string]*string `json:"tags,omitempty"`
 
 	// Map of tags assigned to the resource, including those inherited from the provider.
 	// +mapType=granular
 	TagsAll map[string]*string `json:"tagsAll,omitempty"`
+
+	// URL for the created Amazon SQS queue.
+	URL *string `json:"url,omitempty"`
+
+	// Visibility timeout for the queue.
+	VisibilityTimeoutSeconds *float64 `json:"visibilityTimeoutSeconds,omitempty"`
 }
 
 // QueueRAWSpec defines the desired state of QueueRAW.

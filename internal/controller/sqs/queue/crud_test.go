@@ -739,6 +739,193 @@ func (c *captureClient) GetQueueUrl(ctx context.Context, params *awssqs.GetQueue
 	return c.inner.GetQueueUrl(ctx, params, optFns...)
 }
 
+// ── Observation parity tests ───────────────────────────────────────────────────
+
+// TestObserve_SetsAllObservationFieldsFromAttrs verifies that all fields added
+// for TF parity are populated from GetQueueAttributes response + ListQueueTags.
+func TestObserve_SetsAllObservationFieldsFromAttrs(t *testing.T) {
+	attrs := map[string]string{
+		"QueueArn":                      testQueueARN,
+		"DelaySeconds":                  "5",
+		"MaximumMessageSize":            "1024",
+		"MessageRetentionPeriod":        "86400",
+		"ReceiveMessageWaitTimeSeconds": "10",
+		"VisibilityTimeout":             "60",
+		"KmsDataKeyReusePeriodSeconds":  "300",
+		"KmsMasterKeyId":                "my-key",
+		"SqsManagedSseEnabled":          "true",
+		"ContentBasedDeduplication":     "true",
+		"FifoQueue":                     "true",
+		"DeduplicationScope":            "messageGroup",
+		"FifoThroughputLimit":           "perMessageGroupId",
+		"Policy":                        `{"Version":"2012-10-17"}`,
+		"RedrivePolicy":                 `{"maxReceiveCount":5}`,
+		"RedriveAllowPolicy":            `{"redrivePermission":"allowAll"}`,
+	}
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{Tags: map[string]string{"env": "prod"}},
+	}}
+	cr := makeCR(testQueueURL)
+	cr.Spec.ForProvider.Name = ptrStr("my-fifo-queue")
+	cr.Spec.ForProvider.Region = ptrStr("us-east-1")
+	cr.Spec.ForProvider.FifoQueue = ptrBool(true)
+	// Prevent late-init from interfering with the test
+	cr.Spec.ForProvider.KMSDataKeyReusePeriodSeconds = ptrF64(300)
+
+	_, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	obs := cr.GetAtProvider()
+
+	if obs.Arn == nil || *obs.Arn != testQueueARN {
+		t.Errorf("Arn: expected %q, got %v", testQueueARN, obs.Arn)
+	}
+	if obs.URL == nil || *obs.URL != testQueueURL {
+		t.Errorf("URL: expected %q, got %v", testQueueURL, obs.URL)
+	}
+	if obs.ID == nil || *obs.ID != testQueueURL {
+		t.Errorf("ID: expected %q, got %v", testQueueURL, obs.ID)
+	}
+	if obs.DelaySeconds == nil || *obs.DelaySeconds != 5 {
+		t.Errorf("DelaySeconds: expected 5, got %v", obs.DelaySeconds)
+	}
+	if obs.MaxMessageSize == nil || *obs.MaxMessageSize != 1024 {
+		t.Errorf("MaxMessageSize: expected 1024, got %v", obs.MaxMessageSize)
+	}
+	if obs.MessageRetentionSeconds == nil || *obs.MessageRetentionSeconds != 86400 {
+		t.Errorf("MessageRetentionSeconds: expected 86400, got %v", obs.MessageRetentionSeconds)
+	}
+	if obs.ReceiveWaitTimeSeconds == nil || *obs.ReceiveWaitTimeSeconds != 10 {
+		t.Errorf("ReceiveWaitTimeSeconds: expected 10, got %v", obs.ReceiveWaitTimeSeconds)
+	}
+	if obs.VisibilityTimeoutSeconds == nil || *obs.VisibilityTimeoutSeconds != 60 {
+		t.Errorf("VisibilityTimeoutSeconds: expected 60, got %v", obs.VisibilityTimeoutSeconds)
+	}
+	if obs.KMSDataKeyReusePeriodSeconds == nil || *obs.KMSDataKeyReusePeriodSeconds != 300 {
+		t.Errorf("KMSDataKeyReusePeriodSeconds: expected 300, got %v", obs.KMSDataKeyReusePeriodSeconds)
+	}
+	if obs.KMSMasterKeyID == nil || *obs.KMSMasterKeyID != "my-key" {
+		t.Errorf("KMSMasterKeyID: expected 'my-key', got %v", obs.KMSMasterKeyID)
+	}
+	if obs.SqsManagedSseEnabled == nil || !*obs.SqsManagedSseEnabled {
+		t.Errorf("SqsManagedSseEnabled: expected true, got %v", obs.SqsManagedSseEnabled)
+	}
+	if obs.ContentBasedDeduplication == nil || !*obs.ContentBasedDeduplication {
+		t.Errorf("ContentBasedDeduplication: expected true, got %v", obs.ContentBasedDeduplication)
+	}
+	if obs.FifoQueue == nil || !*obs.FifoQueue {
+		t.Errorf("FifoQueue: expected true, got %v", obs.FifoQueue)
+	}
+	if obs.DeduplicationScope == nil || *obs.DeduplicationScope != "messageGroup" {
+		t.Errorf("DeduplicationScope: expected 'messageGroup', got %v", obs.DeduplicationScope)
+	}
+	if obs.FifoThroughputLimit == nil || *obs.FifoThroughputLimit != "perMessageGroupId" {
+		t.Errorf("FifoThroughputLimit: expected 'perMessageGroupId', got %v", obs.FifoThroughputLimit)
+	}
+	if obs.Policy == nil || *obs.Policy != `{"Version":"2012-10-17"}` {
+		t.Errorf("Policy: expected JSON, got %v", obs.Policy)
+	}
+	if obs.RedrivePolicy == nil || *obs.RedrivePolicy != `{"maxReceiveCount":5}` {
+		t.Errorf("RedrivePolicy: expected JSON, got %v", obs.RedrivePolicy)
+	}
+	if obs.RedriveAllowPolicy == nil || *obs.RedriveAllowPolicy != `{"redrivePermission":"allowAll"}` {
+		t.Errorf("RedriveAllowPolicy: expected JSON, got %v", obs.RedriveAllowPolicy)
+	}
+	if obs.Name == nil || *obs.Name != "my-fifo-queue" {
+		t.Errorf("Name: expected 'my-fifo-queue', got %v", obs.Name)
+	}
+	if obs.Region == nil || *obs.Region != "us-east-1" {
+		t.Errorf("Region: expected 'us-east-1', got %v", obs.Region)
+	}
+	if obs.Tags == nil {
+		t.Error("Tags: expected non-nil map")
+	} else if v, ok := obs.Tags["env"]; !ok || v == nil || *v != "prod" {
+		t.Errorf("Tags[env]: expected 'prod', got %v", obs.Tags["env"])
+	}
+	if obs.TagsAll == nil {
+		t.Error("TagsAll: expected non-nil map")
+	} else if v, ok := obs.TagsAll["env"]; !ok || v == nil || *v != "prod" {
+		t.Errorf("TagsAll[env]: expected 'prod', got %v", obs.TagsAll["env"])
+	}
+}
+
+// TestObserve_TagsPopulatedFromListQueueTags verifies that obs.Tags comes
+// from the ListQueueTags API (not GetQueueAttributes).
+func TestObserve_TagsPopulatedFromListQueueTags(t *testing.T) {
+	attrs := baseAttrs()
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{Tags: map[string]string{
+			"team":  "platform",
+			"stage": "prod",
+		}},
+	}}
+	cr := makeCR(testQueueURL)
+
+	_, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	obs := cr.GetAtProvider()
+	if obs.Tags == nil {
+		t.Fatal("expected Tags to be non-nil")
+	}
+	if len(obs.Tags) != 2 {
+		t.Errorf("expected 2 tags, got %d", len(obs.Tags))
+	}
+	if v, ok := obs.Tags["team"]; !ok || v == nil || *v != "platform" {
+		t.Errorf("Tags[team]: expected 'platform', got %v", obs.Tags["team"])
+	}
+}
+
+// TestObserve_RegionPopulatedFromSpec verifies that obs.Region comes from
+// spec.forProvider.region (not from AWS attributes).
+func TestObserve_RegionPopulatedFromSpec(t *testing.T) {
+	attrs := baseAttrs()
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{},
+	}}
+	cr := makeCR(testQueueURL)
+	cr.Spec.ForProvider.Region = ptrStr("eu-west-1")
+
+	_, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	obs := cr.GetAtProvider()
+	if obs.Region == nil || *obs.Region != "eu-west-1" {
+		t.Errorf("Region: expected 'eu-west-1', got %v", obs.Region)
+	}
+}
+
+// TestObserve_NameFallsBackToK8sName verifies that obs.Name falls back to the
+// K8s resource name when spec.forProvider.name is not set.
+func TestObserve_NameFallsBackToK8sName(t *testing.T) {
+	attrs := baseAttrs()
+	e := &queue.ExternalClient{Client: &mockSQSClient{
+		getAttrsOut: &awssqs.GetQueueAttributesOutput{Attributes: attrs},
+		listTagsOut: &awssqs.ListQueueTagsOutput{},
+	}}
+	cr := makeCR(testQueueURL)
+	// cr.Spec.ForProvider.Name is nil — should use K8s name "test-queue"
+
+	_, err := e.Observe(context.Background(), cr)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	obs := cr.GetAtProvider()
+	if obs.Name == nil || *obs.Name != "test-queue" {
+		t.Errorf("Name: expected 'test-queue' (K8s name fallback), got %v", obs.Name)
+	}
+}
+
 // Verify ExternalClient fields are accessible from tests.
 var _ queue.SQSClient = (*mockSQSClient)(nil)
 var _ managed.TypedExternalClient[*clusternative.QueueRAW] = (*stubTypedClient)(nil)
