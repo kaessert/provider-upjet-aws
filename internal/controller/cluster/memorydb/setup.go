@@ -11,6 +11,7 @@ import (
 
 	clustercontroller "github.com/upbound/provider-aws/v2/internal/controller/cluster"
 	"github.com/upbound/provider-aws/v2/internal/controller/cluster/memorydb/aclraw"
+	"github.com/upbound/provider-aws/v2/internal/controller/cluster/memorydb/clusterraw"
 )
 
 func init() {
@@ -21,6 +22,7 @@ func init() {
 func SetupAll(mgr ctrl.Manager, o xpcontroller.Options) error {
 	for _, setup := range []func(ctrl.Manager, xpcontroller.Options) error{
 		aclraw.Setup,
+		clusterraw.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err

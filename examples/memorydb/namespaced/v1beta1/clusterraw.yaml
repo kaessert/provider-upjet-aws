@@ -1,0 +1,118 @@
+# SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+apiVersion: memorydb.aws.m.upbound.io/v1beta1
+kind: ClusterRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    aclNameSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+    nodeType: db.t4g.small
+    numShards: 2
+    region: us-west-1
+    securityGroupIdRefs:
+      - name: example
+    snapshotRetentionLimit: 7
+    subnetGroupNameSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: SecurityGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: devicefarm/v1beta1/testgridproject
+  name: example
+  labels:
+    testing.upbound.io/example-name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1
+    vpcIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: VPC
+metadata:
+  annotations:
+    meta.upbound.io/example-id: devicefarm/v1beta1/testgridproject
+  name: sample-vpc
+  labels:
+    testing.upbound.io/example-name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1
+    cidrBlock: 172.16.0.0/16
+    tags:
+      Name: DemoVpc
+---
+apiVersion: memorydb.aws.m.upbound.io/v1beta1
+kind: SubnetGroupRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1
+    subnetIdRefs:
+      - name: example1
+      - name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  annotations:
+    meta.upbound.io/example-id: memorydb/v1beta1/subnetgroup
+  labels:
+    testing.upbound.io/example-name: example1
+  name: example1
+  namespace: default
+spec:
+  forProvider:
+    availabilityZone: us-west-1b
+    cidrBlock: 172.16.11.0/24
+    region: us-west-1
+    vpcIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  annotations:
+    meta.upbound.io/example-id: memorydb/v1beta1/subnetgroup
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    availabilityZone: us-west-1a
+    cidrBlock: 172.16.10.0/24
+    region: us-west-1
+    vpcIdSelector:
+      matchLabels:
+        testing.upbound.io/example-name: example
+---
+apiVersion: memorydb.aws.m.upbound.io/v1beta1
+kind: ACLRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1

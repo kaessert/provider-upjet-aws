@@ -11,6 +11,7 @@ import (
 
 	namespacedcontroller "github.com/upbound/provider-aws/v2/internal/controller/namespaced"
 	"github.com/upbound/provider-aws/v2/internal/controller/namespaced/memorydb/aclraw"
+	"github.com/upbound/provider-aws/v2/internal/controller/namespaced/memorydb/clusterraw"
 )
 
 func init() {
@@ -21,6 +22,7 @@ func init() {
 func SetupAll(mgr ctrl.Manager, o xpcontroller.Options) error {
 	for _, setup := range []func(ctrl.Manager, xpcontroller.Options) error{
 		aclraw.Setup,
+		clusterraw.Setup,
 	} {
 		if err := setup(mgr, o); err != nil {
 			return err
