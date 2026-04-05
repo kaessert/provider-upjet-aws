@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2024 The Crossplane Authors <https://crossplane.io>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+apiVersion: memorydb.aws.m.upbound.io/v1beta1
+kind: ACLRAW
+metadata:
+  labels:
+    testing.upbound.io/example-name: example
+  name: example
+  namespace: default
+spec:
+  forProvider:
+    region: us-west-1

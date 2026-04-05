@@ -2024,6 +2024,22 @@ func (in *ReplicationGroupRAWObservation) DeepCopyInto(out *ReplicationGroupRAWO
 			}
 		}
 	}
+	if in.SnapshotArns != nil {
+		in, out := &in.SnapshotArns, &out.SnapshotArns
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
+	}
+	if in.SnapshotName != nil {
+		in, out := &in.SnapshotName, &out.SnapshotName
+		*out = new(string)
+		**out = **in
+	}
 	if in.SnapshotRetentionLimit != nil {
 		in, out := &in.SnapshotRetentionLimit, &out.SnapshotRetentionLimit
 		*out = new(float64)

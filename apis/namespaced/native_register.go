@@ -27,6 +27,7 @@ import (
 	nativeelasticache2 "github.com/upbound/provider-aws/v2/apis/namespaced/elasticache/v1beta2/native"
 	nativekinesis "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta1/native"
 	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/namespaced/kinesis/v1beta2/native"
+	nativememorydb "github.com/upbound/provider-aws/v2/apis/namespaced/memorydb/v1beta1/native"
 	nativesecretsmanager "github.com/upbound/provider-aws/v2/apis/namespaced/secretsmanager/v1beta1/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/namespaced/sfn/v1beta2/native"
 	nativesns "github.com/upbound/provider-aws/v2/apis/namespaced/sns/v1beta1/native"
@@ -63,4 +64,8 @@ func init() {
 	// QueueRedriveAllowPolicyRAW and their list types) so that the controller
 	// manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativesqs.SchemeBuilder.AddToScheme)
+
+	// Register native memorydb types (ACLRAW and its list type)
+	// so that the controller manager can discover and watch them.
+	AddToSchemes = append(AddToSchemes, nativememorydb.SchemeBuilder.AddToScheme)
 }
