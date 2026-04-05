@@ -10,6 +10,8 @@ import (
 	reference "github.com/crossplane/crossplane-runtime/v2/pkg/reference"
 	errors "github.com/pkg/errors"
 	v1beta1 "github.com/upbound/provider-aws/v2/apis/cluster/kms/v1beta1"
+	v1beta11 "github.com/upbound/provider-aws/v2/apis/cluster/lambda/v1beta1"
+	native "github.com/upbound/provider-aws/v2/internal/native"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -97,6 +99,84 @@ func (mg *SecretRAW) ResolveReferences(ctx context.Context, c client.Reader) err
 	}
 	mg.Spec.InitProvider.KMSKeyID = reference.ToPtrValue(rsp.ResolvedValue)
 	mg.Spec.InitProvider.KMSKeyIDRef = rsp.ResolvedReference
+
+	return nil
+}
+
+// ResolveReferences of this SecretRotationRAW.
+func (mg *SecretRotationRAW) ResolveReferences(ctx context.Context, c client.Reader) error {
+	r := reference.NewAPIResolver(c, mg)
+
+	var rsp reference.ResolutionResponse
+	var err error
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.RotationLambdaArn),
+		Extract:      native.ExtractAtProviderField("arn"),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.ForProvider.RotationLambdaArnRef,
+		Selector:     mg.Spec.ForProvider.RotationLambdaArnSelector,
+		To: reference.To{
+			List:    &v1beta11.FunctionList{},
+			Managed: &v1beta11.Function{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.RotationLambdaArn")
+	}
+	mg.Spec.ForProvider.RotationLambdaArn = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.ForProvider.RotationLambdaArnRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.ForProvider.SecretID),
+		Extract:      reference.ExternalName(),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.ForProvider.SecretIDRef,
+		Selector:     mg.Spec.ForProvider.SecretIDSelector,
+		To: reference.To{
+			List:    &SecretRAWList{},
+			Managed: &SecretRAW{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.ForProvider.SecretID")
+	}
+	mg.Spec.ForProvider.SecretID = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.ForProvider.SecretIDRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.RotationLambdaArn),
+		Extract:      native.ExtractAtProviderField("arn"),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.InitProvider.RotationLambdaArnRef,
+		Selector:     mg.Spec.InitProvider.RotationLambdaArnSelector,
+		To: reference.To{
+			List:    &v1beta11.FunctionList{},
+			Managed: &v1beta11.Function{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.InitProvider.RotationLambdaArn")
+	}
+	mg.Spec.InitProvider.RotationLambdaArn = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.InitProvider.RotationLambdaArnRef = rsp.ResolvedReference
+
+	rsp, err = r.Resolve(ctx, reference.ResolutionRequest{
+		CurrentValue: reference.FromPtrValue(mg.Spec.InitProvider.SecretID),
+		Extract:      reference.ExternalName(),
+		Namespace:    mg.GetNamespace(),
+		Reference:    mg.Spec.InitProvider.SecretIDRef,
+		Selector:     mg.Spec.InitProvider.SecretIDSelector,
+		To: reference.To{
+			List:    &SecretRAWList{},
+			Managed: &SecretRAW{},
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "mg.Spec.InitProvider.SecretID")
+	}
+	mg.Spec.InitProvider.SecretID = reference.ToPtrValue(rsp.ResolvedValue)
+	mg.Spec.InitProvider.SecretIDRef = rsp.ResolvedReference
 
 	return nil
 }

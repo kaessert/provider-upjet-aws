@@ -55,8 +55,8 @@ func init() {
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativesns.SchemeBuilder.AddToScheme)
 
-	// Register native secretsmanager types (SecretRAW and SecretRAWList)
-	// so that the controller manager can discover and watch them.
+	// Register native secretsmanager types (SecretRAW, SecretPolicyRAW,
+	// SecretVersionRAW, SecretRotationRAW and their list types).
 	AddToSchemes = append(AddToSchemes, nativesecretsmanager.SchemeBuilder.AddToScheme)
 
 	// Register native sqs types (QueueRAW, QueuePolicyRAW, QueueRedrivePolicyRAW,

@@ -15,6 +15,7 @@ import (
 	nativekinesis2 "github.com/upbound/provider-aws/v2/apis/cluster/kinesis/v1beta2/native"
 	natives3 "github.com/upbound/provider-aws/v2/apis/cluster/s3/v1beta1/native"
 	nativesecretsmanager "github.com/upbound/provider-aws/v2/apis/cluster/secretsmanager/v1beta1/native"
+	nativesecretsmanager2 "github.com/upbound/provider-aws/v2/apis/cluster/secretsmanager/v1beta2/native"
 	nativesfn "github.com/upbound/provider-aws/v2/apis/cluster/sfn/v1beta2/native"
 	nativesns "github.com/upbound/provider-aws/v2/apis/cluster/sns/v1beta1/native"
 	nativesqs "github.com/upbound/provider-aws/v2/apis/cluster/sqs/v1beta1/native"
@@ -44,9 +45,12 @@ func init() {
 	// types) so that the controller manager can discover and watch them.
 	AddToSchemes = append(AddToSchemes, nativesns.SchemeBuilder.AddToScheme)
 
-	// Register native secretsmanager types (SecretRAW and SecretRAWList)
-	// so that the controller manager can discover and watch them.
+	// Register native secretsmanager types (SecretRAW, SecretPolicyRAW,
+	// SecretVersionRAW, SecretRotationRAW-v1beta1 and their list types).
 	AddToSchemes = append(AddToSchemes, nativesecretsmanager.SchemeBuilder.AddToScheme)
+	// Register native secretsmanager v1beta2 types (SecretRotationRAW — storage
+	// version / conversion hub).
+	AddToSchemes = append(AddToSchemes, nativesecretsmanager2.SchemeBuilder.AddToScheme)
 
 	// Register native sqs types (QueueRAW, QueuePolicyRAW, QueueRedrivePolicyRAW,
 	// QueueRedriveAllowPolicyRAW and their list types) so that the controller
