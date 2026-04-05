@@ -100,6 +100,7 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueueRedrivePolicyCR) (
 		ID:            &qURL,
 		QueueURL:      &qURL,
 		RedrivePolicy: &rdp,
+		Region:        cr.GetForProvider().Region,
 	})
 
 	cr.SetConditions(xpv1.Available())

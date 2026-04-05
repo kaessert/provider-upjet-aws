@@ -64,8 +64,14 @@ type QueuePolicyRAWObservation struct {
 	// ID is the queue URL (external name).
 	ID *string `json:"id,omitempty"`
 
+	// The JSON policy for the SQS queue as observed from AWS.
+	Policy *string `json:"policy,omitempty"`
+
 	// URL of the SQS Queue to which the policy is attached.
 	QueueURL *string `json:"queueUrl,omitempty"`
+
+	// Region where the SQS Queue and its policy reside.
+	Region *string `json:"region,omitempty"`
 }
 
 // QueuePolicyRAWSpec defines the desired state of QueuePolicyRAW.

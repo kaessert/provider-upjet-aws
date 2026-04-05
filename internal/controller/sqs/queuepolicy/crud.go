@@ -93,9 +93,12 @@ func (e *ExternalClient) Observe(ctx context.Context, cr QueuePolicyCR) (managed
 
 	// Populate atProvider with observed state.
 	qURL := queueURL
+	policyVal := policy
 	cr.SetAtProvider(clusternative.QueuePolicyRAWObservation{
 		ID:       &qURL,
+		Policy:   &policyVal,
 		QueueURL: &qURL,
+		Region:   cr.GetForProvider().Region,
 	})
 
 	cr.SetConditions(xpv1.Available())

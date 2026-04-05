@@ -69,6 +69,9 @@ type QueueRedrivePolicyRAWObservation struct {
 
 	// The JSON redrive policy for the SQS queue.
 	RedrivePolicy *string `json:"redrivePolicy,omitempty"`
+
+	// Region where the SQS Queue and its redrive policy reside.
+	Region *string `json:"region,omitempty"`
 }
 
 // QueueRedrivePolicyRAWSpec defines the desired state of QueueRedrivePolicyRAW.
